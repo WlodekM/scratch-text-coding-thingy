@@ -1,0 +1,25 @@
+[
+  {
+    "type": "GreenFlag",
+    "branch": [
+      {
+        "type": "VariableDeclaration",
+        "identifier": "a",
+        "value": {
+          "type": "Literal",
+          "value": 0
+        }
+      },
+      {
+        "type": "FunctionCall",
+        "identifier": "looks_say",
+        "args": [
+          {
+            "type": "Identifier",
+            "name": "a"
+          }
+        ]
+      }
+    ]
+  }
+]

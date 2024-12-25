@@ -1,0 +1,5 @@
+gf {
+    var a = 0
+
+    looks_say(a)
+}

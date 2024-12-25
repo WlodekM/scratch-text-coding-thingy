@@ -1,0 +1,38 @@
+{
+    "targets": [
+        {
+            "name": "Stage",
+            "isStage": true,
+            "lists": {},
+            "variables": {},
+            "broadcasts": {},
+            "blocks": {},
+            "currentCostume": 0,
+            "sounds": [],
+            "volume": 100,
+            "layerOrder": 1,
+            "tempo": 60,
+            "videoTransparency": 50,
+            "videoState": "on"
+        },
+        {
+            "name": "Main",
+            "isStage": false,
+            "lists": {},
+            "variables": {},
+            "broadcasts": {},
+            "blocks": {},
+            "currentCostume": 0,
+            "sounds": [],
+            "volume": 100,
+            "layerOrder": 2,
+            "visible": true,
+            "x": 0,
+            "y": 0,
+            "size": 100,
+            "direction": 90,
+            "draggable": false,
+            "rotationStyle": "all around"
+        }
+    ]
+}
