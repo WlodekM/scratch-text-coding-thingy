@@ -1,24 +1,19 @@
 [
   {
-    "type": "GreenFlag",
-    "branch": [
+    "type": "FunctionCall",
+    "identifier": "print",
+    "args": [
       {
-        "type": "VariableDeclaration",
-        "identifier": "a",
-        "value": {
+        "type": "BinaryExpression",
+        "operator": "+",
+        "left": {
           "type": "Literal",
-          "value": 0
+          "value": 5
+        },
+        "right": {
+          "type": "Literal",
+          "value": 5
         }
-      },
-      {
-        "type": "FunctionCall",
-        "identifier": "looks_say",
-        "args": [
-          {
-            "type": "Identifier",
-            "name": "a"
-          }
-        ]
       }
     ]
   }

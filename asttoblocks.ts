@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-case-declarations
-import type { ASTNode, GreenFlagNode } from "./tshv2/main.ts";
+import type { ASTNode, FunctionCallNode, GreenFlagNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
+import blockDefinitions from "./blocks.ts";
 
 type jsonBlock = { id: string } & json.Block
 
@@ -30,11 +31,36 @@ class BlockCollection extends PartialBlockCollection {
     }
 }
 
+enum InputTypes {
+    math_number = 4,
+    math_positive_number = 5,
+    math_whole_number = 6,
+    math_integer = 7,
+    math_angle = 8,
+    colour_picker = 9,
+    text = 10,
+    event_broadcast_menu = 11,
+    data_variable = 12,
+    data_listcontents = 13
+}
+
+class Cast {
+    string (text: string) {
+        return [InputTypes.text, text]
+    }
+    number (number: number) {
+        return [InputTypes.math_number, number]
+    }
+}
+
+const cast = new Cast() // because yes
+
 export default function ASTtoBlocks(ast: ASTNode[]): json.Block[] {
     const blocks: json.Block[] = [];
     const variables: string[] = [];
 
     let blockID: number = 0;
+    let lastBlock: jsonBlock = {} as jsonBlock;
 
     function processNode(node: ASTNode, topLevel = false): BlockCollection {
         const thisBlockID = blockID++;
@@ -49,12 +75,38 @@ export default function ASTtoBlocks(ast: ASTNode[]): json.Block[] {
                 const gfBlock = {
                     opcode: 'event_whenflagclicked',
                     id: thisBlockID.toString(),
-                    next: firstChild?.block?.id
+                    next: firstChild?.block?.id,
+                    topLevel
                 } as jsonBlock
+                if (firstChild) firstChild.block.parent = thisBlockID;
+                lastBlock = gfBlock
                 return new BlockCollection(gfBlock, [children])
             
             case 'FunctionCall':
-                // TODO: finish this
+                const fnNode = node as FunctionCallNode;
+                if (!blockDefinitions[fnNode.identifier])
+                    throw 'Unknown opcode "' + fnNode.identifier + '"';
+                const definition = blockDefinitions[fnNode.identifier]
+                const block: jsonBlock = {
+                    opcode: fnNode.identifier,
+                    fields: [],
+                    id: ''+(blockID++),
+                    inputs: Object.fromEntries(definition.map(
+                        (inp, i) => [inp.name, [inp.type, 
+                            ...(
+                                fnNode.args[i]
+                                ? [fnNode.args[i]]
+                                : []
+                            )
+                        ]]
+                    )),
+                    next: 
+                }
+                if(!topLevel) lastBlock.next = block.id;
+                lastBlock = block;
+                break;
+
+            case 'BinaryExpression':
         }
         
     }
