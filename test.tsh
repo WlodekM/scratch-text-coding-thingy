@@ -1,5 +1,0 @@
-var a = 0
-
-for a of 10 {
-    goto(a * 5, 0 - a * 5)
-}

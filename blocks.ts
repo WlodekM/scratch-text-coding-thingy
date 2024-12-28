@@ -16,4 +16,5 @@ export default {
             type: 3
         }
     ]
+    //TODO: add more blocks or automate definitions
 } as Record<string, Input[]>

@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { ASTNode, FunctionCallNode, GreenFlagNode } from "./tshv2/main.ts";
+import type { ASTNode, FunctionCallNode, GreenFlagNode, LiteralNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
@@ -29,6 +29,14 @@ class BlockCollection extends PartialBlockCollection {
         super(children);
         this.block = block
     }
+    override unfurl(): jsonBlock[] {
+        const blocks = [this.block]
+        for (const child of this.children) {
+            const childBlocks = child.unfurl();
+            blocks.push(...childBlocks)
+        }
+        return blocks
+    }
 }
 
 enum InputTypes {
@@ -55,8 +63,8 @@ class Cast {
 
 const cast = new Cast() // because yes
 
-export default function ASTtoBlocks(ast: ASTNode[]): json.Block[] {
-    const blocks: json.Block[] = [];
+export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
+    const blocks: jsonBlock[] = [];
     const variables: string[] = [];
 
     let blockID: number = 0;
@@ -95,23 +103,39 @@ export default function ASTtoBlocks(ast: ASTNode[]): json.Block[] {
                         (inp, i) => [inp.name, [inp.type, 
                             ...(
                                 fnNode.args[i]
-                                ? [fnNode.args[i]]
+                                ? [(fnNode.args[i] as LiteralNode | any)?.value]
                                 : []
                             )
                         ]]
                     )),
-                    next: 
+                    next: '', // no next (yet)
+                    topLevel,
+                    parent: topLevel ? undefined : lastBlock.id,
+                    shadow: false,
+                    x: 0,
+                    y: 0
                 }
                 if(!topLevel) lastBlock.next = block.id;
                 lastBlock = block;
-                break;
+                return new BlockCollection(block, []) //TODO: figure out how to map function args to children
 
             case 'BinaryExpression':
+                //TODO: do shit like +, -, *, /, % etc.
+                throw 'Unimplemented (BinaryExpression)'
+            
+            //TODO: do other nodes
+
+            default:
+                throw `Unimplemented (${node.type})`
         }
         
     }
 
     for (const node of ast) {
+        const coll = processNode(node);
+        const unfurled = coll.unfurl()
+        console.log(coll, unfurled)
+        blocks.push(...unfurled)
     }
 
     return blocks

@@ -21,7 +21,31 @@
             "lists": {},
             "variables": {},
             "broadcasts": {},
-            "blocks": {},
+            "blocks": {
+                "0": {
+                    "opcode": "event_whenflagclicked",
+                    "id": "0",
+                    "next": "2",
+                    "topLevel": false
+                },
+                "2": {
+                    "opcode": "looks_say",
+                    "fields": [],
+                    "id": "2",
+                    "inputs": {
+                        "MESSAGE": [
+                            3,
+                            "test"
+                        ]
+                    },
+                    "next": "",
+                    "topLevel": false,
+                    "parent": 0,
+                    "shadow": false,
+                    "x": 0,
+                    "y": 0
+                }
+            },
             "currentCostume": 0,
             "sounds": [],
             "volume": 100,

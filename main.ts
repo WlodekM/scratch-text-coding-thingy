@@ -2,6 +2,7 @@
 import { parse } from "jsr:@std/yaml";
 import * as json from './jsontypes.ts'
 import { Lexer, Parser } from "./tshv2/main.ts";
+import ASTtoBlocks from "./asttoblocks.ts";
 
 // the t stands for tosh3
 type TSound = any // TODO: finish this
@@ -41,8 +42,19 @@ for (const spriteName in project.sprites) {
     jsonsprite.variables = {}
     jsonsprite.broadcasts = {}
 
-    // TODO: add tsh parsing
-    jsonsprite.blocks = {}
+    if (sprite.code) {
+        const sourceCode = new TextDecoder().decode(Deno.readFileSync(sprite.code));
+
+        const lexer = new Lexer(sourceCode);
+        const tokens = lexer.tokenize();
+        const parser = new Parser(tokens);
+        const ast = parser.parse();
+        const blockaroonies: (json.Block & {id: string})[] = ASTtoBlocks(ast);
+        console.log(ast, blockaroonies)
+        jsonsprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, b]))
+    } else {
+        jsonsprite.blocks = {}
+    }
 
     jsonsprite.currentCostume = 0;
     jsonsprite.sounds = [] // TODO: fix this
@@ -50,7 +62,7 @@ for (const spriteName in project.sprites) {
     jsonsprite.volume = 100;
     jsonsprite.layerOrder = layer
     jsonsprite.isStage = sprite.stage ?? false
-    if(jsonsprite.isStage) {
+    if (jsonsprite.isStage) {
         jsonsprite.tempo = 60
         jsonsprite.videoTransparency = 50
         jsonsprite.videoState = 'on'
@@ -64,7 +76,7 @@ for (const spriteName in project.sprites) {
         jsonsprite.rotationStyle = 'all around'
     }
     let completesprite: json.Sprite;
-    if(jsonsprite.isStage) {
+    if (jsonsprite.isStage) {
         completesprite = jsonsprite as json.Stage
     } else if (jsonsprite.isStage == false) {
         completesprite = jsonsprite as json.RealSprite
