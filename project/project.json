@@ -1,5 +1,4 @@
 {
-    "$schema": "./schema/sb3_schema.json",
     "targets": [
         {
             "name": "Stage",
@@ -8,10 +7,21 @@
             "variables": {},
             "broadcasts": {},
             "blocks": {},
+            "costumes": [
+                {
+                    "name": "costume1",
+                    "bitmapResolution": 1,
+                    "dataFormat": "svg",
+                    "assetId": "14e46ec3e2ba471c2adfe8f119052307",
+                    "md5ext": "14e46ec3e2ba471c2adfe8f119052307.svg",
+                    "rotationCenterX": 0,
+                    "rotationCenterY": 0
+                }
+            ],
             "currentCostume": 0,
             "sounds": [],
             "volume": 100,
-            "layerOrder": 1,
+            "layerOrder": 0,
             "tempo": 60,
             "videoTransparency": 50,
             "videoState": "on"
@@ -22,16 +32,28 @@
             "lists": {},
             "variables": {},
             "broadcasts": {},
+            "costumes": [
+                {
+                    "name": "costume1",
+                    "bitmapResolution": 1,
+                    "dataFormat": "svg",
+                    "assetId": "14e46ec3e2ba471c2adfe8f119052307",
+                    "md5ext": "14e46ec3e2ba471c2adfe8f119052307.svg",
+                    "rotationCenterX": 0,
+                    "rotationCenterY": 0
+                }
+            ],
             "blocks": {
                 "0": {
                     "opcode": "event_whenflagclicked",
                     "id": "0",
                     "next": "2",
-                    "topLevel": false
+                    "topLevel": false,
+                    "fields": {}
                 },
                 "2": {
                     "opcode": "looks_say",
-                    "fields": [],
+                    "fields": {},
                     "id": "2",
                     "inputs": {
                         "MESSAGE": [
@@ -50,7 +72,7 @@
             "currentCostume": 0,
             "sounds": [],
             "volume": 100,
-            "layerOrder": 2,
+            "layerOrder": 1,
             "visible": true,
             "x": 0,
             "y": 0,
@@ -60,12 +82,16 @@
             "rotationStyle": "all around"
         }
     ],
+    "//COMMENT": "meta was added, TODO - automatically generate meta",
+    "monitors": [],
+    "extensions": [],
     "meta": {
-        "agent": "",
         "semver": "3.0.0",
+        "vm": "0.2.0",
+        "agent": "",
         "platform": {
-            "name": "WSATC2SPC",
-            "url": "https://github.com/WlodekM/scratch-text-coding-thingy"
+            "name": "TurboWarp",
+            "url": "https://turbowarp.org/"
         }
     }
 }

@@ -1,4 +1,4 @@
-// deno-lint-ignore-file no-explicit-any ban-ts-comment
+// deno-lint-ignore-file no-explicit-any
 import { parse } from "jsr:@std/yaml";
 import * as json from './jsontypes.ts'
 import { Lexer, Parser } from "./tshv2/main.ts";
@@ -27,8 +27,9 @@ const project: TProject = parse(rawProjectConfig) as TProject
 
 console.debug(project)
 
-const projectjson: { targets: json.Sprite[] } = {
-    targets: []
+const projectjson: { targets: json.Sprite[], meta: any, $schema?: string } = {
+    targets: [],
+    meta: {}
 }
 
 let layer = 0;
@@ -84,6 +85,22 @@ for (const spriteName in project.sprites) {
     projectjson.targets.push(completesprite)
 }
 
+projectjson.meta = {
+    agent: '',
+    semver: '3.0.0',
+    platform: {
+        name: 'SLTLCC',
+        url: 'https://github.com/WlodekM/scratch-text-coding-thingy'
+    }
+}
+
+//NOTE - debug
+projectjson.$schema = "./schema/sb3_schema.json"
+
+//TODO - figure out what the SHIT is causing it to error
+//@ts-expect-error
+const completeproject: json.Project & { $schema?: string } = projectjson
+
 const encoder = new TextEncoder();
-const data = encoder.encode(JSON.stringify(projectjson))
+const data = encoder.encode(JSON.stringify(completeproject))
 Deno.writeFileSync('out.json', data)
