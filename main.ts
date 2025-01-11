@@ -98,7 +98,7 @@ projectjson.meta = {
 projectjson.$schema = "./schema/sb3_schema.json"
 
 //TODO - figure out what the SHIT is causing it to error
-//@ts-expect-error
+//@ts-expect-error: uh
 const completeproject: json.Project & { $schema?: string } = projectjson
 
 const encoder = new TextEncoder();
