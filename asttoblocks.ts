@@ -111,11 +111,18 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
                     id: thisBlockID.toString(),
                     inputs: Object.fromEntries(definition.map(
                         (inp, i) => [inp.name, [inp.type, 
-                            ...(
-                                fnNode.args[i]
-                                ? [(fnNode.args[i] as LiteralNode | any)?.value]
-                                : []
-                            )
+                            [
+                                ...(
+                                    fnNode.args[i]
+                                    ? [
+                                        ({
+                                            Literal: typeof (fnNode.args[i] as LiteralNode).value == 'number' ? 4 : 10,
+                                        })[fnNode.args[i].type] ?? 10,
+                                        (fnNode.args[i] as LiteralNode | any)?.value
+                                    ]
+                                    : []
+                                )
+                            ]
                         ]]
                     )),
                     next: '', // no next (yet)

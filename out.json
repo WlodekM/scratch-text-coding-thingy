@@ -49,7 +49,7 @@
                     "opcode": "event_whenflagclicked",
                     "id": "0",
                     "next": "1",
-                    "topLevel": false
+                    "topLevel": true
                 },
                 "1": {
                     "opcode": "looks_say",
@@ -58,7 +58,10 @@
                     "inputs": {
                         "MESSAGE": [
                             3,
-                            "test"
+                            [
+                                10,
+                                "test"
+                            ]
                         ]
                     },
                     "next": "",
@@ -86,7 +89,7 @@
         "agent": "",
         "semver": "3.0.0",
         "platform": {
-            "name": "TurboWarp-compatible SLTLCC",
+            "name": "SLTLCC (TurboWarp-compatible)",
             "url": "https://github.com/WlodekM/scratch-text-coding-thingy"
         }
     }
