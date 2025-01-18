@@ -65,4 +65,4 @@ uh types for stuffs in sb3 r in `jsontypes.ts`
 ye
 
 #### p.s.
-this is barney86. i am sorry, i sadly could not stop wlodekm from making this readable
+this is barney86. i am sorry, i sadly could not stop wlodekm from making this unreadable
