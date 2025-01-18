@@ -49,6 +49,11 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1"
-    ]
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:sb-edit@0.14"
+      ]
+    }
   }
 }

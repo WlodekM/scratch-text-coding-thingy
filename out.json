@@ -1,1 +1,93 @@
-{"$schema":"./schema/sb3_schema.json","targets":[{"name":"Stage","isStage":true,"lists":{},"variables":{},"broadcasts":{},"costumes":[{"assetId":"cd21514d0531fdffb22204e0ec5ed84a","dataFormat":"svg","bitmapResolution":1,"md5ext":"cd21514d0531fdffb22204e0ec5ed84a.svg","name":"backdrop1","rotationCenterX":0,"rotationCenterY":0}],"blocks":{},"currentCostume":0,"sounds":[],"volume":100,"layerOrder":0,"tempo":60,"videoTransparency":50,"videoState":"on"},{"name":"Main","isStage":false,"lists":{},"variables":{},"broadcasts":{},"costumes":[{"assetId":"cd21514d0531fdffb22204e0ec5ed84a","dataFormat":"svg","bitmapResolution":1,"md5ext":"cd21514d0531fdffb22204e0ec5ed84a.svg","name":"costume1","rotationCenterX":0,"rotationCenterY":0}],"blocks":{"0":{"opcode":"event_whenflagclicked","id":"0","next":"1","topLevel":false},"1":{"opcode":"looks_say","fields":{},"id":"1","inputs":{"MESSAGE":[3,"test"]},"next":"","topLevel":false,"parent":"0","shadow":false,"x":0,"y":0}},"currentCostume":0,"sounds":[],"volume":100,"layerOrder":1,"visible":true,"x":0,"y":0,"size":100,"direction":90,"draggable":false,"rotationStyle":"all around"}],"meta":{"agent":"","semver":"3.0.0","platform":{"name":"TurboWarp-compatible SLTLCC","url":"https://github.com/WlodekM/scratch-text-coding-thingy"}}}
+{
+    "$schema": "./schema/sb3_schema.json",
+    "targets": [
+        {
+            "name": "Stage",
+            "isStage": true,
+            "lists": {},
+            "variables": {},
+            "broadcasts": {},
+            "costumes": [
+                {
+                    "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+                    "dataFormat": "svg",
+                    "bitmapResolution": 1,
+                    "md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+                    "name": "backdrop1",
+                    "rotationCenterX": 0,
+                    "rotationCenterY": 0
+                }
+            ],
+            "blocks": {},
+            "currentCostume": 0,
+            "sounds": [],
+            "volume": 100,
+            "layerOrder": 0,
+            "tempo": 60,
+            "videoTransparency": 50,
+            "videoState": "on"
+        },
+        {
+            "name": "Main",
+            "isStage": false,
+            "lists": {},
+            "variables": {},
+            "broadcasts": {},
+            "costumes": [
+                {
+                    "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+                    "dataFormat": "svg",
+                    "bitmapResolution": 1,
+                    "md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+                    "name": "costume1",
+                    "rotationCenterX": 0,
+                    "rotationCenterY": 0
+                }
+            ],
+            "blocks": {
+                "0": {
+                    "opcode": "event_whenflagclicked",
+                    "id": "0",
+                    "next": "1",
+                    "topLevel": false
+                },
+                "1": {
+                    "opcode": "looks_say",
+                    "fields": {},
+                    "id": "1",
+                    "inputs": {
+                        "MESSAGE": [
+                            3,
+                            "test"
+                        ]
+                    },
+                    "next": "",
+                    "topLevel": false,
+                    "parent": "0",
+                    "shadow": false,
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            "currentCostume": 0,
+            "sounds": [],
+            "volume": 100,
+            "layerOrder": 1,
+            "visible": true,
+            "x": 0,
+            "y": 0,
+            "size": 100,
+            "direction": 90,
+            "draggable": false,
+            "rotationStyle": "all around"
+        }
+    ],
+    "meta": {
+        "agent": "",
+        "semver": "3.0.0",
+        "platform": {
+            "name": "TurboWarp-compatible SLTLCC",
+            "url": "https://github.com/WlodekM/scratch-text-coding-thingy"
+        }
+    }
+}

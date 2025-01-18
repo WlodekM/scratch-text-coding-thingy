@@ -143,7 +143,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
     }
 
     for (const node of ast) {
-        const coll = processNode(node);
+        const coll = processNode(node, true);
         const unfurled = coll.unfurl()
         console.log(coll, unfurled)
         blocks.push(...unfurled)
