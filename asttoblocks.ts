@@ -74,7 +74,14 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
         const thisBlockID = blockID++;
         switch (node.type) {
             case 'GreenFlag':
-                const gfNode = node as GreenFlagNode
+                const gfNode = node as GreenFlagNode;
+                const tempBlock = {
+                    opcode: 'event_whenflagclicked',
+                    id: thisBlockID.toString(),
+                    next: '',
+                    topLevel
+                } as jsonBlock
+                lastBlock = tempBlock
                 const children = new PartialBlockCollection(
                     gfNode.branch.map(node => processNode(node))
                 )
@@ -86,7 +93,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
                     next: firstChild?.block?.id,
                     topLevel
                 } as jsonBlock
-                if (firstChild) firstChild.block.parent = thisBlockID;
+                if (firstChild) firstChild.block.parent = thisBlockID.toString();
                 lastBlock = gfBlock
                 return new BlockCollection(gfBlock, [children])
             
@@ -95,10 +102,13 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
                 if (!blockDefinitions[fnNode.identifier])
                     throw 'Unknown opcode "' + fnNode.identifier + '"';
                 const definition = blockDefinitions[fnNode.identifier]
+                console.log('last: ', lastBlock)
+                console.log(topLevel || !lastBlock ? undefined : lastBlock.id.toString())
+                console.log(lastBlock.id)
                 const block: jsonBlock = {
                     opcode: fnNode.identifier,
-                    fields: [],
-                    id: ''+(blockID++),
+                    fields: {},
+                    id: thisBlockID.toString(),
                     inputs: Object.fromEntries(definition.map(
                         (inp, i) => [inp.name, [inp.type, 
                             ...(
@@ -110,12 +120,13 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
                     )),
                     next: '', // no next (yet)
                     topLevel,
-                    parent: topLevel ? undefined : lastBlock.id,
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
                     x: 0,
                     y: 0
                 }
-                if(!topLevel) lastBlock.next = block.id;
+                console.debug(block)
+                if(!topLevel) lastBlock.next = block.id.toString();
                 lastBlock = block;
                 return new BlockCollection(block, []) //TODO: figure out how to map function args to children
 

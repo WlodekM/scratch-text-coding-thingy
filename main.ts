@@ -3,6 +3,8 @@ import { parse } from "jsr:@std/yaml";
 import * as json from './jsontypes.ts'
 import { Lexer, Parser } from "./tshv2/main.ts";
 import ASTtoBlocks from "./asttoblocks.ts";
+import * as zip from "jsr:@zip-js/zip-js";
+import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
 
 // the t stands for tosh3
 type TSound = any // TODO: finish this
@@ -22,26 +24,29 @@ type TProject = {
 }
 
 const decoder = new TextDecoder("utf-8");
-const rawProjectConfig: string = decoder.decode(Deno.readFileSync('project.prj'))
+const rawProjectConfig: string = decoder.decode(Deno.readFileSync('project.prj.yaml'))
 const project: TProject = parse(rawProjectConfig) as TProject
 
 console.debug(project)
 
-const projectjson: { targets: json.Sprite[], meta: any, $schema?: string } = {
+const projectJson: { targets: json.Sprite[], meta: any, $schema?: string } = {
     targets: [],
     meta: {}
 }
 
-let layer = 0;
+const assets: Map<string, string> = new Map();
+
+let layer = -1;
 for (const spriteName in project.sprites) {
     layer++;
     const sprite: TSprite = project.sprites[spriteName];
-    const jsonsprite: Partial<json.Sprite> = {};
-    jsonsprite.name = sprite.name
-    jsonsprite.isStage = sprite.stage ?? false
-    jsonsprite.lists = {}
-    jsonsprite.variables = {}
-    jsonsprite.broadcasts = {}
+    const jsonSprite: Partial<json.Sprite> = {};
+    jsonSprite.name = sprite.name
+    jsonSprite.isStage = sprite.stage ?? false
+    jsonSprite.lists = {}
+    jsonSprite.variables = {}
+    jsonSprite.broadcasts = {}
+    jsonSprite.costumes = []
 
     if (sprite.code) {
         const sourceCode = new TextDecoder().decode(Deno.readFileSync(sprite.code));
@@ -50,57 +55,90 @@ for (const spriteName in project.sprites) {
         const tokens = lexer.tokenize();
         const parser = new Parser(tokens);
         const ast = parser.parse();
-        const blockaroonies: (json.Block & {id: string})[] = ASTtoBlocks(ast);
+        const blockaroonies: (json.Block & { id: string })[] = ASTtoBlocks(ast);
         console.log(ast, blockaroonies)
-        jsonsprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, b]))
+        jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, b]))
     } else {
-        jsonsprite.blocks = {}
+        jsonSprite.blocks = {}
     }
 
-    jsonsprite.currentCostume = 0;
-    jsonsprite.sounds = [] // TODO: fix this
+    jsonSprite.currentCostume = 0;
+    jsonSprite.sounds = [] // TODO: fix this
 
-    jsonsprite.volume = 100;
-    jsonsprite.layerOrder = layer
-    jsonsprite.isStage = sprite.stage ?? false
-    if (jsonsprite.isStage) {
-        jsonsprite.tempo = 60
-        jsonsprite.videoTransparency = 50
-        jsonsprite.videoState = 'on'
-    } else if (jsonsprite.isStage == false) {
-        jsonsprite.visible = true
-        jsonsprite.x = 0;
-        jsonsprite.y = 0;
-        jsonsprite.size = 100;
-        jsonsprite.direction = 90;
-        jsonsprite.draggable = false;
-        jsonsprite.rotationStyle = 'all around'
+    jsonSprite.volume = 100;
+    jsonSprite.layerOrder = layer
+    jsonSprite.isStage = sprite.stage ?? false
+    if (jsonSprite.isStage) {
+        jsonSprite.tempo = 60
+        jsonSprite.videoTransparency = 50
+        jsonSprite.videoState = 'on'
+    } else if (jsonSprite.isStage == false) {
+        jsonSprite.visible = true
+        jsonSprite.x = 0;
+        jsonSprite.y = 0;
+        jsonSprite.size = 100;
+        jsonSprite.direction = 90;
+        jsonSprite.draggable = false;
+        jsonSprite.rotationStyle = 'all around'
     }
     let completesprite: json.Sprite;
-    if (jsonsprite.isStage) {
-        completesprite = jsonsprite as json.Stage
-    } else if (jsonsprite.isStage == false) {
-        completesprite = jsonsprite as json.RealSprite
+    if (jsonSprite.isStage) {
+        completesprite = jsonSprite as json.Stage
+    } else if (jsonSprite.isStage == false) {
+        completesprite = jsonSprite as json.RealSprite
     } else throw new Error()
-    projectjson.targets.push(completesprite)
+
+    for (const [name, asset] of Object.entries(sprite.costumes)) {
+        if (!assets.has(asset.path)) {
+            const assetData = new TextDecoder().decode(Deno.readFileSync(asset.path))
+            const hash = CryptoJS.MD5(assetData).toString();
+            assets.set(asset.path, hash);
+        }
+        const ext = asset.path.match(/\.(.*?)$/g)?.[0]
+        jsonSprite.costumes.push({
+            assetId: assets.get(asset.path) ?? '',
+            dataFormat: asset.format, // TODO - figure out bitmap format
+            bitmapResolution: 1,
+            md5ext: assets.get(asset.path) as string + ext,
+            name,
+            rotationCenterX: 0,
+            rotationCenterY: 0,
+        })
+    }
+    projectJson.targets.push(completesprite)
 }
 
-projectjson.meta = {
+projectJson.meta = {
     agent: '',
     semver: '3.0.0',
     platform: {
-        name: 'SLTLCC',
+        name: 'TurboWarp-compatible SLTLCC',
         url: 'https://github.com/WlodekM/scratch-text-coding-thingy'
     }
 }
 
-//NOTE - debug
-projectjson.$schema = "./schema/sb3_schema.json"
-
 //TODO - figure out what the SHIT is causing it to error
 //@ts-expect-error: uh
-const completeproject: json.Project & { $schema?: string } = projectjson
+const completeproject: json.Project & { $schema?: string } = {$schema: "./schema/sb3_schema.json", ...projectJson}
 
 const encoder = new TextEncoder();
 const data = encoder.encode(JSON.stringify(completeproject))
 Deno.writeFileSync('out.json', data)
+
+//SECTION - Write the project json and assets into a zip
+const zipFileWriter = new zip.BlobWriter();
+
+const zipWriter = new zip.ZipWriter(zipFileWriter);
+await zipWriter.add("project.json", new zip.TextReader(JSON.stringify(completeproject)));
+await zipWriter.add('assets/')
+for (const [asset, uuid] of [...assets.entries()]) {
+    const file = await Deno.readFileSync(asset)
+    await zipWriter.add(`assets/${uuid}.svg`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
+}
+await zipWriter.close();
+
+// Retrieves the Blob object containing the zip content into `zipFileBlob`. It
+// is also returned by zipWriter.close() for more convenience.
+const zipFileBlob = await zipFileWriter.getData();
+Deno.writeFileSync('project.sb3', await zipFileBlob.bytes())
+//!SECTION

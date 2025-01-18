@@ -52,7 +52,7 @@ export interface Broadcasts { }
 export interface Block {
     opcode: string
     next: string
-    parent: any
+    parent: string | null
     inputs: Inputs
     fields: any
     shadow: boolean
