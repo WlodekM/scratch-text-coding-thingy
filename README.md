@@ -42,7 +42,7 @@ run `deno task run` to make the project sb3
 
 or run `deno task run-and-open` to open tw with that project after compiling (linux only bc fuck windowse)
 
-or run `deno task open` to open the current project sb3
+or run `deno task open` to open the current project sb3 (also only linux i think)
 
 ### done
 
