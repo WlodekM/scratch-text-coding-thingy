@@ -112,7 +112,7 @@ projectJson.meta = {
     agent: '',
     semver: '3.0.0',
     platform: {
-        name: 'TurboWarp-compatible SLTLCC',
+        name: 'SLTLCC (TurboWarp-compatible)',
         url: 'https://github.com/WlodekM/scratch-text-coding-thingy'
     }
 }
