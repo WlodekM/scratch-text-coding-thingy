@@ -3,6 +3,8 @@
   &nbsp;&nbsp;
   <img src="https://raw.githubusercontent.com/WlodekM/scratch-text-coding-thingy/6e4d8510902923624ef47b27a8bedf9f1fa0ca42/assets/SLTLCC.svg" style="width:40%">
 </p>
+<p align="right">
+  <img src="https://raw.githubusercontent.com/WlodekM/scratch-text-coding-thingy/0fb09eddfabf59b6963c60ecc93f5227209d090a/assets/TJI.svg" style="width:5%">
 </p>
 <h3 align="center"><b>Scratch-Like Trans-Language Cross-Compiler</b></h3>
 <p align="right"><i>- a tosh-like programming language with no pronounceable acronym</i></p>
