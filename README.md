@@ -6,8 +6,8 @@
 <p align="right">
   <img src="https://raw.githubusercontent.com/WlodekM/scratch-text-coding-thingy/0fb09eddfabf59b6963c60ecc93f5227209d090a/assets/TJI.svg" style="width:5%">
 </p>
-<h3 align="center"><b>Scratch-Like Trans-Language Cross-Compiler</b></h3>
-<p align="right"><i>- a tosh-like programming language with no pronounceable acronym</i></p>
+<h3 align="center"><b>backslash</b></h3>
+<p align="right"><i>- a tosh-like programming language with a stupid name</i></p>
 <p align="center">
   <img src="https://img.shields.io/github/contributors-anon/WlodekM/scratch-text-coding-thingy">
   <img src="https://img.shields.io/github/directory-file-count/WlodekM/scratch-text-coding-thingy">
@@ -16,7 +16,7 @@
 </p>
 
 ## whart
-**SLTLCC**, or *Scratch-Like Trans-Language Cross-Compiler*, allows you to convert text-based code into Scratch-compatible blocks. It injects its own programming language into Scratch-compatible projects, expanding the possibilities for coding with a text-based language instead of block-based Scratch editing.
+**backslash** allows you to convert text-based code into Scratch-compatible blocks. It injects its own programming language into Scratch-compatible projects, expanding the possibilities for coding with a text-based language instead of block-based Scratch editing.
 
 TL;DR: use text code 2 maek scratch project
 
