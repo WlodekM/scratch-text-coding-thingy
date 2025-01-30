@@ -3,7 +3,13 @@ import type { ASTNode, FunctionCallNode, GreenFlagNode, LiteralNode } from "./ts
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
-type jsonBlock = { id: string } & json.Block
+export type jsonBlock = { id: string } & json.Block
+
+type Variable = ["a", string | number] //TODO - figure out the first item
+
+export class Environment {
+    variables: Map<string, Variable> = new Map()
+}
 
 class PartialBlockCollection {
     children: PartialBlockCollection[] = [];
@@ -61,11 +67,11 @@ class Cast {
     }
 }
 
-const cast = new Cast() // because yes
+const _cast = new Cast() // because yes
 
-export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
+export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] {
     const blocks: jsonBlock[] = [];
-    const variables: string[] = [];
+    const sprite = new Environment();
 
     let blockID: number = 0;
     let lastBlock: jsonBlock = {} as jsonBlock;
@@ -156,5 +162,5 @@ export default function ASTtoBlocks(ast: ASTNode[]): jsonBlock[] {
         blocks.push(...unfurled)
     }
 
-    return blocks
+    return [blocks, sprite]
 }
