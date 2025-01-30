@@ -2,7 +2,7 @@
 import { parse } from "jsr:@std/yaml";
 import * as json from './jsontypes.ts'
 import { Lexer, Parser } from "./tshv2/main.ts";
-import ASTtoBlocks from "./asttoblocks.ts";
+import ASTtoBlocks, { Environment } from "./asttoblocks.ts";
 import * as zip from "jsr:@zip-js/zip-js";
 import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
 
@@ -55,7 +55,7 @@ for (const spriteName in project.sprites) {
         const tokens = lexer.tokenize();
         const parser = new Parser(tokens);
         const ast = parser.parse();
-        const blockaroonies: (json.Block & { id: string })[] = ASTtoBlocks(ast);
+        const [blockaroonies, env]: [(json.Block & { id: string })[], Environment] = ASTtoBlocks(ast);
         console.log(ast, blockaroonies)
         jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, b]))
     } else {
