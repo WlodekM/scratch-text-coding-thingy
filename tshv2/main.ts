@@ -65,10 +65,17 @@ export class Lexer {
     tokenize(): Token[] {
         const tokens: Token[] = [];
 
+        let inComment = false;
+
         while (this.position < this.source.length) {
             const char = this.advance();
 
-            if (this.isWhitespace(char)) {
+            if (inComment) {
+                if (char == '\n') inComment = false;
+                continue;
+            } else if (char == '/' && this.peek() == '/') {
+                inComment = true
+            } else if (this.isWhitespace(char)) {
                 continue;
             } else if (this.isAlpha(char)) {
                 let identifier = char;
@@ -201,8 +208,8 @@ export class Parser {
         this.tokens = tokens;
     }
 
-    private peek(): Token {
-        return this.tokens[this.position];
+    private peek(ahead = 0): Token {
+        return this.tokens[this.position + ahead];
     }
 
     private advance(): Token {
@@ -217,10 +224,18 @@ export class Parser {
         return false;
     }
 
+    private matchTk(types: TokenType[], token = this.peek()): boolean {
+        if (types.includes(token.type)) {
+            return true;
+        }
+        return false;
+    }
+
     private expect(type: TokenType, errorMessage: string): Token {
         if (this.peek().type === type) {
             return this.advance();
         }
+        console.error('trace: tokens', this.tokens, '\nIDX:', this.position)
         throw new Error(errorMessage);
     }
 
@@ -315,6 +330,11 @@ export class Parser {
                 const args: ASTNode[] = [];
                 if (!this.match(TokenType.RPAREN)) {
                     do {
+                        if(this.matchTk([TokenType.IDENTIFIER], this.peek())
+                        && this.matchTk([TokenType.LPAREN], this.peek(1))) {
+                            args.push(this.parseStatement());
+                            continue;
+                        }
                         args.push(this.parseExpression());
                     } while (this.match(TokenType.COMMA));
                     this.expect(TokenType.RPAREN, "Expected ')' after arguments");
