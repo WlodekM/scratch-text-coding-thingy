@@ -69,15 +69,38 @@ class Cast {
 
 const _cast = new Cast() // because yes
 
+function genId(num: number): string {
+    let result = "";
+    while (num > 0) {
+        num--;
+        result = String.fromCharCode(97 + (num % 26)) + result;
+        num = Math.floor(num / 26);
+    }
+    return result;
+}
+
 export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] {
     const blocks: jsonBlock[] = [];
     const sprite = new Environment();
 
+    console.debug('debug: ast\n', JSON.stringify(ast, null, 2))
+
     let blockID: number = 0;
     let lastBlock: jsonBlock = {} as jsonBlock;
 
-    function processNode(node: ASTNode, topLevel = false): BlockCollection {
-        const thisBlockID = blockID++;
+    function processNode(node: ASTNode, topLevel = false, noLast = false): BlockCollection {
+        blockID++;
+        const thisBlockID = genId(blockID);
+        const blk = {
+            next: '',
+            parent: null,
+            inputs: {},
+            fields: {},
+            shadow: false,
+            topLevel: false,
+            x: 0,
+            y: 0,
+        }
         switch (node.type) {
             case 'GreenFlag':
                 const gfNode = node as GreenFlagNode;
@@ -95,6 +118,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     children.children[0] as BlockCollection | undefined
                 const gfBlock = {
                     opcode: 'event_whenflagclicked',
+                    ...blk,
                     id: thisBlockID.toString(),
                     next: firstChild?.block?.id,
                     topLevel
@@ -110,26 +134,47 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                 const definition = blockDefinitions[fnNode.identifier]
                 console.log('last: ', lastBlock)
                 console.log(topLevel || !lastBlock ? undefined : lastBlock.id.toString())
-                console.log(lastBlock.id)
+                console.log(lastBlock.id);
+                const child: PartialBlockCollection[] = [];
                 const block: jsonBlock = {
                     opcode: fnNode.identifier,
+                    ...blk,
                     fields: {},
                     id: thisBlockID.toString(),
                     inputs: Object.fromEntries(definition.map(
-                        (inp, i) => [inp.name, [inp.type, 
-                            [
-                                ...(
-                                    fnNode.args[i]
-                                    ? [
-                                        ({
-                                            Literal: typeof (fnNode.args[i] as LiteralNode).value == 'number' ? 4 : 10,
-                                        })[fnNode.args[i].type] ?? 10,
-                                        (fnNode.args[i] as LiteralNode | any)?.value
+                        (inp, i) => {
+                            if(fnNode.args[i].type == 'FunctionCall') {
+                                const childBlock = processNode(fnNode.args[i], false, true);
+                                child.push(childBlock);
+                                return [inp.name, [inp.type,
+                                    childBlock.block.id.toString(),
+                                    [
+                                        ...(
+                                            fnNode.args[i]
+                                            ? [
+                                                10,
+                                                '0'
+                                            ]
+                                            : []
+                                        )
                                     ]
-                                    : []
-                                )
-                            ]
-                        ]]
+                                ]]
+                            }
+                            return [inp.name, [inp.type, 
+                                [
+                                    ...(
+                                        fnNode.args[i]
+                                        ? [
+                                            ({
+                                                Literal: typeof (fnNode.args[i] as LiteralNode).value == 'number' ? 4 : 10,
+                                            })[fnNode.args[i].type] ?? 10,
+                                            (fnNode.args[i] as LiteralNode | any)?.value?.toString()
+                                        ]
+                                        : []
+                                    )
+                                ]
+                            ]]
+                        }
                     )),
                     next: '', // no next (yet)
                     topLevel,
@@ -140,8 +185,8 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                 }
                 console.debug(block)
                 if(!topLevel) lastBlock.next = block.id.toString();
-                lastBlock = block;
-                return new BlockCollection(block, []) //TODO: figure out how to map function args to children
+                if(!noLast) lastBlock = block;
+                return new BlockCollection(block, child) //TODO: figure out how to map function args to children
 
             case 'BinaryExpression':
                 //TODO: do shit like +, -, *, /, % etc.

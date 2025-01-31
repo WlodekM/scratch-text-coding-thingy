@@ -14,5 +14,5 @@ sprites:
     costumes:
       costume1:
         format: svg
-        path: assets/empty.svg
+        path: assets/cat_dango.svg
     code: main.tsh

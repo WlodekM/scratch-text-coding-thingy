@@ -1,3 +1,8 @@
 gf {
-    looks_say("test")
+    motion_gotoxy(motion_xposition(), 0)
+    // motion_gotoxy(0, 0)
+    // control_wait(1)
+    // motion_movesteps(10)
+    // control_wait(1)
+    // motion_movesteps(10)
 }

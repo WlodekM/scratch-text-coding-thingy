@@ -35,41 +35,67 @@
             "broadcasts": {},
             "costumes": [
                 {
-                    "assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+                    "assetId": "04840ae5adb80ae5c237885cc3ee7968",
                     "dataFormat": "svg",
                     "bitmapResolution": 1,
-                    "md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+                    "md5ext": "04840ae5adb80ae5c237885cc3ee7968.svg",
                     "name": "costume1",
                     "rotationCenterX": 0,
                     "rotationCenterY": 0
                 }
             ],
             "blocks": {
-                "0": {
+                "a": {
                     "opcode": "event_whenflagclicked",
-                    "id": "0",
-                    "next": "1",
-                    "topLevel": true
-                },
-                "1": {
-                    "opcode": "looks_say",
+                    "next": "b",
+                    "parent": null,
+                    "inputs": {},
                     "fields": {},
-                    "id": "1",
+                    "shadow": false,
+                    "topLevel": true,
+                    "x": 0,
+                    "y": 0,
+                    "id": "a"
+                },
+                "b": {
+                    "opcode": "motion_gotoxy",
+                    "next": "",
+                    "parent": "a",
                     "inputs": {
-                        "MESSAGE": [
-                            3,
+                        "X": [
+                            1,
+                            "c",
                             [
                                 10,
-                                "test"
+                                "0"
+                            ]
+                        ],
+                        "Y": [
+                            1,
+                            [
+                                4,
+                                "0"
                             ]
                         ]
                     },
-                    "next": "",
-                    "topLevel": false,
-                    "parent": "0",
+                    "fields": {},
                     "shadow": false,
+                    "topLevel": false,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "id": "b"
+                },
+                "c": {
+                    "opcode": "motion_xposition",
+                    "next": "",
+                    "parent": "a",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "c"
                 }
             },
             "currentCostume": 0,
@@ -89,7 +115,7 @@
         "agent": "",
         "semver": "3.0.0",
         "platform": {
-            "name": "SLTLCC (TurboWarp-compatible)",
+            "name": "backslash. (TurboWarp-compatible)",
             "url": "https://github.com/WlodekM/scratch-text-coding-thingy"
         }
     }
