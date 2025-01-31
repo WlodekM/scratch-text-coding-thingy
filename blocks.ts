@@ -89,7 +89,7 @@ const processedBlocks = Object.fromEntries(
             if (arg.type == 'field_dropdown') {
                 return { //TODO - in some way implement this
                     name: arg.name,
-                    type: 3,
+                    type: 1,
                     options: arg.options
                 }
             } else if (arg.type == 'field_image') {
@@ -106,12 +106,12 @@ const processedBlocks = Object.fromEntries(
                 // has that too, just no dropdown in the visible block
                 return {
                     name: arg.name,
-                    type: 3,
+                    type: 1,
                 }
             }
             return {
                 name: arg.name,
-                type: arg.type == 'input_value' ? 3 : (() => {throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`})()
+                type: arg.type == 'input_value' ? 1 : (() => {throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`})()
             }
         })].filter(a => a != null)
     })
