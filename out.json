@@ -65,6 +65,14 @@
                         "SUBSTACK": [
                             2,
                             "c"
+                        ],
+                        "CONDITION": [
+                            1,
+                            "i",
+                            [
+                                10,
+                                "0"
+                            ]
                         ]
                     },
                     "fields": {},
@@ -164,7 +172,7 @@
                 },
                 "g": {
                     "opcode": "looks_say",
-                    "next": "",
+                    "next": "i",
                     "parent": "f",
                     "inputs": {
                         "MESSAGE": [
@@ -194,6 +202,46 @@
                     "x": 0,
                     "y": 0,
                     "id": "h"
+                },
+                "i": {
+                    "opcode": "operator_lt",
+                    "next": "",
+                    "parent": "g",
+                    "inputs": {
+                        "OPERAND1": [
+                            1,
+                            "j",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ],
+                        "OPERAND2": [
+                            1,
+                            [
+                                4,
+                                "5"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "i"
+                },
+                "j": {
+                    "opcode": "motion_xposition",
+                    "next": "",
+                    "parent": "g",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "j"
                 }
             },
             "currentCostume": 0,

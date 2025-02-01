@@ -119,7 +119,10 @@ projectJson.meta = {
 
 //TODO - figure out what the SHIT is causing it to error
 //@ts-expect-error: uh
-const completeproject: json.Project & { $schema?: string } = {$schema: "./schema/sb3_schema.json", ...projectJson}
+const completeproject: json.Project & { $schema?: string } = {
+    $schema: "./schema/sb3_schema.json",
+    ...projectJson
+}
 
 const encoder = new TextEncoder();
 const data = encoder.encode(JSON.stringify(completeproject, null, 4)) // Since this now outputs an sb3, this is purely for debugging so we can indent

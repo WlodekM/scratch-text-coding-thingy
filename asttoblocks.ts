@@ -3,6 +3,11 @@ import type { ASTNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } fr
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
+interface Input {
+    name: string,
+    type: number
+}
+
 export type jsonBlock = { id: string } & json.Block
 
 type Variable = ["a", string | number] //TODO - figure out the first item
@@ -88,6 +93,40 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
     let blockID: number = 0;
     let lastBlock: jsonBlock = {} as jsonBlock;
 
+    function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[]) {
+        if(arg.type == 'FunctionCall') {
+            const childBlock = processNode(arg, false, true);
+            child.push(childBlock);
+            return [inp.name, [inp.type,
+                childBlock.block.id.toString(),
+                [
+                    ...(
+                        arg
+                        ? [
+                            10,
+                            '0'
+                        ]
+                        : []
+                    )
+                ]
+            ]]
+        }
+        return [inp.name, [inp.type, 
+            [
+                ...(
+                    arg
+                    ? [
+                        ({
+                            Literal: typeof (arg as LiteralNode).value == 'number' ? 4 : 10,
+                        })[arg.type] ?? 10,
+                        (arg as LiteralNode | any)?.value?.toString()
+                    ]
+                    : []
+                )
+            ]
+        ]]
+    }
+
     function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false): BlockCollection {
         blockID++;
         const thisBlockID = genId(blockID);
@@ -143,37 +182,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     id: thisBlockID.toString(),
                     inputs: Object.fromEntries(definition.map(
                         (inp, i) => {
-                            if(fnNode.args[i].type == 'FunctionCall') {
-                                const childBlock = processNode(fnNode.args[i], false, true);
-                                child.push(childBlock);
-                                return [inp.name, [inp.type,
-                                    childBlock.block.id.toString(),
-                                    [
-                                        ...(
-                                            fnNode.args[i]
-                                            ? [
-                                                10,
-                                                '0'
-                                            ]
-                                            : []
-                                        )
-                                    ]
-                                ]]
-                            }
-                            return [inp.name, [inp.type, 
-                                [
-                                    ...(
-                                        fnNode.args[i]
-                                        ? [
-                                            ({
-                                                Literal: typeof (fnNode.args[i] as LiteralNode).value == 'number' ? 4 : 10,
-                                            })[fnNode.args[i].type] ?? 10,
-                                            (fnNode.args[i] as LiteralNode | any)?.value?.toString()
-                                        ]
-                                        : []
-                                    )
-                                ]
-                            ]]
+                            return arg2input(inp, fnNode.args[i], child)
                         }
                     )),
                     next: '', // no next (yet)
@@ -216,6 +225,12 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     2,
                     firstThenChild?.block?.id
                 ]
+                const condition = arg2input({
+                    name: 'CONDITION',
+                    type: 1
+                }, ifNode.condition, ifChildren);
+                console.debug(condition)
+                ifBlock.inputs.CONDITION = condition[1] as json.Input
                 if(ifNode.elseBranch) {
                     ifBlock.opcode = 'control_if_else'
                     const elseBlocks = new PartialBlockCollection(
