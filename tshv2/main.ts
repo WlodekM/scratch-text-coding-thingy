@@ -175,6 +175,13 @@ export interface FunctionCallNode extends ASTNode {
     args: ASTNode[];
 }
 
+export interface BranchFunctionCallNode extends ASTNode {
+    type: "BranchFunctionCall";
+    identifier: string;
+    args: ASTNode[];
+    branches: ASTNode[][];
+}
+
 export interface StartBlockNode extends ASTNode {
     type: "StartBlock";
     body: ASTNode[];
@@ -345,6 +352,20 @@ export class Parser {
                         args.push(this.parseExpression());
                     } while (this.match(TokenType.COMMA));
                     this.expect(TokenType.RPAREN, "Expected ')' after arguments");
+                }
+                if (this.match(TokenType.LBRACE)) {
+                    const branches: ASTNode[][] = []
+                    while (true) {
+                        branches.push(this.parseBlock());
+                        if (this.match(TokenType.LBRACE)) continue;
+                        break;
+                    }
+                    return {
+                        type: "BranchFunctionCall",
+                        identifier,
+                        args,
+                        branches
+                    } as BranchFunctionCallNode;
                 }
                 return { type: "FunctionCall", identifier, args } as FunctionCallNode;
             }

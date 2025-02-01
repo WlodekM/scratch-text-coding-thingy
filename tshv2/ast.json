@@ -21,31 +21,39 @@
         ]
       },
       {
-        "type": "If",
-        "condition": {
-          "type": "FunctionCall",
-          "identifier": "operator_gt",
-          "args": [
+        "type": "BranchFunctionCall",
+        "identifier": "control_if",
+        "args": [
+          {
+            "type": "FunctionCall",
+            "identifier": "operator_gt",
+            "args": [
+              {
+                "type": "FunctionCall",
+                "identifier": "motion_xposition",
+                "args": []
+              },
+              {
+                "type": "Literal",
+                "value": 5
+              }
+            ]
+          }
+        ],
+        "branches": [
+          [
             {
               "type": "FunctionCall",
-              "identifier": "motion_xposition",
-              "args": []
-            },
-            {
-              "type": "Literal",
-              "value": 5
+              "identifier": "say",
+              "args": [
+                {
+                  "type": "Literal",
+                  "value": "hi"
+                }
+              ]
             }
           ]
-        },
-        "thenBranch": []
-      },
-      {
-        "type": "If",
-        "condition": {
-          "type": "Boolean",
-          "value": true
-        },
-        "thenBranch": []
+        ]
       }
     ]
   }
