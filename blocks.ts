@@ -85,7 +85,58 @@ for (const [opcode, data] of Object.entries(globalThis.Blockly.Blocks)) {
 
 const processedBlocks = Object.fromEntries(
     Object.entries(blocks).map(([opcode, block]) => {
-        return [opcode, (block.args0 ?? []).map((arg: any) => {
+        try {
+            Object.keys(block)
+            .filter(a => a.startsWith('args'))
+            .map(n => block[n])
+            .filter(a => a[0]?.type != 'field_image');
+        } catch (error) {
+            console.error(block,
+                Object.keys(block)
+                .filter(a => a.startsWith('args'))
+                .map(n => block[n]))
+            throw error
+        }
+        const args = Object.keys(block)
+            .filter(a => a.startsWith('args'))
+            .map(n => block[n])
+            .filter(a => a[0]?.type != 'field_image');
+        
+        if(args.find(k => k.type == 'input_statement')) {
+            return [opcode, (args[0] ?? []).map((arg: any) => {
+                if (arg.type == 'field_dropdown') {
+                    return { //TODO - in some way implement this
+                        name: arg.name,
+                        type: 1,
+                        options: arg.options
+                    }
+                } else if (arg.type == 'field_image') {
+                    return null
+                } else if (arg.type == 'field_variable') {
+                    //TODO - implement this too i guess, this is used for events only i think
+                    return null
+                } else if (arg.type == 'field_variable_getter') {
+                    //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
+                    return null
+                } else if (arg.type == 'field_numberdropdown') {
+                    // this is the list index type, if you didn't know in 2.0 you could
+                    // use last, random/all (depending on block) and 3.0
+                    // has that too, just no dropdown in the visible block
+                    return {
+                        name: arg.name,
+                        type: 1,
+                    }
+                }
+                return {
+                    name: arg.name,
+                    type: arg.type == 'input_value' ? 1 : (() => {
+                        console.error(block, args)
+                        throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
+                    })()
+                }
+            }), 'branch', args.filter(k => k.type == 'input_statement').map(i => i.name)]
+        }
+        return [opcode, (args[0] ?? []).map((arg: any) => {
             if (arg.type == 'field_dropdown') {
                 return { //TODO - in some way implement this
                     name: arg.name,
@@ -111,9 +162,12 @@ const processedBlocks = Object.fromEntries(
             }
             return {
                 name: arg.name,
-                type: arg.type == 'input_value' ? 1 : (() => {throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`})()
+                type: arg.type == 'input_value' ? 1 : (() => {
+                    console.error(block, args)
+                    throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
+                })()
             }
-        })].filter(a => a != null)
+        }), 'reporter'].filter(a => a != null)
     })
 )
 

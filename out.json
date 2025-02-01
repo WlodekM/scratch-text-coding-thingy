@@ -58,13 +58,30 @@
                     "id": "a"
                 },
                 "b": {
-                    "opcode": "motion_gotoxy",
-                    "next": "",
+                    "opcode": "control_if",
+                    "next": "d",
                     "parent": "a",
+                    "inputs": {
+                        "SUBSTACK": [
+                            2,
+                            "c"
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "b"
+                },
+                "c": {
+                    "opcode": "motion_gotoxy",
+                    "next": "f",
+                    "parent": "b",
                     "inputs": {
                         "X": [
                             1,
-                            "c",
+                            "d",
                             [
                                 10,
                                 "0"
@@ -83,19 +100,100 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "b"
+                    "id": "c"
                 },
-                "c": {
+                "d": {
+                    "opcode": "operator_add",
+                    "next": "",
+                    "parent": "b",
+                    "inputs": {
+                        "NUM1": [
+                            1,
+                            "e",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ],
+                        "NUM2": [
+                            1,
+                            [
+                                4,
+                                "5"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "d"
+                },
+                "e": {
                     "opcode": "motion_xposition",
                     "next": "",
-                    "parent": "a",
+                    "parent": "b",
                     "inputs": {},
                     "fields": {},
                     "shadow": false,
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "c"
+                    "id": "e"
+                },
+                "f": {
+                    "opcode": "control_wait",
+                    "next": "g",
+                    "parent": "c",
+                    "inputs": {
+                        "DURATION": [
+                            1,
+                            [
+                                4,
+                                "1"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "f"
+                },
+                "g": {
+                    "opcode": "looks_say",
+                    "next": "",
+                    "parent": "f",
+                    "inputs": {
+                        "MESSAGE": [
+                            1,
+                            "h",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "g"
+                },
+                "h": {
+                    "opcode": "motion_xposition",
+                    "next": "",
+                    "parent": "f",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "h"
                 }
             },
             "currentCostume": 0,

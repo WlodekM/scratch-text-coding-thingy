@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { ASTNode, FunctionCallNode, GreenFlagNode, LiteralNode } from "./tshv2/main.ts";
+import type { ASTNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
@@ -88,7 +88,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
     let blockID: number = 0;
     let lastBlock: jsonBlock = {} as jsonBlock;
 
-    function processNode(node: ASTNode, topLevel = false, noLast = false): BlockCollection {
+    function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false): BlockCollection {
         blockID++;
         const thisBlockID = genId(blockID);
         const blk = {
@@ -183,14 +183,53 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     x: 0,
                     y: 0
                 }
-                console.debug(block)
-                if(!topLevel) lastBlock.next = block.id.toString();
+                // console.debug(block)
+                if(!topLevel && !noNext) lastBlock.next = block.id.toString();
                 if(!noLast) lastBlock = block;
                 return new BlockCollection(block, child) //TODO: figure out how to map function args to children
 
             case 'BinaryExpression':
                 //TODO: do shit like +, -, *, /, % etc.
                 throw 'Unimplemented (BinaryExpression)'
+            
+            case 'If':
+                const ifNode = node as IfNode;
+                const ifBlock: jsonBlock = {
+                    opcode: 'control_if',
+                    ...blk,
+                    id: thisBlockID.toString(),
+                    topLevel,
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                    shadow: false,
+                    inputs: {},
+                };
+                if(!topLevel && !noNext) lastBlock.next = ifBlock.id.toString();
+                if(!noLast) lastBlock = ifBlock;
+                const ifChildren: PartialBlockCollection[] = [];
+                const thenBlocks = new PartialBlockCollection(
+                    ifNode.thenBranch.map((node, i) => processNode(node, false, false, i == 0))
+                )
+                const firstThenChild: BlockCollection | undefined =
+                    thenBlocks.children[0] as BlockCollection | undefined
+                ifChildren.push(thenBlocks)
+                ifBlock.inputs.SUBSTACK = [
+                    2,
+                    firstThenChild?.block?.id
+                ]
+                if(ifNode.elseBranch) {
+                    ifBlock.opcode = 'control_if_else'
+                    const elseBlocks = new PartialBlockCollection(
+                        ifNode.thenBranch.map((node, i) => processNode(node, false, false, i == 0))
+                    )
+                    const firstElseChild: BlockCollection | undefined =
+                        elseBlocks.children[0] as BlockCollection | undefined
+                    ifChildren.push(elseBlocks)
+                    ifBlock.inputs.SUBSTACK2 = [
+                        2,
+                        firstElseChild?.block?.id
+                    ]
+                }
+                return new BlockCollection(ifBlock, ifChildren);
             
             //TODO: do other nodes
 

@@ -1,8 +1,16 @@
 gf {
-    motion_gotoxy(motion_xposition(), 0)
+    if(operator_lt(motion_xposition(), 5)) {
+        motion_gotoxy(
+            operator_add(
+                motion_xposition(), 5
+            ), 0)
+        control_wait(1)
+        looks_say(motion_xposition())
+    }
     // motion_gotoxy(0, 0)
     // control_wait(1)
     // motion_movesteps(10)
     // control_wait(1)
     // motion_movesteps(10)
+    // todo: test IFs and fnCalls in IFs
 }
