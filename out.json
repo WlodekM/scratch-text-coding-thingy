@@ -58,24 +58,16 @@
                     "id": "a"
                 },
                 "b": {
-                    "opcode": "data_setvariableto",
-                    "next": "c",
+                    "opcode": "control_forever",
+                    "next": "",
                     "parent": "a",
                     "inputs": {
-                        "VALUE": [
-                            1,
-                            [
-                                4,
-                                "0"
-                            ]
+                        "SUBSTACK": [
+                            2,
+                            "c"
                         ]
                     },
-                    "fields": {
-                        "VARIABLE": [
-                            "a",
-                            "a-a"
-                        ]
-                    },
+                    "fields": {},
                     "shadow": false,
                     "topLevel": false,
                     "x": 0,
@@ -83,25 +75,21 @@
                     "id": "b"
                 },
                 "c": {
-                    "opcode": "control_if_else",
-                    "next": "i",
+                    "opcode": "control_if",
+                    "next": "f",
                     "parent": "b",
                     "inputs": {
+                        "SUBSTACK": [
+                            2,
+                            "d"
+                        ],
                         "CONDITION": [
                             1,
-                            "d",
+                            "e",
                             [
                                 10,
                                 "0"
                             ]
-                        ],
-                        "SUBSTACK": [
-                            2,
-                            "h"
-                        ],
-                        "SUBSTACK2": [
-                            2,
-                            "n"
                         ]
                     },
                     "fields": {},
@@ -112,24 +100,15 @@
                     "id": "c"
                 },
                 "d": {
-                    "opcode": "operator_and",
-                    "next": "",
-                    "parent": "b",
+                    "opcode": "motion_changeyby",
+                    "next": "e",
+                    "parent": "c",
                     "inputs": {
-                        "OPERAND1": [
+                        "DY": [
                             1,
-                            "e",
                             [
-                                10,
-                                "0"
-                            ]
-                        ],
-                        "OPERAND2": [
-                            1,
-                            "g",
-                            [
-                                10,
-                                "0"
+                                4,
+                                "5"
                             ]
                         ]
                     },
@@ -141,23 +120,15 @@
                     "id": "d"
                 },
                 "e": {
-                    "opcode": "operator_lt",
+                    "opcode": "sensing_keypressed",
                     "next": "",
-                    "parent": "b",
+                    "parent": "d",
                     "inputs": {
-                        "OPERAND1": [
+                        "KEY_OPTION": [
                             1,
-                            "f",
                             [
                                 10,
-                                "0"
-                            ]
-                        ],
-                        "OPERAND2": [
-                            1,
-                            [
-                                4,
-                                "5"
+                                "w"
                             ]
                         ]
                     },
@@ -169,10 +140,23 @@
                     "id": "e"
                 },
                 "f": {
-                    "opcode": "motion_xposition",
-                    "next": "",
-                    "parent": "b",
-                    "inputs": {},
+                    "opcode": "control_if",
+                    "next": "i",
+                    "parent": "c",
+                    "inputs": {
+                        "SUBSTACK": [
+                            2,
+                            "g"
+                        ],
+                        "CONDITION": [
+                            1,
+                            "h",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ]
+                    },
                     "fields": {},
                     "shadow": false,
                     "topLevel": false,
@@ -181,10 +165,18 @@
                     "id": "f"
                 },
                 "g": {
-                    "opcode": "operator_not",
-                    "next": "",
-                    "parent": null,
-                    "inputs": {},
+                    "opcode": "motion_changexby",
+                    "next": "h",
+                    "parent": "f",
+                    "inputs": {
+                        "DX": [
+                            1,
+                            [
+                                4,
+                                "-5"
+                            ]
+                        ]
+                    },
                     "fields": {},
                     "shadow": false,
                     "topLevel": false,
@@ -193,23 +185,15 @@
                     "id": "g"
                 },
                 "h": {
-                    "opcode": "motion_gotoxy",
-                    "next": "k",
-                    "parent": "c",
+                    "opcode": "sensing_keypressed",
+                    "next": "",
+                    "parent": "g",
                     "inputs": {
-                        "X": [
+                        "KEY_OPTION": [
                             1,
-                            "i",
                             [
                                 10,
-                                "0"
-                            ]
-                        ],
-                        "Y": [
-                            1,
-                            [
-                                4,
-                                "0"
+                                "a"
                             ]
                         ]
                     },
@@ -221,23 +205,20 @@
                     "id": "h"
                 },
                 "i": {
-                    "opcode": "operator_add",
-                    "next": "",
-                    "parent": "c",
+                    "opcode": "control_if",
+                    "next": "l",
+                    "parent": "f",
                     "inputs": {
-                        "NUM1": [
+                        "SUBSTACK": [
+                            2,
+                            "j"
+                        ],
+                        "CONDITION": [
                             1,
-                            "j",
+                            "k",
                             [
                                 10,
                                 "0"
-                            ]
-                        ],
-                        "NUM2": [
-                            1,
-                            [
-                                4,
-                                "5"
                             ]
                         ]
                     },
@@ -249,10 +230,18 @@
                     "id": "i"
                 },
                 "j": {
-                    "opcode": "motion_xposition",
-                    "next": "",
-                    "parent": "c",
-                    "inputs": {},
+                    "opcode": "motion_changeyby",
+                    "next": "k",
+                    "parent": "i",
+                    "inputs": {
+                        "DY": [
+                            1,
+                            [
+                                4,
+                                "-5"
+                            ]
+                        ]
+                    },
                     "fields": {},
                     "shadow": false,
                     "topLevel": false,
@@ -261,15 +250,15 @@
                     "id": "j"
                 },
                 "k": {
-                    "opcode": "control_wait",
-                    "next": "l",
-                    "parent": "h",
+                    "opcode": "sensing_keypressed",
+                    "next": "",
+                    "parent": "j",
                     "inputs": {
-                        "DURATION": [
+                        "KEY_OPTION": [
                             1,
                             [
-                                4,
-                                "1"
+                                10,
+                                "s"
                             ]
                         ]
                     },
@@ -281,13 +270,17 @@
                     "id": "k"
                 },
                 "l": {
-                    "opcode": "looks_say",
+                    "opcode": "control_if",
                     "next": "",
-                    "parent": "k",
+                    "parent": "i",
                     "inputs": {
-                        "MESSAGE": [
+                        "SUBSTACK": [
+                            2,
+                            "m"
+                        ],
+                        "CONDITION": [
                             1,
-                            "m",
+                            "n",
                             [
                                 10,
                                 "0"
@@ -302,10 +295,18 @@
                     "id": "l"
                 },
                 "m": {
-                    "opcode": "motion_xposition",
-                    "next": "",
-                    "parent": "k",
-                    "inputs": {},
+                    "opcode": "motion_changexby",
+                    "next": "n",
+                    "parent": "l",
+                    "inputs": {
+                        "DX": [
+                            1,
+                            [
+                                4,
+                                "5"
+                            ]
+                        ]
+                    },
                     "fields": {},
                     "shadow": false,
                     "topLevel": false,
@@ -314,15 +315,15 @@
                     "id": "m"
                 },
                 "n": {
-                    "opcode": "looks_say",
+                    "opcode": "sensing_keypressed",
                     "next": "",
-                    "parent": "l",
+                    "parent": "m",
                     "inputs": {
-                        "MESSAGE": [
+                        "KEY_OPTION": [
                             1,
                             [
                                 10,
-                                "no"
+                                "d"
                             ]
                         ]
                     },

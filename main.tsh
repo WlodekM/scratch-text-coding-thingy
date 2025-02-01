@@ -1,20 +1,16 @@
 gf {
-    var a = 0
-    control_if_else(operator_and(operator_lt(motion_xposition(), 5), true)) {
-        motion_gotoxy(
-            operator_add(
-                motion_xposition(), 5
-            ), 0)
-        control_wait(1)
-        looks_say(motion_xposition())
-    } {
-        looks_say("no")
+    control_forever() {
+        if(sensing_keypressed("w")) {
+            motion_changeyby(5)
+        }
+        if(sensing_keypressed("a")) {
+            motion_changexby(-5)
+        }
+        if(sensing_keypressed("s")) {
+            motion_changeyby(-5)
+        }
+        if(sensing_keypressed("d")) {
+            motion_changexby(5)
+        }
     }
-    // control_for_each
-    // motion_gotoxy(0, 0)
-    // control_wait(1)
-    // motion_movesteps(10)
-    // control_wait(1)
-    // motion_movesteps(10)
-    // todo: test IFs and fnCalls in IFs
 }

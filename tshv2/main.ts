@@ -39,7 +39,7 @@ export class Lexer {
     }
 
     private isDigit(char: string): boolean {
-        return /\d/.test(char);
+        return /[\d\-]/.test(char);
     }
 
     private isWhitespace(char: string): boolean {

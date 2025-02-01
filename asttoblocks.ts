@@ -101,6 +101,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
     let lastBlock: jsonBlock = {} as jsonBlock;
 
     function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[]) {
+        console.debug(arg, inp)
         if(['FunctionCall', 'Boolean'].includes(arg.type)) {
             const childBlock = processNode(arg, false, true);
             child.push(childBlock);
@@ -251,6 +252,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                         firstElseChild?.block?.id
                     ]
                 }
+                if(!noLast) lastBlock = ifBlock;
                 return new BlockCollection(ifBlock, ifChildren);
             
             case "Boolean":
@@ -275,11 +277,16 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     topLevel,
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
-                    inputs: Object.fromEntries(bDefinition.map(
-                        (inp, i) => {
-                            return arg2input(inp, branchNode.args[i], branchChildren)
-                        }
-                    )),
+                    inputs: Object.fromEntries(bDefinition
+                            .filter(a => a)
+                            .filter(a => Array.isArray(a) && a[0])
+                        .map(
+                            (inp, i) => {
+                                console.log(bDefinition, branchNode.identifier)
+                                return arg2input(inp, branchNode.args[i], branchChildren)
+                            }
+                        )
+                    ),
                 };
                 if(!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
                 if(!noLast) lastBlock = branchBlock;
