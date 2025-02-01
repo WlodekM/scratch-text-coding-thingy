@@ -1,16 +1,13 @@
+// a
 gf {
-    control_forever() {
-        if(sensing_keypressed("w")) {
-            motion_changeyby(5)
-        }
-        if(sensing_keypressed("a")) {
-            motion_changexby(-5)
-        }
-        if(sensing_keypressed("s")) {
-            motion_changeyby(-5)
-        }
-        if(sensing_keypressed("d")) {
-            motion_changexby(5)
-        }
-    }
+    var a = 0
+    // var vy = 0
+    // control_forever() {
+    //     vy = operator_subtract(vy, 1)
+    //     if (operator_lt(motion_xposition(), operator_subtract(0,100))) {
+    //         vy = 0
+    //     }
+    //     motion_changeyby(operator_subtract(0, vy))
+    // }
+    looks_say(a)
 }

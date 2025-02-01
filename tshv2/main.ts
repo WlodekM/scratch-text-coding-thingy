@@ -336,7 +336,9 @@ export class Parser {
         if (this.match(TokenType.IDENTIFIER)) {
             const identifier = this.tokens[this.position - 1].value;
             if (this.match(TokenType.ASSIGN) && topLevel) {
-                const value = this.parseExpression();
+                const value = this.peek().type == TokenType.NUMBER ?
+                    this.parseExpression() :
+                    this.parseStatement();
                 return { type: "Assignment", identifier, value } as AssignmentNode;
             }
         

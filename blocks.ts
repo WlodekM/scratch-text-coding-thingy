@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 interface Input {
     name: string,
     type: number
@@ -55,7 +56,7 @@ await import('./tw-blocks/blocks_vertical/data.js');
 // this is used for custom blocks
 // await import('./tw-blocks/blocks_vertical/procedures.js');
 
-const blocks: Record<string, any> = {};
+export const blocks: Record<string, any> = {};
 
 for (const [opcode, data] of Object.entries(globalThis.Blockly.Blocks)) {
     let blockdata: any = {};

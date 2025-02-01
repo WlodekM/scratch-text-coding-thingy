@@ -58,16 +58,24 @@
                     "id": "a"
                 },
                 "b": {
-                    "opcode": "control_forever",
-                    "next": "",
+                    "opcode": "data_setvariableto",
+                    "next": "c",
                     "parent": "a",
                     "inputs": {
-                        "SUBSTACK": [
-                            2,
-                            "c"
+                        "VALUE": [
+                            1,
+                            [
+                                4,
+                                "0"
+                            ]
                         ]
                     },
-                    "fields": {},
+                    "fields": {
+                        "VARIABLE": [
+                            "a",
+                            "a-a"
+                        ]
+                    },
                     "shadow": false,
                     "topLevel": false,
                     "x": 0,
@@ -75,20 +83,16 @@
                     "id": "b"
                 },
                 "c": {
-                    "opcode": "control_if",
-                    "next": "f",
+                    "opcode": "looks_say",
+                    "next": "",
                     "parent": "b",
                     "inputs": {
-                        "SUBSTACK": [
-                            2,
-                            "d"
-                        ],
-                        "CONDITION": [
+                        "MESSAGE": [
                             1,
-                            "e",
                             [
-                                10,
-                                "0"
+                                12,
+                                "a",
+                                "a-a"
                             ]
                         ]
                     },
@@ -99,241 +103,11 @@
                     "y": 0,
                     "id": "c"
                 },
-                "d": {
-                    "opcode": "motion_changeyby",
-                    "next": "e",
-                    "parent": "c",
-                    "inputs": {
-                        "DY": [
-                            1,
-                            [
-                                4,
-                                "5"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "d"
-                },
-                "e": {
-                    "opcode": "sensing_keypressed",
-                    "next": "",
-                    "parent": "d",
-                    "inputs": {
-                        "KEY_OPTION": [
-                            1,
-                            [
-                                10,
-                                "w"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "e"
-                },
-                "f": {
-                    "opcode": "control_if",
-                    "next": "i",
-                    "parent": "c",
-                    "inputs": {
-                        "SUBSTACK": [
-                            2,
-                            "g"
-                        ],
-                        "CONDITION": [
-                            1,
-                            "h",
-                            [
-                                10,
-                                "0"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "f"
-                },
-                "g": {
-                    "opcode": "motion_changexby",
-                    "next": "h",
-                    "parent": "f",
-                    "inputs": {
-                        "DX": [
-                            1,
-                            [
-                                4,
-                                "-5"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "g"
-                },
-                "h": {
-                    "opcode": "sensing_keypressed",
-                    "next": "",
-                    "parent": "g",
-                    "inputs": {
-                        "KEY_OPTION": [
-                            1,
-                            [
-                                10,
-                                "a"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "h"
-                },
-                "i": {
-                    "opcode": "control_if",
-                    "next": "l",
-                    "parent": "f",
-                    "inputs": {
-                        "SUBSTACK": [
-                            2,
-                            "j"
-                        ],
-                        "CONDITION": [
-                            1,
-                            "k",
-                            [
-                                10,
-                                "0"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "i"
-                },
-                "j": {
-                    "opcode": "motion_changeyby",
-                    "next": "k",
-                    "parent": "i",
-                    "inputs": {
-                        "DY": [
-                            1,
-                            [
-                                4,
-                                "-5"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "j"
-                },
-                "k": {
-                    "opcode": "sensing_keypressed",
-                    "next": "",
-                    "parent": "j",
-                    "inputs": {
-                        "KEY_OPTION": [
-                            1,
-                            [
-                                10,
-                                "s"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "k"
-                },
-                "l": {
-                    "opcode": "control_if",
-                    "next": "",
-                    "parent": "i",
-                    "inputs": {
-                        "SUBSTACK": [
-                            2,
-                            "m"
-                        ],
-                        "CONDITION": [
-                            1,
-                            "n",
-                            [
-                                10,
-                                "0"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "l"
-                },
-                "m": {
-                    "opcode": "motion_changexby",
-                    "next": "n",
-                    "parent": "l",
-                    "inputs": {
-                        "DX": [
-                            1,
-                            [
-                                4,
-                                "5"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "m"
-                },
-                "n": {
-                    "opcode": "sensing_keypressed",
-                    "next": "",
-                    "parent": "m",
-                    "inputs": {
-                        "KEY_OPTION": [
-                            1,
-                            [
-                                10,
-                                "d"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "n"
-                }
+                "undefined": [
+                    12,
+                    "a",
+                    "a-a"
+                ]
             },
             "currentCostume": 0,
             "sounds": [],
