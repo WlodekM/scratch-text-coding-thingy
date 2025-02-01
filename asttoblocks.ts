@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { ASTNode, BooleanNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } from "./tshv2/main.ts";
+import type { ASTNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
@@ -255,6 +255,42 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     topLevel,
                 }
                 return new BlockCollection(boolBlock, []);
+            
+            case "BranchFunctionCall":
+                const branchNode = node as BranchFunctionCallNode;
+                const bDefinition = blockDefinitions[branchNode.identifier]
+                console.debug(branchNode, bDefinition)
+                const branchChildren: PartialBlockCollection[] = [];
+                const branchBlock: jsonBlock = {
+                    opcode: branchNode.identifier,
+                    ...blk,
+                    id: thisBlockID.toString(),
+                    topLevel,
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                    shadow: false,
+                    inputs: Object.fromEntries(bDefinition.map(
+                        (inp, i) => {
+                            return arg2input(inp, branchNode.args[i], branchChildren)
+                        }
+                    )),
+                };
+                if(!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
+                if(!noLast) lastBlock = branchBlock;
+                // const firstBranchChildren: (BlockCollection | undefined)[] = [];
+                let branchN = 0;
+                for (const branch of branchNode.branches) {
+                    branchN++;
+                    const branchBlocks = new PartialBlockCollection(
+                        branch.map((node, i) => processNode(node, false, false, i == 0))
+                    );
+                    branchChildren.push(branchBlocks)
+                    const firstBranchChild = branchBlocks.children[0] as BlockCollection | undefined
+                    branchBlock.inputs['SUBSTACK' + (branchN == 1 ? '' : branchN)] = [
+                        2,
+                        firstBranchChild?.block?.id
+                    ]
+                }
+                return new BlockCollection(branchBlock, branchChildren);
             
             //TODO: do other nodes
 

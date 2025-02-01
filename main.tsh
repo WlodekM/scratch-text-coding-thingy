@@ -1,11 +1,13 @@
 gf {
-    if(operator_and(operator_lt(motion_xposition(), 5), true)) {
+    control_if_else(operator_and(operator_lt(motion_xposition(), 5), true)) {
         motion_gotoxy(
             operator_add(
                 motion_xposition(), 5
             ), 0)
         control_wait(1)
         looks_say(motion_xposition())
+    } {
+        looks_say("no")
     }
     // motion_gotoxy(0, 0)
     // control_wait(1)

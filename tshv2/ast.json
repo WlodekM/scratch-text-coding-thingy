@@ -22,7 +22,7 @@
       },
       {
         "type": "BranchFunctionCall",
-        "identifier": "control_if",
+        "identifier": "control_if_else",
         "args": [
           {
             "type": "FunctionCall",
@@ -48,6 +48,18 @@
                 {
                   "type": "Literal",
                   "value": "hi"
+                }
+              ]
+            }
+          ],
+          [
+            {
+              "type": "FunctionCall",
+              "identifier": "say",
+              "args": [
+                {
+                  "type": "Literal",
+                  "value": "no"
                 }
               ]
             }

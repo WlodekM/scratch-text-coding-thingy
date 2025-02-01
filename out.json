@@ -58,17 +58,50 @@
                     "id": "a"
                 },
                 "b": {
-                    "opcode": "control_if",
-                    "next": "d",
+                    "opcode": "control_if_else",
+                    "next": "h",
                     "parent": "a",
                     "inputs": {
-                        "SUBSTACK": [
-                            2,
-                            "c"
-                        ],
                         "CONDITION": [
                             1,
-                            "i",
+                            "c",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ],
+                        "SUBSTACK": [
+                            2,
+                            "g"
+                        ],
+                        "SUBSTACK2": [
+                            2,
+                            "m"
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "b"
+                },
+                "c": {
+                    "opcode": "operator_and",
+                    "next": "",
+                    "parent": "a",
+                    "inputs": {
+                        "OPERAND1": [
+                            1,
+                            "d",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ],
+                        "OPERAND2": [
+                            1,
+                            "f",
                             [
                                 10,
                                 "0"
@@ -80,16 +113,68 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "b"
+                    "id": "c"
                 },
-                "c": {
+                "d": {
+                    "opcode": "operator_lt",
+                    "next": "",
+                    "parent": "a",
+                    "inputs": {
+                        "OPERAND1": [
+                            1,
+                            "e",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ],
+                        "OPERAND2": [
+                            1,
+                            [
+                                4,
+                                "5"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "d"
+                },
+                "e": {
+                    "opcode": "motion_xposition",
+                    "next": "",
+                    "parent": "a",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "e"
+                },
+                "f": {
+                    "opcode": "operator_not",
+                    "next": "",
+                    "parent": null,
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "f"
+                },
+                "g": {
                     "opcode": "motion_gotoxy",
-                    "next": "f",
+                    "next": "j",
                     "parent": "b",
                     "inputs": {
                         "X": [
                             1,
-                            "d",
+                            "h",
                             [
                                 10,
                                 "0"
@@ -108,16 +193,16 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "c"
+                    "id": "g"
                 },
-                "d": {
+                "h": {
                     "opcode": "operator_add",
                     "next": "",
                     "parent": "b",
                     "inputs": {
                         "NUM1": [
                             1,
-                            "e",
+                            "i",
                             [
                                 10,
                                 "0"
@@ -136,9 +221,9 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "d"
+                    "id": "h"
                 },
-                "e": {
+                "i": {
                     "opcode": "motion_xposition",
                     "next": "",
                     "parent": "b",
@@ -148,12 +233,12 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "e"
+                    "id": "i"
                 },
-                "f": {
+                "j": {
                     "opcode": "control_wait",
-                    "next": "g",
-                    "parent": "c",
+                    "next": "k",
+                    "parent": "g",
                     "inputs": {
                         "DURATION": [
                             1,
@@ -168,55 +253,14 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "f"
+                    "id": "j"
                 },
-                "g": {
+                "k": {
                     "opcode": "looks_say",
-                    "next": "i",
-                    "parent": "f",
+                    "next": "",
+                    "parent": "j",
                     "inputs": {
                         "MESSAGE": [
-                            1,
-                            "h",
-                            [
-                                10,
-                                "0"
-                            ]
-                        ]
-                    },
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "g"
-                },
-                "h": {
-                    "opcode": "motion_xposition",
-                    "next": "",
-                    "parent": "f",
-                    "inputs": {},
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "h"
-                },
-                "i": {
-                    "opcode": "operator_and",
-                    "next": "",
-                    "parent": "g",
-                    "inputs": {
-                        "OPERAND1": [
-                            1,
-                            "j",
-                            [
-                                10,
-                                "0"
-                            ]
-                        ],
-                        "OPERAND2": [
                             1,
                             "l",
                             [
@@ -230,26 +274,30 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "i"
+                    "id": "k"
                 },
-                "j": {
-                    "opcode": "operator_lt",
+                "l": {
+                    "opcode": "motion_xposition",
                     "next": "",
-                    "parent": "g",
+                    "parent": "j",
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "l"
+                },
+                "m": {
+                    "opcode": "looks_say",
+                    "next": "",
+                    "parent": "k",
                     "inputs": {
-                        "OPERAND1": [
+                        "MESSAGE": [
                             1,
-                            "k",
                             [
                                 10,
-                                "0"
-                            ]
-                        ],
-                        "OPERAND2": [
-                            1,
-                            [
-                                4,
-                                "5"
+                                "no"
                             ]
                         ]
                     },
@@ -258,31 +306,7 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "j"
-                },
-                "k": {
-                    "opcode": "motion_xposition",
-                    "next": "",
-                    "parent": "g",
-                    "inputs": {},
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "k"
-                },
-                "l": {
-                    "opcode": "operator_not",
-                    "next": "",
-                    "parent": null,
-                    "inputs": {},
-                    "fields": {},
-                    "shadow": false,
-                    "topLevel": false,
-                    "x": 0,
-                    "y": 0,
-                    "id": "l"
+                    "id": "m"
                 }
             },
             "currentCostume": 0,

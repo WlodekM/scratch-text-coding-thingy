@@ -4,7 +4,9 @@ gf {
     looks_say(a)
 
     // if x position > 5
-    control_if(operator_and(true, false)) {
+    control_if_else(operator_and(true, false)) {
         say("hi")
+    } {
+        say("no")
     }
 }

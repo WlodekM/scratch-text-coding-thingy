@@ -76,15 +76,16 @@ for (const [opcode, data] of Object.entries(globalThis.Blockly.Blocks)) {
         workspace: Blockly.mainWorkspace,
     };
     data.init.call(fakeThis);
-    if(!blockdata.args1 || blockdata.args1.type == 'field_image') {
-        blocks[opcode] = blockdata;
-    }
+    // if(!blockdata.args1 || blockdata.args1.type == 'field_image') {
+    blocks[opcode] = blockdata;
+    // }
 }
 
 // console.debug(Object.keys(blocks))
 
 const processedBlocks = Object.fromEntries(
     Object.entries(blocks).map(([opcode, block]) => {
+        // console.log(opcode, block)
         try {
             Object.keys(block)
             .filter(a => a.startsWith('args'))
@@ -126,6 +127,8 @@ const processedBlocks = Object.fromEntries(
                         name: arg.name,
                         type: 1,
                     }
+                } else if (arg.type == 'input_statement') {
+                    return {}
                 }
                 return {
                     name: arg.name,
@@ -159,6 +162,8 @@ const processedBlocks = Object.fromEntries(
                     name: arg.name,
                     type: 1,
                 }
+            } else if (arg.type == 'input_statement') {
+                return {}
             }
             return {
                 name: arg.name,
