@@ -1,4 +1,5 @@
 gf {
+    var a = 0
     control_if_else(operator_and(operator_lt(motion_xposition(), 5), true)) {
         motion_gotoxy(
             operator_add(
@@ -9,6 +10,7 @@ gf {
     } {
         looks_say("no")
     }
+    // control_for_each
     // motion_gotoxy(0, 0)
     // control_wait(1)
     // motion_movesteps(10)

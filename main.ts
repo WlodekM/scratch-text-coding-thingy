@@ -59,7 +59,7 @@ for (const spriteName in project.sprites) {
             Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
         }
         const [blockaroonies, env]: [(json.Block & { id: string })[], Environment] = ASTtoBlocks(ast);
-        console.log(ast, blockaroonies)
+        console.log(ast, blockaroonies, env)
         jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, b]))
     } else {
         jsonSprite.blocks = {}

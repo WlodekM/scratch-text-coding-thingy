@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { ASTNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } from "./tshv2/main.ts";
+import type { ASTNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
@@ -12,8 +12,15 @@ export type jsonBlock = { id: string } & json.Block
 
 type Variable = ["a", string | number] //TODO - figure out the first item
 
+let varId = 0;
+
+function genVarId(name: string): string {
+    varId++
+    return genId(varId) + '-' + name
+}
+
 export class Environment {
-    variables: Map<string, Variable> = new Map()
+    variables: Map<string, string> = new Map()
 }
 
 class PartialBlockCollection {
@@ -88,7 +95,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
     const blocks: jsonBlock[] = [];
     const sprite = new Environment();
 
-    console.debug('debug: ast\n', JSON.stringify(ast, null, 2))
+    // console.debug('debug: ast\n', JSON.stringify(ast, null, 2))
 
     let blockID: number = 0;
     let lastBlock: jsonBlock = {} as jsonBlock;
@@ -291,6 +298,33 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     ]
                 }
                 return new BlockCollection(branchBlock, branchChildren);
+            
+            case 'VariableDeclaration':
+                const varDeclNode = node as VariableDeclarationNode;
+                const id: string = genVarId(varDeclNode.identifier);
+                sprite.variables.set(varDeclNode.identifier, id);
+                const varDeclChildren: PartialBlockCollection[] = [];
+                const varDeclBlock: jsonBlock = {
+                    opcode: 'data_setvariableto',
+                    ...blk,
+                    id: thisBlockID.toString(),
+                    inputs: {
+                        'VALUE': arg2input(
+                            blockDefinitions.data_setvariableto[1],
+                            varDeclNode.value,
+                            varDeclChildren
+                        )[1] as json.Input
+                    },
+                    fields: {
+                        "VARIABLE": [
+                            varDeclNode.identifier,
+                            id
+                        ]
+                    }
+                }
+                if(!topLevel && !noNext) lastBlock.next = varDeclBlock.id.toString();
+                if(!noLast) lastBlock = varDeclBlock;
+                return new BlockCollection(varDeclBlock, varDeclChildren);
             
             //TODO: do other nodes
 
