@@ -94,7 +94,7 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
     let lastBlock: jsonBlock = {} as jsonBlock;
 
     function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[]) {
-        if(arg.type == 'FunctionCall') {
+        if(['FunctionCall', 'Boolean'].includes(arg.type)) {
             const childBlock = processNode(arg, false, true);
             child.push(childBlock);
             return [inp.name, [inp.type,

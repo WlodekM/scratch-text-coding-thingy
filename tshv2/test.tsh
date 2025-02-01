@@ -4,7 +4,7 @@ gf {
     looks_say(a)
 
     // if x position > 5
-    control_if(operator_gt(motion_xposition(), 5)) {
+    control_if(operator_and(true, false)) {
         say("hi")
     }
 }

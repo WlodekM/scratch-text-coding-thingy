@@ -55,6 +55,9 @@ for (const spriteName in project.sprites) {
         const tokens = lexer.tokenize();
         const parser = new Parser(tokens);
         const ast = parser.parse();
+        if (Deno.args.includes('-a')) {
+            Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
+        }
         const [blockaroonies, env]: [(json.Block & { id: string })[], Environment] = ASTtoBlocks(ast);
         console.log(ast, blockaroonies)
         jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, b]))

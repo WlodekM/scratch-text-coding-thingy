@@ -204,13 +204,42 @@
                     "id": "h"
                 },
                 "i": {
-                    "opcode": "operator_lt",
+                    "opcode": "operator_and",
                     "next": "",
                     "parent": "g",
                     "inputs": {
                         "OPERAND1": [
                             1,
                             "j",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ],
+                        "OPERAND2": [
+                            1,
+                            "l",
+                            [
+                                10,
+                                "0"
+                            ]
+                        ]
+                    },
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "i"
+                },
+                "j": {
+                    "opcode": "operator_lt",
+                    "next": "",
+                    "parent": "g",
+                    "inputs": {
+                        "OPERAND1": [
+                            1,
+                            "k",
                             [
                                 10,
                                 "0"
@@ -229,9 +258,9 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "i"
+                    "id": "j"
                 },
-                "j": {
+                "k": {
                     "opcode": "motion_xposition",
                     "next": "",
                     "parent": "g",
@@ -241,7 +270,19 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "j"
+                    "id": "k"
+                },
+                "l": {
+                    "opcode": "operator_not",
+                    "next": "",
+                    "parent": null,
+                    "inputs": {},
+                    "fields": {},
+                    "shadow": false,
+                    "topLevel": false,
+                    "x": 0,
+                    "y": 0,
+                    "id": "l"
                 }
             },
             "currentCostume": 0,

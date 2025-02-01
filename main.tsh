@@ -1,5 +1,5 @@
 gf {
-    if(operator_lt(motion_xposition(), 5)) {
+    if(operator_and(operator_lt(motion_xposition(), 5), true)) {
         motion_gotoxy(
             operator_add(
                 motion_xposition(), 5

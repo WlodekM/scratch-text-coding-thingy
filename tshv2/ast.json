@@ -26,16 +26,15 @@
         "args": [
           {
             "type": "FunctionCall",
-            "identifier": "operator_gt",
+            "identifier": "operator_and",
             "args": [
               {
-                "type": "FunctionCall",
-                "identifier": "motion_xposition",
-                "args": []
+                "type": "Boolean",
+                "value": true
               },
               {
-                "type": "Literal",
-                "value": 5
+                "type": "Boolean",
+                "value": false
               }
             ]
           }

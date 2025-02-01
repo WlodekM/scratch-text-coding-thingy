@@ -420,6 +420,12 @@ export class Parser {
         }
 
         if (this.match(TokenType.IDENTIFIER)) {
+            if (['True', 'true', 'False', 'false'].includes(this.tokens[this.position - 1].value)) {
+                return {
+                    type: "Boolean",
+                    value: ['True', 'true'].includes(this.tokens[this.position - 1].value)
+                } as BooleanNode
+            }
             return { type: "Identifier", name: this.tokens[this.position - 1].value } as IdentifierNode;
         }
 
