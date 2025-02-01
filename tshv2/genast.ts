@@ -6,6 +6,7 @@ const sourceCode = new TextDecoder().decode(Deno.readFileSync('test.tsh'));
 const lexer = new Lexer(sourceCode);
 const tokens = lexer.tokenize();
 const parser = new Parser(tokens);
+console.debug(tokens)
 const ast = parser.parse();
 
 const encoder = new TextEncoder();

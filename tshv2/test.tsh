@@ -2,4 +2,13 @@ gf {
     var a = 0
 
     looks_say(a)
+
+    // if x position > 5
+    if(operator_gt(motion_xposition(), 5)) {
+
+    }
+
+    if(true) {
+
+    }
 }

@@ -199,6 +199,11 @@ export interface GreenFlagNode extends ASTNode {
     branch: ASTNode[];
 }
 
+export interface BooleanNode extends ASTNode {
+    type: "Boolean";
+    value: boolean;
+}
+
 // Parser
 export class Parser {
     private tokens: Token[];
@@ -254,7 +259,7 @@ export class Parser {
         return nodes;
     }
 
-    private parseStatement(): ASTNode {
+    private parseStatement(topLevel = true): ASTNode {
         if (this.match(TokenType.VAR)) {
             const identifier = this.expect(TokenType.IDENTIFIER, "Expected variable name").value;
             this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
@@ -283,9 +288,11 @@ export class Parser {
         //     return { type: "StartBlock", body } as StartBlockNode;
         // }
 
-        if (this.match(TokenType.IF)) {
+        if (this.match(TokenType.IF) && topLevel) {
             this.expect(TokenType.LPAREN, "Expected '(' after 'if'");
-            const condition = this.parseExpression();
+            const condition = this.peek().type == TokenType.RPAREN ? null : 
+                this.peek().type == TokenType.NUMBER ? this.parseExpression() :
+                this.parseStatement();
             this.expect(TokenType.RPAREN, "Expected ')' after if condition");
             this.expect(TokenType.LBRACE, "Expected '{' after if condition");
             const thenBranch = this.parseBlock();
@@ -299,7 +306,7 @@ export class Parser {
             return { type: "If", condition, thenBranch, elseBranch } as IfNode;
         }
 
-        if (this.match(TokenType.FOR)) {
+        if (this.match(TokenType.FOR) && topLevel) {
             this.expect(TokenType.LPAREN, "Expected '(' after 'for'");
             const varname = this.parseExpression();
             const of = this.expect(TokenType.IDENTIFIER, 'expected of')
@@ -312,7 +319,7 @@ export class Parser {
             return { type: "For", varname, times, branch } as ForNode;
         }
 
-        if (this.match(TokenType.GREENFLAG)) {
+        if (this.match(TokenType.GREENFLAG) && topLevel) {
             this.expect(TokenType.LBRACE, "Expected '{' after greenflag");
             const branch = this.parseBlock();
 
@@ -321,7 +328,7 @@ export class Parser {
 
         if (this.match(TokenType.IDENTIFIER)) {
             const identifier = this.tokens[this.position - 1].value;
-            if (this.match(TokenType.ASSIGN)) {
+            if (this.match(TokenType.ASSIGN) && topLevel) {
                 const value = this.parseExpression();
                 return { type: "Assignment", identifier, value } as AssignmentNode;
             }
@@ -341,8 +348,22 @@ export class Parser {
                 }
                 return { type: "FunctionCall", identifier, args } as FunctionCallNode;
             }
+
+            if (['True', 'true', 'False', 'false'].includes(identifier)) {
+                return {
+                    type: "Boolean",
+                    value: ['True', 'true'].includes(identifier)
+                } as BooleanNode
+            }
+
+            return {
+                name: identifier,
+                type: 'Identifier'
+            } as IdentifierNode
         }
 
+        console.error("TRACE: TOKENS", this.tokens, '\nPOS:', this.position, '\n', 
+            this.tokens.map((tk, i) => (i == this.position ? '->' : '') + JSON.stringify(tk)).join('\n'))
         throw new Error(`Unexpected token: ${this.peek().type}`);
     }
 
