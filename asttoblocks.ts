@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { ASTNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } from "./tshv2/main.ts";
+import type { ASTNode, BooleanNode, FunctionCallNode, GreenFlagNode, IfNode, LiteralNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import blockDefinitions from "./blocks.ts";
 
@@ -245,6 +245,16 @@ export default function ASTtoBlocks(ast: ASTNode[]): [jsonBlock[], Environment] 
                     ]
                 }
                 return new BlockCollection(ifBlock, ifChildren);
+            
+            case "Boolean":
+                const boolNode = node as BooleanNode;
+                const boolBlock: jsonBlock = {
+                    opcode: boolNode.value ? "operator_not" : "operator_and",
+                    ...blk,
+                    id: thisBlockID.toString(),
+                    topLevel,
+                }
+                return new BlockCollection(boolBlock, []);
             
             //TODO: do other nodes
 
