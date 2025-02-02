@@ -1,5 +1,10 @@
 [
   {
+    "itype": "blocks/js",
+    "path": "tw-blocks/blocks_vertical/control.js",
+    "type": "Include"
+  },
+  {
     "type": "GreenFlag",
     "branch": [
       {

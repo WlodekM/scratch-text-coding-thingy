@@ -1,4 +1,6 @@
-// a
+#include <"blocks/js" "tw-blocks/blocks_vertical/control.js">
+#include <"blocks/js" "tw-blocks/blocks_vertical/looks.js">
+
 gf {
     var a = 0
     // var vy = 0

@@ -225,6 +225,12 @@ export interface BooleanNode extends ASTNode {
     value: boolean;
 }
 
+export interface IncludeNode extends ASTNode {
+    type: "Include"
+    itype: string
+    path: string
+}
+
 // Parser
 export class Parser {
     private tokens: Token[];
@@ -286,6 +292,20 @@ export class Parser {
             this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
             const value = this.parseExpression();
             return { type: "VariableDeclaration", identifier, value } as VariableDeclarationNode;
+        }
+
+        if (this.match(TokenType.INCLUDE)) {
+            if (this.expect(TokenType.BINOP, 'Exprected < after #include').value != '<')
+                throw "Exprected < after #include";
+            const itype = this.expect(TokenType.STRING, 'Expected string (type)').value
+            const path = this.expect(TokenType.STRING, 'Expected string (path)').value
+            if (this.expect(TokenType.BINOP, 'Exprected > after include statement').value != '>')
+                throw "Exprected > after include statement";
+            return {
+                itype,
+                path,
+                type: "Include"
+            } as IncludeNode
         }
 
         if (this.match(TokenType.FN)) {

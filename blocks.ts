@@ -44,13 +44,15 @@ await import('./tw-blocks/msg/js/en.js');
 await import('./tw-blocks/core/constants.js');
 await import('./tw-blocks/core/colours.js');
 
-await import('./tw-blocks/blocks_vertical/control.js');
-await import('./tw-blocks/blocks_vertical/event.js');
-await import('./tw-blocks/blocks_vertical/looks.js');
-await import('./tw-blocks/blocks_vertical/motion.js');
-await import('./tw-blocks/blocks_vertical/operators.js');
-await import('./tw-blocks/blocks_vertical/sound.js');
-await import('./tw-blocks/blocks_vertical/sensing.js');
+export const blockly = Blockly
+
+// await import('./tw-blocks/blocks_vertical/control.js');
+// await import('./tw-blocks/blocks_vertical/event.js');
+// await import('./tw-blocks/blocks_vertical/looks.js');
+// await import('./tw-blocks/blocks_vertical/motion.js');
+// await import('./tw-blocks/blocks_vertical/operators.js');
+// await import('./tw-blocks/blocks_vertical/sound.js');
+// await import('./tw-blocks/blocks_vertical/sensing.js');
 await import('./tw-blocks/blocks_vertical/data.js');
 
 // this is used for custom blocks

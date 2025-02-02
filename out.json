@@ -45,9 +45,9 @@
                 }
             ],
             "blocks": {
-                "a": {
+                "c": {
                     "opcode": "event_whenflagclicked",
-                    "next": "b",
+                    "next": "d",
                     "parent": null,
                     "inputs": {},
                     "fields": {},
@@ -55,12 +55,12 @@
                     "topLevel": true,
                     "x": 0,
                     "y": 0,
-                    "id": "a"
+                    "id": "c"
                 },
-                "b": {
+                "d": {
                     "opcode": "data_setvariableto",
-                    "next": "c",
-                    "parent": "a",
+                    "next": "e",
+                    "parent": "c",
                     "inputs": {
                         "VALUE": [
                             1,
@@ -80,12 +80,12 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "b"
+                    "id": "d"
                 },
-                "c": {
+                "e": {
                     "opcode": "looks_say",
                     "next": "",
-                    "parent": "b",
+                    "parent": "d",
                     "inputs": {
                         "MESSAGE": [
                             1,
@@ -101,9 +101,9 @@
                     "topLevel": false,
                     "x": 0,
                     "y": 0,
-                    "id": "c"
+                    "id": "e"
                 },
-                "undefined": [
+                "a": [
                     12,
                     "a",
                     "a-a"
