@@ -17,7 +17,8 @@ export enum TokenType {
     ELSE = "ELSE",
     EOF = "EOF",
     GREATER = "GREATER",
-    GREENFLAG = "GREENFLAG"
+    GREENFLAG = "GREENFLAG",
+    INCLUDE = "INCLUDE"
 }
 
 interface Token {
@@ -35,7 +36,7 @@ export class Lexer {
     }
 
     private isAlpha(char: string): boolean {
-        return /[a-zA-Z_]/.test(char);
+        return /[a-zA-Z_#]/.test(char);
     }
 
     private isDigit(char: string): boolean {
@@ -83,7 +84,19 @@ export class Lexer {
                     identifier += this.advance();
                 }
 
-                if (identifier === "var") tokens.push({ type: TokenType.VAR, value: identifier });
+                if (identifier === "#include") {
+                    // while(this.isWhitespace(this.peek()) && this.position < this.source.length) {
+                    //     this.advance()
+                    // }
+                    // if (this.advance() != '<') throw "Expected a < after #include"
+                    // let id = ''
+                    // while (this.peek() != '>'
+                    //     && (this.isAlpha(this.peek()) || this.isDigit(this.peek()))) {
+                    //     id += this.advance();
+                    // }
+                    // if (this.advance() != '>') throw "Expected a > after #include <..."
+                    tokens.push({ type: TokenType.INCLUDE, value: identifier });
+                } else if (identifier === "var") tokens.push({ type: TokenType.VAR, value: identifier });
                 else if (identifier === "fn") tokens.push({ type: TokenType.FN, value: identifier });
                 else if (identifier === "if") tokens.push({ type: TokenType.IF, value: identifier });
                 else if (identifier === "for") tokens.push({ type: TokenType.FOR, value: identifier });
@@ -117,7 +130,8 @@ export class Lexer {
             else if (char === "/") tokens.push({ type: TokenType.BINOP, value: char });
             else if (char === "%") tokens.push({ type: TokenType.BINOP, value: char });
             else if (char === "=") tokens.push({ type: TokenType.ASSIGN, value: char });
-            else if (char === ">") tokens.push({ type: TokenType.GREATER, value: char });
+            else if (char === ">") tokens.push({ type: TokenType.BINOP, value: char });
+            else if (char === "<") tokens.push({ type: TokenType.BINOP, value: char });
             else {
                 throw new Error(`Unexpected character: ${char}`);
             }

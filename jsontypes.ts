@@ -1,3 +1,5 @@
+export type jsonBlock = Block | [12, string, string]
+
 export interface Stage {
     isStage: true
     name: "Stage"
@@ -23,7 +25,7 @@ export interface RealSprite {
     variables: Variables
     lists: Lists
     broadcasts: Broadcasts
-    blocks: Record<string, Block>
+    blocks: Record<string, jsonBlock>
     comments: Comments
     currentCostume: number
     costumes: Costume[]

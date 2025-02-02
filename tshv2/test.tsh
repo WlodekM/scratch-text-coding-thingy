@@ -1,3 +1,5 @@
+#include <"blocks/js" "tw-blocks/blocks_vertical/control.js">
+
 gf {
     var a = 0
 
@@ -9,4 +11,4 @@ gf {
     } {
         say("no")
     }
-}
+}aa
