@@ -5,6 +5,7 @@ import { Lexer, Parser } from "./tshv2/main.ts";
 import ASTtoBlocks, { Environment } from "./asttoblocks.ts";
 import * as zip from "jsr:@zip-js/zip-js";
 import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
+import path from 'node:path'
 
 // the t stands for tosh3
 type TSound = any // TODO: finish this
@@ -23,8 +24,14 @@ type TProject = {
     sprites: Record<string, TSprite>
 }
 
+console.log(Deno.env.get('PWD'))
+
 const decoder = new TextDecoder("utf-8");
-const rawProjectConfig: string = decoder.decode(Deno.readFileSync('project.prj.yaml'))
+const rawProjectConfig: string = decoder.decode(
+    Deno.readFileSync(
+        path.join(Deno.env.get('PWD') || '.', 'project.prj.yaml')
+    )
+)
 const project: TProject = parse(rawProjectConfig) as TProject
 
 console.debug(project)
