@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { AssignmentNode, ASTNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
@@ -255,8 +255,34 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 return new BlockCollection(block, child) //TODO: figure out how to map function args to children
 
             case 'BinaryExpression':
-                //TODO: do shit like +, -, *, /, % etc.
-                throw 'Unimplemented (BinaryExpression)'
+                if (!Object.keys(blockDefinitions).find(k => k.startsWith('operator_')))
+                    throw `To use BinExp you have to include the operators category`
+                const operations: Record<string, string> = {
+                    '=': 'operator_equals',
+                    '+': 'operator_add',
+                    '-': 'operator_subtract',
+                    '*': 'operator_multiply',
+                    '/': 'operator_divide',
+                    '%': 'operator_mod',
+                    '<': 'operator_lt',
+                    '>': 'operator_gt',
+                }
+                const beNode = node as BinaryExpressionNode;
+                if (!operations[beNode.operator]) throw 'unknown operator ' + beNode.operator;
+                const beDefinition = blockDefinitions[operations[beNode.operator]]
+                const beBlock: jsonBlock = {
+                    opcode: operations[beNode.operator] ?? 'undefined',
+                    ...blk,
+                    id: thisBlockID.toString(),
+                    topLevel,
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                    shadow: false,
+                    inputs: {},
+                };
+                const beChildren: PartialBlockCollection[] = []
+                arg2input(beDefinition[0], beNode.left, beChildren)
+                arg2input(beDefinition[1], beNode.right, beChildren)
+                return new BlockCollection(beBlock, beChildren);
             
             case 'If':
                 const ifNode = node as IfNode;

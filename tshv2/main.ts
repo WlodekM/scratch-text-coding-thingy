@@ -40,7 +40,7 @@ export class Lexer {
     }
 
     private isDigit(char: string): boolean {
-        return /[\d\-]/.test(char);
+        return /-?[\d]/.test(char);
     }
 
     private isWhitespace(char: string): boolean {
@@ -129,9 +129,12 @@ export class Lexer {
             else if (char === "*") tokens.push({ type: TokenType.BINOP, value: char });
             else if (char === "/") tokens.push({ type: TokenType.BINOP, value: char });
             else if (char === "%") tokens.push({ type: TokenType.BINOP, value: char });
-            else if (char === "=") tokens.push({ type: TokenType.ASSIGN, value: char });
             else if (char === ">") tokens.push({ type: TokenType.BINOP, value: char });
             else if (char === "<") tokens.push({ type: TokenType.BINOP, value: char });
+            else if (char === "=" && this.peek() === '=') {
+                tokens.push({ type: TokenType.BINOP, value: char });
+            }
+            else if (char === "=") tokens.push({ type: TokenType.ASSIGN, value: char });
             else {
                 throw new Error(`Unexpected character: ${char}`);
             }
