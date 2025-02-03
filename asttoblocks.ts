@@ -12,7 +12,8 @@ interface Input {
 }
 
 export type blockBlock = ({ id: string } & json.Block)
-export type jsonBlock = ({ id: string } & json.Block) | [12, string, string]
+export type varBlock = { id: string, data:  [12, string, string] }
+export type jsonBlock = blockBlock | varBlock
 
 type Variable = ["a", string | number] //TODO - figure out the first item
 
@@ -106,7 +107,25 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
     async function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[]) {
         console.debug(arg, inp)
-        if(['FunctionCall', 'Boolean', 'Identifier'].includes(arg.type)) {
+        if(arg.type == 'Identifier') {
+            const childBlock = await processNode(arg, false, true);
+            console.debug(childBlock.block, 'ahhh')
+            return [inp.name, Array.isArray(childBlock.block)
+                    ? [inp.type, childBlock.block] : [inp.type,
+                (childBlock.block as varBlock).data,
+                [
+                    ...(
+                        arg
+                        ? [
+                            10,
+                            '0'
+                        ]
+                        : []
+                    )
+                ]
+            ]]
+        }
+        if(['FunctionCall', 'Boolean'].includes(arg.type)) {
             const childBlock = await processNode(arg, false, true);
             child.push(childBlock);
             console.debug(childBlock.block, 'ahhh')
@@ -133,6 +152,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         ({
                             Literal: typeof (arg as LiteralNode).value == 'number' ? 4 : 10,
                         })[arg.type] ?? 10,
+                        // deno-lint-ignore no-explicit-any
                         (arg as LiteralNode | any)?.value?.toString()
                     ]
                     : []
@@ -407,8 +427,11 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             case "Identifier":
                 const identifierNode = node as IdentifierNode;
                 const vid = sprite.variables.get(identifierNode.name);
-                //@ts-ignore: uh
-                return new BlockCollection([12, identifierNode.name, vid], []);
+                if (!vid) throw 'Unknown variable'
+                return new BlockCollection({
+                    id: thisBlockID,
+                    data: [12, identifierNode.name, vid]
+                }, []);
             
             //TODO: do other nodes
 

@@ -1,4 +1,6 @@
-export type jsonBlock = Block | [12, string, string]
+export type blockBlock = ({ id: string } & Block)
+export type varBlock = [12, string, string]
+export type jsonBlock = blockBlock | varBlock
 
 export interface Stage {
     isStage: true

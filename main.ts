@@ -44,7 +44,8 @@ const projectJson: { targets: json.Sprite[], meta: any, $schema?: string } = {
 }
 
 export type blockBlock = ({ id: string } & json.Block)
-export type jsonBlock = ({ id: string } & json.Block) | [12, string, string]
+export type varBlock = { id: string, data:  [12, string, string] }
+export type jsonBlock = blockBlock | varBlock
 
 const assets: Map<string, string> = new Map();
 
@@ -72,7 +73,18 @@ for (const spriteName in project.sprites) {
         }
         const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(ast);
         console.log(ast, blockaroonies, env)
-        jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [Array.isArray(b) ? 'a' : b.id, b]))
+        jsonSprite.variables = {
+            ...Object.fromEntries(
+                [...env.variables.entries()].map(([v, n]) => [
+                    n,
+                    [
+                        v,
+                        0
+                    ]
+                ])
+            )
+        }
+        jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : b]))
     } else {
         jsonSprite.blocks = {}
     }
@@ -135,7 +147,7 @@ projectJson.meta = {
 //TODO - figure out what the SHIT is causing it to error
 //@ts-expect-error: uh
 const completeproject: json.Project & { $schema?: string } = {
-    $schema: "./schema/sb3_schema.json",
+    $schema: "../schema/sb3_schema.json",
     ...projectJson
 }
 

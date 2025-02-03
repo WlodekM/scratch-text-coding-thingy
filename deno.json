@@ -1,8 +1,8 @@
 {
   "tasks": {
-    "run": "deno run -A ../main.ts",
-    "run-and-open": "cd project & deno run -A main.ts & turbowarp-desktop project.sb3 & cd ..",
-    "open": "turbowarp-desktop project.sb3"
+    "run": "deno run -A ./main.ts project",
+    "run-and-open": "deno run -A main.ts project & turbowarp-desktop project/project.sb3",
+    "open": "turbowarp-desktop project/project.sb3"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
