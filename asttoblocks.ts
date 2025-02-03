@@ -108,7 +108,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     async function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[]) {
         console.debug(arg, inp)
         if(arg.type == 'Identifier') {
-            const childBlock = await processNode(arg, false, true);
+            const childBlock = await processNode(arg, false, true, true);
             console.debug(childBlock.block, 'ahhh')
             return [inp.name, Array.isArray(childBlock.block)
                     ? [inp.type, childBlock.block] : [inp.type,
@@ -126,7 +126,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             ]]
         }
         if(['FunctionCall', 'Boolean'].includes(arg.type)) {
-            const childBlock = await processNode(arg, false, true);
+            const childBlock = await processNode(arg, false, true, true);
             child.push(childBlock);
             console.debug(childBlock.block, 'ahhh')
             return [inp.name, Array.isArray(childBlock.block)
@@ -164,6 +164,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     async function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false): Promise<BlockCollection> {
         blockID++;
         const thisBlockID = genId(blockID);
+        console.log('procesing node', thisBlockID, node, topLevel, noLast, noNext)
         const blk = {
             next: '',
             parent: null,
@@ -206,6 +207,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             
             case 'Include':
                 const includeNode = node as IncludeNode;
+                blockID--
                 if (includeNode.itype == 'blocks/js') {
                     //@ts-ignore: goog...
                     globalThis.goog = {
@@ -227,9 +229,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 if (!blockDefinitions[fnNode.identifier])
                     throw 'Unknown opcode "' + fnNode.identifier + '"';
                 const definition = blockDefinitions[fnNode.identifier]
-                console.log('last: ', lastBlock)
-                console.log(topLevel || !lastBlock ? undefined : lastBlock.id.toString())
-                console.log(lastBlock.id);
+                // console.log('last: ', lastBlock)
                 const child: PartialBlockCollection[] = [];
                 const inputs = [];
                 for (let i = 0; i < definition.length; i++) {
@@ -444,7 +444,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     for (const node of ast) {
         const coll = await processNode(node, true);
         const unfurled = coll.unfurl()
-        console.log(coll, unfurled)
+        // console.log(coll, unfurled)
         blocks.push(...unfurled)
     }
 
