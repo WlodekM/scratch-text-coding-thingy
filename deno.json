@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "run": "deno run -A main.ts",
+    "run": "deno run -A ../main.ts",
     "run-and-open": "cd project & deno run -A main.ts & turbowarp-desktop project.sb3 & cd ..",
     "open": "turbowarp-desktop project.sb3"
   },

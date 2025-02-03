@@ -24,12 +24,14 @@ type TProject = {
     sprites: Record<string, TSprite>
 }
 
-console.log(Deno.env.get('PWD'))
+const dir: string = path.resolve(Deno.args[0] || Deno.cwd() || '.');
+
+console.log(dir)
 
 const decoder = new TextDecoder("utf-8");
 const rawProjectConfig: string = decoder.decode(
     Deno.readFileSync(
-        path.join(Deno.env.get('PWD') || '.', 'project.prj.yaml')
+        path.join(dir, 'project.prj.yaml')
     )
 )
 const project: TProject = parse(rawProjectConfig) as TProject
@@ -59,7 +61,7 @@ for (const spriteName in project.sprites) {
     jsonSprite.costumes = []
 
     if (sprite.code) {
-        const sourceCode = new TextDecoder().decode(Deno.readFileSync(sprite.code));
+        const sourceCode = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sprite.code)));
 
         const lexer = new Lexer(sourceCode);
         const tokens = lexer.tokenize();
@@ -103,7 +105,7 @@ for (const spriteName in project.sprites) {
 
     for (const [name, asset] of Object.entries(sprite.costumes)) {
         if (!assets.has(asset.path)) {
-            const assetData = new TextDecoder().decode(Deno.readFileSync(asset.path))
+            const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, asset.path)))
             const hash = CryptoJS.MD5(assetData).toString();
             assets.set(asset.path, hash);
         }
@@ -139,7 +141,7 @@ const completeproject: json.Project & { $schema?: string } = {
 
 const encoder = new TextEncoder();
 const data = encoder.encode(JSON.stringify(completeproject, null, 4)) // Since this now outputs an sb3, this is purely for debugging so we can indent
-Deno.writeFileSync('out.json', data)
+Deno.writeFileSync(path.join(dir, 'out.json'), data)
 
 //SECTION - Write the project json and assets into a zip
 const zipFileWriter = new zip.BlobWriter();
@@ -148,7 +150,7 @@ const zipWriter = new zip.ZipWriter(zipFileWriter);
 await zipWriter.add("project.json", new zip.TextReader(JSON.stringify(completeproject)));
 await zipWriter.add('assets/')
 for (const [asset, uuid] of [...assets.entries()]) {
-    const file = await Deno.readFileSync(asset)
+    const file = Deno.readFileSync(path.join(dir, asset))
     await zipWriter.add(`assets/${uuid}.svg`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
 }
 await zipWriter.close();
@@ -156,5 +158,5 @@ await zipWriter.close();
 // Retrieves the Blob object containing the zip content into `zipFileBlob`. It
 // is also returned by zipWriter.close() for more convenience.
 const zipFileBlob = await zipFileWriter.getData();
-Deno.writeFileSync('project.sb3', await zipFileBlob.bytes())
+Deno.writeFileSync(path.join(dir, 'project.sb3'), await zipFileBlob.bytes())
 //!SECTION
