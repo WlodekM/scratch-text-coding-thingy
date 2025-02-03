@@ -2,6 +2,11 @@
 #include <"blocks/js" "tw-blocks/blocks_vertical/motion.js">
 #include <"blocks/js" "tw-blocks/blocks_vertical/operators.js">
 
+//TODO - add function decls
+// fn test(a) {
+// 
+// }
+
 gf {
     // var a = 5
     // looks_say(a)
@@ -9,8 +14,9 @@ gf {
     motion_gotoxy(0, 180)
     control_forever() {
         vy = operator_subtract(vy, 1)
-        if (operator_lt(motion_xposition(), operator_subtract(0,100))) {
+        if (operator_lt(motion_yposition(), operator_subtract(0,100))) {
             vy = 0
+            motion_changeyby(1)
         }
         motion_changeyby(vy)
     }
