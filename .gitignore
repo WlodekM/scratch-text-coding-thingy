@@ -3,3 +3,4 @@ project.sb3
 out.json
 node_modules
 ast.json
+deno.lock
