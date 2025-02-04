@@ -44,7 +44,8 @@
   },
   "remote": {
     "https://esm.sh/crypto-js@4.1.1": "dcc37e6b0288ca97ebc7000410c386127f05245b0f09529acebec9c383706409",
-    "https://esm.sh/crypto-js@4.1.1/denonext/crypto-js.mjs": "347decaa5d96d1f9a4c8ea932e2e9442f2f20c55fd96add1026c361eb3a85b7d"
+    "https://esm.sh/crypto-js@4.1.1/denonext/crypto-js.mjs": "347decaa5d96d1f9a4c8ea932e2e9442f2f20c55fd96add1026c361eb3a85b7d",
+    "https://extensions.turbowarp.org/godslayerakp/http.js": "ef5b1d92d925a56c6c3a6d122ee7ac8b8800c7edf58664e35583796dd8a37299"
   },
   "workspace": {
     "dependencies": [

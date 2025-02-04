@@ -14,6 +14,8 @@ interface Input {
 export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data:  [12, string, string] }
 export type jsonBlock = blockBlock | varBlock
+const _class = new (class {})()
+type Class = typeof _class
 
 type Variable = ["a", string | number] //TODO - figure out the first item
 
@@ -25,7 +27,8 @@ function genVarId(name: string): string {
 }
 
 export class Environment {
-    variables: Map<string, string> = new Map()
+    variables: Map<string, string> = new Map();
+    extensions: [string, string][] = []
 }
 
 class PartialBlockCollection {
@@ -220,6 +223,72 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     blockDefinitions = {
                         ...jsBlocksToJSON(),
                         ...blockDefinitions
+                    }
+                } else if (includeNode.itype.startsWith('extension')) {
+                    const extid =[...includeNode.itype.matchAll(/\/(.*)/g)][0][1] ?? '';
+                    console.debug([...includeNode.itype.matchAll(/\/(.*)/g)], extid)
+                    if (!extid) throw 'Unknown extension id';
+                    sprite.extensions.push([includeNode.path, extid]);
+                    const nop = () => {};
+                    let ext: any = null;
+                    //@ts-ignore:
+                    const Scratch = globalThis.Scratch = {
+                        translate: (a:string)=>a,
+                        extensions: {
+                            unsandboxed: true,
+                            register: (e: Class) => {ext = e}
+                        },
+                        vm: {
+                            runtime: {
+                                on: nop
+                            }
+                        },
+                        BlockType: {
+                            BOOLEAN: "Boolean",
+                            BUTTON: "button",
+                            LABEL: "label",
+                            COMMAND: "command",
+                            CONDITIONAL: "conditional",
+                            EVENT: "event",
+                            HAT: "hat",
+                            LOOP: "loop",
+                            REPORTER: "reporter",
+                            XML: "xml"
+                        },
+                        Cast,
+                        ArgumentType: {
+                            ANGLE: "angle",
+                            BOOLEAN: "Boolean",
+                            COLOR: "color",
+                            NUMBER: "number",
+                            STRING: "string",
+                            MATRIX: "matrix",
+                            NOTE: "note",
+                            IMAGE: "image",
+                            COSTUME: "costume",
+                            SOUND: "sound"
+                        }
+                    }
+                    //@ts-ignore:
+                    Scratch.translate.setup = nop
+                    await import(includeNode.path);
+                    if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
+                    const { blocks, id: extId } = ext.getInfo();
+                    blockDefinitions = {
+                        ...blockDefinitions,
+                        ...Object.fromEntries(
+                            blocks.map((block: any) => {
+                                if (typeof block !== 'object' || !block.opcode)
+                                    return [];
+                                console.log(block.opcode)
+                                return [extId+'_'+block.opcode, Object.entries(block.arguments ?? {}).map(a => {
+                                    return {
+                                        name: a[0],
+                                        type: 1
+                                    } as Input
+                                })]
+                            })
+                        )
                     }
                 }
                 return new PartialBlockCollection([]) as BlockCollection

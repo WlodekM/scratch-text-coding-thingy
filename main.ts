@@ -38,9 +38,17 @@ const project: TProject = parse(rawProjectConfig) as TProject
 
 console.debug(project)
 
-const projectJson: { targets: json.Sprite[], meta: any, $schema?: string } = {
+const projectJson: {
+    targets: json.Sprite[],
+    meta: any,
+    $schema?: string,
+    extensions: string[],
+    extensionURLs: Record<string, string>
+} = {
     targets: [],
-    meta: {}
+    meta: {},
+    extensions: [],
+    extensionURLs: {},
 }
 
 export type blockBlock = ({ id: string } & json.Block)
@@ -48,6 +56,7 @@ export type varBlock = { id: string, data:  [12, string, string] }
 export type jsonBlock = blockBlock | varBlock
 
 const assets: Map<string, string> = new Map();
+const extensions: Set<[string, string]> = new Set();
 
 let layer = -1;
 for (const spriteName in project.sprites) {
@@ -84,6 +93,7 @@ for (const spriteName in project.sprites) {
                 ])
             )
         }
+        env.extensions.forEach(ext => extensions.add(ext))
         jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : b]))
     } else {
         jsonSprite.blocks = {}
@@ -140,6 +150,9 @@ for (const spriteName in project.sprites) {
     }
     projectJson.targets.push(completesprite)
 }
+
+projectJson.extensions = [...extensions].map(a => a[1])
+projectJson.extensionURLs = Object.fromEntries([...extensions].map(([a, b]) => [b, a]))
 
 projectJson.meta = {
     agent: '',

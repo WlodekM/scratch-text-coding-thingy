@@ -1,6 +1,8 @@
+// #include <"blocks/js" "tw-blocks/blocks_vertical/motion.js">
+// #include <"blocks/js" "tw-blocks/blocks_vertical/operators.js">
 #include <"blocks/js" "tw-blocks/blocks_vertical/control.js">
-#include <"blocks/js" "tw-blocks/blocks_vertical/motion.js">
-#include <"blocks/js" "tw-blocks/blocks_vertical/operators.js">
+#include <"blocks/js" "tw-blocks/blocks_vertical/looks.js">
+#include <"extensions/gsaHTTPRequests" "https://extensions.turbowarp.org/godslayerakp/http.js">
 
 //TODO - add function decls
 // fn test(a) {
@@ -10,15 +12,18 @@
 gf {
     // var a = 5
     // looks_say(a)
-    var vy = 0
-    motion_gotoxy(0, 180)
-    control_forever() {
-        // todo: figure out how to parseExpression() when there's not just numbers
-        vy = operator_subtract(vy, 1)
-        if (operator_lt(motion_yposition(), operator_subtract(0, 100))) {
-            vy = 0
-            motion_changeyby(1)
-        }
-        motion_changeyby(vy)
-    }
+    // var vy = 0
+    // motion_gotoxy(0, 180)
+    // control_forever() {
+    //     // todo: figure out how to parseExpression() when there's not just numbers
+    //     vy = operator_subtract(vy, 1)
+    //     if (operator_lt(motion_yposition(), operator_subtract(0, 100))) {
+    //         vy = 0
+    //         motion_changeyby(1)
+    //     }
+    //     motion_changeyby(vy)
+    // }
+    gsaHTTPRequests_sendRequest("https://google.com.ar/")
+    control_wait_until(gsaHTTPRequests_requestComplete())
+    looks_say(gsaHTTPRequests_resData())
 }
