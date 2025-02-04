@@ -14,8 +14,8 @@ gf {
     motion_gotoxy(0, 180)
     control_forever() {
         // todo: figure out how to parseExpression() when there's not just numbers
-        vy = vy - 1
-        if (motion_yposition() - (0-100)) {
+        vy = operator_subtract(vy, 1)
+        if (operator_lt(motion_yposition(), operator_subtract(0, 100))) {
             vy = 0
             motion_changeyby(1)
         }

@@ -116,8 +116,14 @@ for (const spriteName in project.sprites) {
     } else throw new Error()
 
     for (const [name, asset] of Object.entries(sprite.costumes)) {
+        let [rotationCenterX, rotationCenterY] = [0, 0]
         if (!assets.has(asset.path)) {
-            const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, asset.path)))
+            const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, asset.path)));
+            const match = [...assetData.matchAll(/<!--rotationCenter:(.*?):(.*?)-->/g)][0];
+            console.log(match ? match[1] : 'a')
+            if(match && match[1] && match[2]) {
+                [rotationCenterX, rotationCenterY] = [Number(match[1]), Number(match[2])]
+            }
             const hash = CryptoJS.MD5(assetData).toString();
             assets.set(asset.path, hash);
         }
@@ -128,8 +134,8 @@ for (const spriteName in project.sprites) {
             bitmapResolution: 1,
             md5ext: assets.get(asset.path) as string + ext,
             name,
-            rotationCenterX: 0,
-            rotationCenterY: 0,
+            rotationCenterX,
+            rotationCenterY,
         })
     }
     projectJson.targets.push(completesprite)
