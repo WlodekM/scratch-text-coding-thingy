@@ -249,6 +249,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                             REPORTER: "reporter",
                             XML: "xml"
                         },
+                        TargetType: {
+                            SPRITE: "sprite",
+                            STAGE: "stage"
+                        },
                         Cast,
                         ArgumentType: {
                             ANGLE: "angle",
@@ -296,7 +300,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 // console.log('last: ', lastBlock)
                 const child: PartialBlockCollection[] = [];
                 const inputs = [];
-                for (let i = 0; i < definition.length; i++) {
+                for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
                     const inp = definition[i];
                     inputs.push(await arg2input(inp, fnNode.args[i], child))
                 }
@@ -419,6 +423,11 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const bDefinition = blockDefinitions[branchNode.identifier]
                 console.debug(branchNode, bDefinition)
                 const branchChildren: PartialBlockCollection[] = [];
+                const binputs = [];
+                for (let i = 0; i < Math.min(bDefinition.length, branchNode.args.length); i++) {
+                    const inp = bDefinition[i];
+                    binputs.push(await arg2input(inp, branchNode.args[i], branchChildren))
+                }
                 const branchBlock: jsonBlock = {
                     opcode: branchNode.identifier,
                     ...blk,
@@ -426,7 +435,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     topLevel,
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
-                    inputs: Object.fromEntries(await Promise.all(bDefinition
+                    inputs: Object.fromEntries([...await Promise.all(bDefinition
                             .filter(a => a)
                             .filter(a => Array.isArray(a) && a[0])
                         .map(
@@ -435,7 +444,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                                 return await arg2input(inp, branchNode.args[i], branchChildren)
                             }
                         )
-                    )),
+                    ), ...binputs]),
                 };
                 if(!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
                 if(!noLast) lastBlock = branchBlock;
