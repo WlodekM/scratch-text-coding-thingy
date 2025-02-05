@@ -2,7 +2,7 @@
 // #include <"blocks/js" "tw-blocks/blocks_vertical/operators.js">
 #include <"blocks/js" "tw-blocks/blocks_vertical/control.js">
 #include <"blocks/js" "tw-blocks/blocks_vertical/looks.js">
-#include <"extensions/gsaHTTPRequests" "https://extensions.turbowarp.org/godslayerakp/http.js">
+#include <"extension" "https://extensions.turbowarp.org/godslayerakp/http.js">
 
 //TODO - add function decls
 // fn test(a) {

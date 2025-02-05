@@ -225,10 +225,6 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         ...blockDefinitions
                     }
                 } else if (includeNode.itype.startsWith('extension')) {
-                    const extid =[...includeNode.itype.matchAll(/\/(.*)/g)][0][1] ?? '';
-                    console.debug([...includeNode.itype.matchAll(/\/(.*)/g)], extid)
-                    if (!extid) throw 'Unknown extension id';
-                    sprite.extensions.push([includeNode.path, extid]);
                     const nop = () => {};
                     let ext: any = null;
                     //@ts-ignore:
@@ -273,7 +269,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     Scratch.translate.setup = nop
                     await import(includeNode.path);
                     if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
-                    const { blocks, id: extId } = ext.getInfo();
+                    const { blocks, id: extid } = ext.getInfo();
+                    sprite.extensions.push([includeNode.path, extid]);
                     blockDefinitions = {
                         ...blockDefinitions,
                         ...Object.fromEntries(
@@ -281,7 +278,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                                 if (typeof block !== 'object' || !block.opcode)
                                     return [];
                                 console.log(block.opcode)
-                                return [extId+'_'+block.opcode, Object.entries(block.arguments ?? {}).map(a => {
+                                return [extid+'_'+block.opcode, Object.entries(block.arguments ?? {}).map(a => {
                                     return {
                                         name: a[0],
                                         type: 1
