@@ -17,8 +17,6 @@ export type jsonBlock = blockBlock | varBlock
 const _class = new (class {})()
 type Class = typeof _class
 
-type Variable = ["a", string | number] //TODO - figure out the first item
-
 let varId = 0;
 
 function genVarId(name: string): string {

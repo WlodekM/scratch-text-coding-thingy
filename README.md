@@ -14,6 +14,8 @@ TL;DR: use text code 2 maek scratch project
 
 also the top text might be incorrect the person who wrote it has never used this tool
 
+it is designed for deno but it will probably work on other runtimes, maybe even in browser with some adjustments
+
 ## how
 
 ### step uno
