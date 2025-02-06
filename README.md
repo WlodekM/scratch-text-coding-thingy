@@ -38,7 +38,7 @@ code for sprites is in .bsl/.tsh files but like use whatever extension you want 
 
 ### step duo
 
-run `deno task run` to make the project sb3
+run `deno task run` to make the project sb3 (this one works on windows)
 
 or run `deno task run-and-open` to open tw with that project after compiling (linux only bc fuck windowse)
 
