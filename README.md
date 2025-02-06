@@ -18,38 +18,55 @@ it is designed for deno but it will probably work on other runtimes, maybe even 
 
 ## how
 
-### step uno
+### step one - dependencies
 
-edit project.prj.yaml
+make sure you have [deno](https://deno.com/) installed
 
-it is the project config
+### step two - project setup
 
-coole
+make a folder for your project
 
-haz sprite configuration n stuff
+in that folder make a `project.prj.yaml` file, the contents of it should be something like this
 
-wow
+```yaml
+sprites:
+  stage:
+    stage: true
+    name: Stage
+    costumes:
+      backdrop1:
+        format: svg
+        path: assets/empty.svg
+    sounds:
+    code: null
+  sprite1:
+    name: Main
+    code: main.bsl # this is the file containing the code for this sprite
+    costumes:
+      costume1:
+        format: svg
+        path: assets/cat_dango.svg
+```
 
-in that u can specify code for sprites
+it has the settings for your project
 
-uh yea
+### step three - writing the code
 
-code for sprites is in .bsl/.tsh files but like use whatever extension you want i dont care
+i'd recommend including base.js first, it has the base scratch blocks
 
-### step duo
+```bsl
+#include <"blocks/js" "base.js">
+```
 
-run `deno task run` to make the project sb3 (this one works on windows)
+i'd also recommend using the vscode extension if you're using that
 
-or run `deno task run-and-open` to open tw with that project after compiling (linux only bc fuck windowse)
+### step four - building the project
 
-or run `deno task open` to open the current project sb3 (also only linux i think)
+to build the project run `deno -A /path/to/backslash/main.ts .` if you're running this from project directory or `deno -A main.ts /path/to/project/directory/` if you're running this from the backslash directory
 
-### done
+after that a `project.sb3` should pop up in the project folder, this is your built project, you can edit it in scratch/tw/[other fork] but it's not recommended
 
-hooraye
-
-
-## how dis worx
+## where stuff is in the code
 
 uh types for stuffs in sb3 r in `jsontypes.ts`
 
