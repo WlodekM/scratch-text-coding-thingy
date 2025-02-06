@@ -30,6 +30,12 @@ haz sprite configuration n stuff
 
 wow
 
+in that u can specify code for sprites
+
+uh yea
+
+code for sprites is in .bsl/.tsh files but like use whatever extension you want i dont care
+
 ### step duo
 
 run `deno task run` to make the project sb3
