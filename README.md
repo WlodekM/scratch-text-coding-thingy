@@ -62,6 +62,8 @@ to build the project run `deno -A /path/to/backslash/main.ts .` if you're runnin
 
 after that a `project.sb3` should pop up in the project folder, this is your built project, you can edit it in scratch/tw/[other fork] but it's not recommended
 
+btw if you like this tool thingy please star the repo 
+
 ## where stuff is in the code
 
 uh types for stuffs in sb3 r in `jsontypes.ts`
