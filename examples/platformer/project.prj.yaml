@@ -1,0 +1,18 @@
+#yaml
+sprites:
+  stage:
+    stage: true
+    name: Stage
+    costumes:
+      backdrop1:
+        format: svg
+        path: assets/empty.svg
+    sounds:
+    code: null
+  sprite1:
+    name: Main
+    costumes:
+      costume1:
+        format: svg
+        path: assets/cat_dango.svg
+    code: main.tsh

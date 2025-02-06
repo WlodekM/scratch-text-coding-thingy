@@ -1,0 +1,22 @@
+#include <"blocks/js" "base.js">
+#include <"extension" "https://extensions.turbowarp.org/box2d.js">
+
+gf {
+    // for some unknown reason extensions work when inputs of the name of the field work
+    griffpatch_setStage("floor")griffpatch_setPhysics("normal", "costume")
+    motion_gotoxy(0, 0)
+    var deltax = 0
+    control_forever() {
+        griffpatch_doTick()
+        griffpatch_setAngVelocity(0)
+        motion_pointindirection(90)
+        deltax = sensing_keypressed("d") - sensing_keypressed("a")
+        if (operator_mathop("abs", griffpatch_getVelocityX() + deltax) < 10) {
+            griffpatch_changeVelocity(deltax, 0)
+        }
+        if (sensing_keypressed("w") && operator_not(griffpatch_getTouching() == "")) {
+            griffpatch_changeVelocity(0, 5)
+        }
+        griffpatch_changeScroll(motion_xposition() * 0.2, 0)
+    }
+}
