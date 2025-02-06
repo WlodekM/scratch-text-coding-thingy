@@ -3,7 +3,9 @@
 gf {
     var a = 0
 
-    looks_say(a)
+    looks_say(a - 5)
+
+    looks_say(motion_xposition() < 5)
 
     // if x position > 5
     control_if_else(operator_and(true, false)) {

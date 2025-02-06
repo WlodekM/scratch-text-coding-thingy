@@ -20,8 +20,35 @@
         "identifier": "looks_say",
         "args": [
           {
-            "type": "Identifier",
-            "name": "a"
+            "type": "BinaryExpression",
+            "operator": "-",
+            "left": {
+              "type": "Identifier",
+              "name": "a"
+            },
+            "right": {
+              "type": "Literal",
+              "value": 5
+            }
+          }
+        ]
+      },
+      {
+        "type": "FunctionCall",
+        "identifier": "looks_say",
+        "args": [
+          {
+            "type": "BinaryExpression",
+            "operator": "<",
+            "left": {
+              "type": "FunctionCall",
+              "identifier": "motion_xposition",
+              "args": []
+            },
+            "right": {
+              "type": "Literal",
+              "value": 5
+            }
           }
         ]
       },
@@ -74,7 +101,7 @@
     ]
   },
   {
-    "name": "aa",
-    "type": "Identifier"
+    "type": "Identifier",
+    "name": "aa"
   }
 ]

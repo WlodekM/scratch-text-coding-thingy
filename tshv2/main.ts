@@ -21,7 +21,7 @@ export enum TokenType {
     INCLUDE = "INCLUDE"
 }
 
-interface Token {
+export interface Token {
     type: TokenType;
     value: string;
 }
@@ -229,9 +229,9 @@ export interface BooleanNode extends ASTNode {
 }
 
 export interface IncludeNode extends ASTNode {
-    type: "Include"
-    itype: string
-    path: string
+    type: "Include";
+    itype: string;
+    path: string;
 }
 
 // Parser
@@ -270,45 +270,35 @@ export class Parser {
         if (this.peek().type === type) {
             return this.advance();
         }
-        console.error('trace: tokens', this.tokens, '\nIDX:', this.position)
+        console.error('trace: tokens', this.tokens, '\nIDX:', this.position);
         throw new Error(errorMessage);
     }
 
+
     parse(): ASTNode[] {
         const nodes: ASTNode[] = [];
-
         while (this.peek().type !== TokenType.EOF) {
-            try {
-                nodes.push(this.parseStatement());
-            } catch (error) {
-                console.error(error, 'at', this.peek());
-                throw 'error'
-            }
+            nodes.push(this.parseStatement());
         }
-
         return nodes;
     }
 
-    private parseStatement(topLevel = true): ASTNode {
+    private parseStatement(): ASTNode {
         if (this.match(TokenType.VAR)) {
             const identifier = this.expect(TokenType.IDENTIFIER, "Expected variable name").value;
             this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
-            const value = this.parseExpression();
+            const value = this.parseAssignment();
             return { type: "VariableDeclaration", identifier, value } as VariableDeclarationNode;
         }
 
         if (this.match(TokenType.INCLUDE)) {
-            if (this.expect(TokenType.BINOP, 'Exprected < after #include').value != '<')
-                throw "Exprected < after #include";
-            const itype = this.expect(TokenType.STRING, 'Expected string (type)').value
-            const path = this.expect(TokenType.STRING, 'Expected string (path)').value
-            if (this.expect(TokenType.BINOP, 'Exprected > after include statement').value != '>')
-                throw "Exprected > after include statement";
-            return {
-                itype,
-                path,
-                type: "Include"
-            } as IncludeNode
+            if (this.expect(TokenType.BINOP, 'Expected < after #include').value !== '<')
+                throw new Error("Expected < after #include");
+            const itype = this.expect(TokenType.STRING, 'Expected string (type)').value;
+            const path = this.expect(TokenType.STRING, 'Expected string (path)').value;
+            if (this.expect(TokenType.BINOP, 'Expected > after include statement').value !== '>')
+                throw new Error("Expected > after include statement");
+            return { itype, path, type: "Include" } as IncludeNode;
         }
 
         if (this.match(TokenType.FN)) {
@@ -326,36 +316,28 @@ export class Parser {
             return { type: "FunctionDeclaration", name, params, body } as FunctionDeclarationNode;
         }
 
-        // if (this.match(TokenType.START)) {
-        //     this.expect(TokenType.LBRACE, "Expected '{' after start");
-        //     const body = this.parseBlock();
-        //     return { type: "StartBlock", body } as StartBlockNode;
-        // }
 
-        if (this.match(TokenType.IF) && topLevel) {
+        if (this.match(TokenType.IF)) {
             this.expect(TokenType.LPAREN, "Expected '(' after 'if'");
-            const condition = this.peek().type == TokenType.RPAREN ? null : 
-                this.peek().type == TokenType.NUMBER ? this.parseExpression() :
-                this.parseStatement();
+            const condition = this.parseAssignment();
             this.expect(TokenType.RPAREN, "Expected ')' after if condition");
             this.expect(TokenType.LBRACE, "Expected '{' after if condition");
             const thenBranch = this.parseBlock();
             let elseBranch: ASTNode[] | undefined;
-
             if (this.match(TokenType.ELSE)) {
                 this.expect(TokenType.LBRACE, "Expected '{' after 'else'");
                 elseBranch = this.parseBlock();
             }
-
             return { type: "If", condition, thenBranch, elseBranch } as IfNode;
         }
 
-        if (this.match(TokenType.FOR) && topLevel) {
+
+        if (this.match(TokenType.FOR)) {
             this.expect(TokenType.LPAREN, "Expected '(' after 'for'");
-            const varname = this.parseExpression();
-            const of = this.expect(TokenType.IDENTIFIER, 'expected of')
-            if(of.value != 'of') throw 'expected of'
-            const times = this.parseExpression();
+            const varname = this.parseAssignment();
+            const of = this.expect(TokenType.IDENTIFIER, 'expected of');
+            if (of.value !== 'of') throw new Error('expected of');
+            const times = this.parseAssignment();
             this.expect(TokenType.RPAREN, "Expected ')' after for");
             this.expect(TokenType.LBRACE, "Expected '{' after for");
             const branch = this.parseBlock();
@@ -363,69 +345,17 @@ export class Parser {
             return { type: "For", varname, times, branch } as ForNode;
         }
 
-        if (this.match(TokenType.GREENFLAG) && topLevel) {
+        if (this.match(TokenType.GREENFLAG)) {
             this.expect(TokenType.LBRACE, "Expected '{' after greenflag");
             const branch = this.parseBlock();
 
             return { type: "GreenFlag", branch } as GreenFlagNode;
         }
 
-        if (this.match(TokenType.IDENTIFIER)) {
-            const identifier = this.tokens[this.position - 1].value;
-            if (this.match(TokenType.ASSIGN) && topLevel) {
-                const value = this.peek().type == TokenType.NUMBER ?
-                    this.parseExpression() :
-                    this.parseStatement();
-                return { type: "Assignment", identifier, value } as AssignmentNode;
-            }
-        
-            if (this.match(TokenType.LPAREN)) {
-                const args: ASTNode[] = [];
-                if (!this.match(TokenType.RPAREN)) {
-                    do {
-                        if(this.matchTk([TokenType.IDENTIFIER], this.peek())
-                        && this.matchTk([TokenType.LPAREN], this.peek(1))) {
-                            args.push(this.parseStatement());
-                            continue;
-                        }
-                        args.push(this.parseExpression());
-                    } while (this.match(TokenType.COMMA));
-                    this.expect(TokenType.RPAREN, "Expected ')' after arguments");
-                }
-                if (this.match(TokenType.LBRACE)) {
-                    const branches: ASTNode[][] = []
-                    while (true) {
-                        branches.push(this.parseBlock());
-                        if (this.match(TokenType.LBRACE)) continue;
-                        break;
-                    }
-                    return {
-                        type: "BranchFunctionCall",
-                        identifier,
-                        args,
-                        branches
-                    } as BranchFunctionCallNode;
-                }
-                return { type: "FunctionCall", identifier, args } as FunctionCallNode;
-            }
 
-            if (['True', 'true', 'False', 'false'].includes(identifier)) {
-                return {
-                    type: "Boolean",
-                    value: ['True', 'true'].includes(identifier)
-                } as BooleanNode
-            }
-
-            return {
-                name: identifier,
-                type: 'Identifier'
-            } as IdentifierNode
-        }
-
-        console.error("TRACE: TOKENS", this.tokens, '\nPOS:', this.position, '\n', 
-            this.tokens.map((tk, i) => (i == this.position ? '->' : '') + JSON.stringify(tk)).join('\n'))
-        throw new Error(`Unexpected token: ${this.peek().type}`);
+        return this.parseAssignment();
     }
+
 
     private parseBlock(): ASTNode[] {
         const nodes: ASTNode[] = [];
@@ -437,37 +367,107 @@ export class Parser {
         return nodes;
     }
 
-    private parseExpression(): ASTNode {
-        let left = this.parsePrimary();
+    private parseAssignment(): ASTNode {
 
-        while (this.match(TokenType.BINOP, TokenType.GREATER)) {
-            const operator = this.tokens[this.position - 1].value; // Capture operator
-            const right = this.parsePrimary();
+        const expr = this.parseBinaryExpression();
+        if (this.match(TokenType.ASSIGN)) {
+            if (expr.type !== "Identifier")
+                throw new Error("Invalid assignment target; expected an identifier");
+            const value = this.parseAssignment();
+            return { type: "Assignment", identifier: (expr as IdentifierNode).name, value } as AssignmentNode;
+        }
+        return expr;
+    }
+
+    private parseBinaryExpression(): ASTNode {
+        let left = this.parseCall();
+
+        while (this.peek().type === TokenType.BINOP || this.peek().type === TokenType.GREATER) {
+            const operator = this.advance().value;
+            const right = this.parseCall();
             left = { type: "BinaryExpression", operator, left, right } as BinaryExpressionNode;
         }
-
         return left;
     }
 
+    private parseCall(): ASTNode {
+        let expr = this.parsePrimary();
+
+
+        while (this.peek().type === TokenType.LPAREN) {
+            expr = this.finishCall(expr);
+        }
+        return expr;
+    }
+
+    private finishCall(callee: ASTNode): ASTNode {
+
+
+        this.expect(TokenType.LPAREN, "Expected '(' after function name");
+        const args: ASTNode[] = [];
+        if (this.peek().type !== TokenType.RPAREN) {
+            do {
+                args.push(this.parseAssignment());
+            } while (this.match(TokenType.COMMA));
+        }
+        this.expect(TokenType.RPAREN, "Expected ')' after arguments");
+
+
+        if (this.peek().type === TokenType.LBRACE) {
+            const branches: ASTNode[][] = [];
+            do {
+                this.expect(TokenType.LBRACE, "Expected '{' for branch block");
+                branches.push(this.parseBlock());
+            } while (this.peek().type === TokenType.LBRACE);
+
+            if (callee.type !== "Identifier")
+                throw new Error("Branch function call expects an identifier");
+            return {
+                type: "BranchFunctionCall",
+                identifier: (callee as IdentifierNode).name,
+                args,
+                branches,
+            } as BranchFunctionCallNode;
+        }
+
+
+        if (callee.type !== "Identifier")
+            throw new Error("Function call expects an identifier");
+        return {
+            type: "FunctionCall",
+            identifier: (callee as IdentifierNode).name,
+            args,
+        } as FunctionCallNode;
+    }
+
     private parsePrimary(): ASTNode {
+        const token = this.peek();
+
         if (this.match(TokenType.NUMBER)) {
-            return { type: "Literal", value: Number(this.tokens[this.position - 1].value) } as LiteralNode;
+            return { type: "Literal", value: Number(token.value) } as LiteralNode;
         }
 
         if (this.match(TokenType.STRING)) {
-            return { type: "Literal", value: this.tokens[this.position - 1].value } as LiteralNode;
+            return { type: "Literal", value: token.value } as LiteralNode;
         }
 
         if (this.match(TokenType.IDENTIFIER)) {
-            if (['True', 'true', 'False', 'false'].includes(this.tokens[this.position - 1].value)) {
+
+            if (["True", "true", "False", "false"].includes(token.value)) {
                 return {
                     type: "Boolean",
-                    value: ['True', 'true'].includes(this.tokens[this.position - 1].value)
-                } as BooleanNode
+                    value: token.value === "True" || token.value === "true"
+                } as BooleanNode;
             }
-            return { type: "Identifier", name: this.tokens[this.position - 1].value } as IdentifierNode;
+            return { type: "Identifier", name: token.value } as IdentifierNode;
         }
 
-        throw new Error(`Unexpected token: ${this.peek().type}`);
+        if (this.match(TokenType.LPAREN)) {
+            const expr = this.parseAssignment();
+            this.expect(TokenType.RPAREN, "Expected ')' after expression");
+            return expr;
+        }
+
+        throw new Error(`Unexpected token: ${token.type}`);
     }
 }

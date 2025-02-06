@@ -1,5 +1,4 @@
-#include <"blocks/js" "base.js">
-#include <"extension" "https://extensions.turbowarp.org/box2d.js">
+#include<"blocks/js""base.js">sdada#include<"extension""https://extensions.turbowarp.org/box2d.js">
 
 gf {
     //fuck you, multiple function calls per line
@@ -10,7 +9,7 @@ gf {
         griffpatch_doTick()
         deltax = operator_subtract(sensing_keypressed("d"), sensing_keypressed("a"))
         griffpatch_changeVelocity(deltax, 0)
-        control_if(operator_gt(1, 3)) {
+        control_if() {
             looks_say("math brok")
         }
     }
