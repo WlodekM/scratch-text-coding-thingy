@@ -494,7 +494,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                             varDeclNode.identifier,
                             id
                         ]
-                    }
+                    },
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                 }
                 if(!topLevel && !noNext) lastBlock.next = varDeclBlock.id.toString();
                 if(!noLast) lastBlock = varDeclBlock;
@@ -521,7 +522,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                             varAssignmentNode.identifier,
                             sid
                         ]
-                    }
+                    },
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                 }
                 if(!topLevel && !noNext) lastBlock.next = varAssignmentBlock.id.toString();
                 if(!noLast) lastBlock = varAssignmentBlock;

@@ -51,6 +51,12 @@ const projectJson: {
     extensionURLs: {},
 }
 
+function removeId(a: blockBlock): json.Block {
+    const b: json.Block & { id?: string } = a
+    delete b.id;
+    return b
+}
+
 export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data:  [12, string, string] }
 export type jsonBlock = blockBlock | varBlock
@@ -94,7 +100,7 @@ for (const spriteName in project.sprites) {
             )
         }
         env.extensions.forEach(ext => extensions.add(ext))
-        jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : b]))
+        jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
     } else {
         jsonSprite.blocks = {}
     }

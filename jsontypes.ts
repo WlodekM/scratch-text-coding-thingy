@@ -1,4 +1,4 @@
-export type blockBlock = ({ id: string } & Block)
+export type blockBlock = ({ id?: string } & Block)
 export type varBlock = [12, string, string]
 export type jsonBlock = blockBlock | varBlock
 
