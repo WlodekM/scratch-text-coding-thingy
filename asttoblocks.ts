@@ -166,15 +166,19 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
         blockID++;
         const thisBlockID = genId(blockID);
         console.log('procesing node', thisBlockID, node, topLevel, noLast, noNext)
-        const blk = {
+        let blk = {
             next: '',
             parent: null,
             inputs: {},
             fields: {},
             shadow: false,
             topLevel: false,
-            x: 0,
-            y: 0,
+        }
+        if (topLevel) {
+            blk = Object.assign(blk, {
+                x: 0,
+                y: 0,
+            })
         }
         switch (node.type) {
             case 'GreenFlag':
@@ -314,8 +318,6 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     topLevel,
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
-                    x: 0,
-                    y: 0
                 }
                 // console.debug(block)
                 if(!topLevel && !noNext) lastBlock.next = block.id.toString();
