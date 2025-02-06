@@ -8,11 +8,7 @@
 </p>
 
 ## whart
-**backslash** allows you to convert text-based code into Scratch-compatible blocks. It injects its own programming language into Scratch-compatible projects, expanding the possibilities for coding with a text-based language instead of block-based Scratch editing.
-
-TL;DR: use text code 2 maek scratch project
-
-also the top text might be incorrect the person who wrote it has never used this tool
+**backslash** allows you to make scratch projects with text code
 
 it is designed for deno but it will probably work on other runtimes, maybe even in browser with some adjustments
 
