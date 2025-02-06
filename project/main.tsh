@@ -1,16 +1,17 @@
-#include<"blocks/js""base.js">sdada#include<"extension""https://extensions.turbowarp.org/box2d.js">
+#include<"blocks/js""base.js">
+//#include<"extension""https://extensions.turbowarp.org/box2d.js">
 
 gf {
+    if(5 == 2) {
+        looks_say("math brok")
+    }
     //fuck you, multiple function calls per line
     //actually all of the whitespace is optional
-    griffpatch_setStage("boxed")griffpatch_setPhysics("normal", "costume")
-    var deltax = 0
-    control_forever() {
-        griffpatch_doTick()
-        deltax = operator_subtract(sensing_keypressed("d"), sensing_keypressed("a"))
-        griffpatch_changeVelocity(deltax, 0)
-        control_if() {
-            looks_say("math brok")
-        }
-    }
+    // griffpatch_setStage("boxed")griffpatch_setPhysics("normal", "costume")
+    // var deltax = 0
+    // control_forever() {
+    //     griffpatch_doTick()
+    //     deltax = operator_subtract(sensing_keypressed("d"), sensing_keypressed("a"))
+    //     griffpatch_changeVelocity(deltax, 0)
+    // }
 }

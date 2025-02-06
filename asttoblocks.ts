@@ -126,7 +126,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 ]
             ]]
         }
-        if(['FunctionCall', 'Boolean'].includes(arg.type)) {
+        if(['FunctionCall', 'Boolean', 'BinaryExpression'].includes(arg.type)) {
             const childBlock = await processNode(arg, false, true, true);
             child.push(childBlock);
             console.debug(childBlock.block, 'ahhh')
@@ -326,6 +326,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 if (!Object.keys(blockDefinitions).find(k => k.startsWith('operator_')))
                     throw `To use BinExp you have to include the operators category`
                 const operations: Record<string, string> = {
+                    '&': 'operator_and',
                     '=': 'operator_equals',
                     '+': 'operator_add',
                     '-': 'operator_subtract',
@@ -338,6 +339,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const beNode = node as BinaryExpressionNode;
                 if (!operations[beNode.operator]) throw 'unknown operator ' + beNode.operator;
                 const beDefinition = blockDefinitions[operations[beNode.operator]]
+                const beChildren: PartialBlockCollection[] = []
                 const beBlock: jsonBlock = {
                     opcode: operations[beNode.operator] ?? 'undefined',
                     ...blk,
@@ -345,11 +347,13 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     topLevel,
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
-                    inputs: {},
+                    inputs: {
+                        ...Object.fromEntries([
+                            await arg2input(beDefinition[0], beNode.left, beChildren),
+                            await arg2input(beDefinition[1], beNode.right, beChildren)
+                        ])
+                    },
                 };
-                const beChildren: PartialBlockCollection[] = []
-                arg2input(beDefinition[0], beNode.left, beChildren)
-                arg2input(beDefinition[1], beNode.right, beChildren)
                 return new BlockCollection(beBlock, beChildren);
             
             case 'If':

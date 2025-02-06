@@ -8,7 +8,7 @@ gf {
     looks_say(motion_xposition() < 5)
 
     // if x position > 5
-    control_if_else(operator_and(true, false)) {
+    control_if_else(true, false) {
         say("hi")
     } {
         say("no")

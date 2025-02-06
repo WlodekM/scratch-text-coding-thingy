@@ -133,6 +133,11 @@ export class Lexer {
             else if (char === "<") tokens.push({ type: TokenType.BINOP, value: char });
             else if (char === "=" && this.peek() === '=') {
                 tokens.push({ type: TokenType.BINOP, value: char });
+                this.advance();
+            }
+            else if (char === "&" && this.peek() === '&') {
+                tokens.push({ type: TokenType.BINOP, value: char });
+                this.advance();
             }
             else if (char === "=") tokens.push({ type: TokenType.ASSIGN, value: char });
             else {
