@@ -99,6 +99,17 @@ for (const spriteName in project.sprites) {
                 ])
             )
         }
+        jsonSprite.lists = {
+            ...Object.fromEntries(
+                [...env.lists.entries()].map(([v, n]) => [
+                    n[0],
+                    [
+                        v,
+                        n[1]
+                    ]
+                ])
+            )
+        }
         const stage = projectJson.targets.find(t => t.isStage);
         if (stage) {
             stage.variables = {
@@ -108,6 +119,18 @@ for (const spriteName in project.sprites) {
                         [
                             v,
                             0
+                        ]
+                    ])
+                ),
+                ...stage.variables
+            }
+            stage.lists = {
+                ...Object.fromEntries(
+                    [...env.globalLists.entries()].map(([v, n]) => [
+                        n[0],
+                        [
+                            v,
+                            n[1]
                         ]
                     ])
                 ),

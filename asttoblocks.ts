@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
@@ -27,6 +27,8 @@ function genVarId(name: string): string {
 export class Environment {
     variables: Map<string, string> = new Map();
     globalVariables: Map<string, string> = new Map();
+    lists: Map<string, [string, string[]]> = new Map();
+    globalLists: Map<string, [string, string[]]> = new Map();
     extensions: [string, string][] = []
 }
 
@@ -491,6 +493,14 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ]
                 }
                 return new BlockCollection(branchBlock, branchChildren);
+            
+            case 'ListDeclaration':
+                const listDeclNode = node as ListDeclarationNode;
+                const lid: string = genVarId(listDeclNode.identifier);
+                if (listDeclNode.vtype == 'global')
+                    sprite.globalLists.set(listDeclNode.identifier, [lid, listDeclNode.value.map(n => (n as LiteralNode).value.toString())])
+                    else sprite.lists.set(listDeclNode.identifier,  [lid, listDeclNode.value.map(n => (n as LiteralNode).value.toString())]);
+                return new PartialBlockCollection([]) as BlockCollection;
             
             case 'VariableDeclaration':
                 const varDeclNode = node as VariableDeclarationNode;

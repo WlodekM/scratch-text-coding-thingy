@@ -1,24 +1,27 @@
+import { timeStamp } from "node:console";
+
 // Token types
 export enum TokenType {
     VAR = "VAR",
     FN = "FN",
     IDENTIFIER = "IDENTIFIER",
-    NUMBER = "NUMBER",
-    ASSIGN = "ASSIGN",
-    LPAREN = "LPAREN",
-    RPAREN = "RPAREN",
-    LBRACE = "LBRACE",
-    RBRACE = "RBRACE",
-    COMMA = "COMMA",
-    BINOP = "BINOP",
-    STRING = "STRING",
-    IF = "IF",
-    FOR = "FOR",
-    ELSE = "ELSE",
-    EOF = "EOF",
-    GREATER = "GREATER",
-    GREENFLAG = "GREENFLAG",
-    INCLUDE = "INCLUDE"
+    NUMBER     = "NUMBER",
+    ASSIGN     = "ASSIGN",
+    LPAREN     = "LPAREN",
+    RPAREN     = "RPAREN",
+    LBRACE     = "LBRACE",
+    RBRACE     = "RBRACE",
+    COMMA      = "COMMA",
+    BINOP      = "BINOP",
+    STRING     = "STRING",
+    IF         = "IF",
+    FOR        = "FOR",
+    ELSE       = "ELSE",
+    EOF        = "EOF",
+    GREATER    = "GREATER",
+    GREENFLAG  = "GREENFLAG",
+    INCLUDE    = "INCLUDE",
+    LIST       = "LIST"
 }
 
 export interface Token {
@@ -100,6 +103,7 @@ export class Lexer {
                     // if (this.advance() != '>') throw "Expected a > after #include <..."
                     tokens.push({ type: TokenType.INCLUDE, value: identifier });
                 } else if (identifier === "var") tokens.push({ type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
+                else if (identifier === "list") tokens.push({ type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
                 else if (identifier === "global") global = 2;
                 else if (identifier === "fn") tokens.push({ type: TokenType.FN, value: identifier });
                 else if (identifier === "if") tokens.push({ type: TokenType.IF, value: identifier });
@@ -244,6 +248,13 @@ export interface IncludeNode extends ASTNode {
     path: string;
 }
 
+export interface ListDeclarationNode extends ASTNode {
+    type: "ListDeclaration";
+    identifier: string;
+    value: ASTNode[];
+    vtype: 'list' | 'global'
+}
+
 // Parser
 export class Parser {
     private tokens: Token[];
@@ -300,6 +311,23 @@ export class Parser {
             this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
             const value = this.parseAssignment();
             return { type: "VariableDeclaration", identifier, value, vtype: type } as VariableDeclarationNode;
+        }
+
+        if (this.match(TokenType.LIST)) {
+            const type = this.peek(-1).value
+            const identifier = this.expect(TokenType.IDENTIFIER, "Expected list name").value;
+            this.expect(TokenType.ASSIGN, "Expected '=' after list name");
+            const value = [];
+
+            this.expect(TokenType.LBRACE, "Expected {array} as list value")
+
+            while (!this.match(TokenType.RBRACE) || this.match(TokenType.EOF)) {
+                value.push(this.parsePrimary());
+                this.match(TokenType.COMMA)
+            }
+            if (!this.peek()) throw 'reached EOF'
+
+            return { type: "ListDeclaration", identifier, value, vtype: type } as ListDeclarationNode;
         }
 
         if (this.match(TokenType.INCLUDE)) {
@@ -451,7 +479,7 @@ export class Parser {
         } as FunctionCallNode;
     }
 
-    private parsePrimary(): ASTNode {
+    private parsePrimary(allowOther = true): ASTNode {
         const token = this.peek();
 
         if (this.match(TokenType.NUMBER)) {
@@ -462,7 +490,7 @@ export class Parser {
             return { type: "Literal", value: token.value } as LiteralNode;
         }
 
-        if (this.match(TokenType.IDENTIFIER)) {
+        if (this.match(TokenType.IDENTIFIER) && allowOther) {
 
             if (["True", "true", "False", "false"].includes(token.value)) {
                 return {
@@ -473,7 +501,7 @@ export class Parser {
             return { type: "Identifier", name: token.value } as IdentifierNode;
         }
 
-        if (this.match(TokenType.LPAREN)) {
+        if (this.match(TokenType.LPAREN) && allowOther) {
             const expr = this.parseAssignment();
             this.expect(TokenType.RPAREN, "Expected ')' after expression");
             return expr;
