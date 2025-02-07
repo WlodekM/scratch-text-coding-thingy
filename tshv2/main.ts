@@ -67,9 +67,12 @@ export class Lexer {
         const tokens: Token[] = [];
 
         let inComment = false;
+        let global = 0;
 
         while (this.position < this.source.length) {
             const char = this.advance();
+
+            if (global > 0) global--;
 
             if (inComment) {
                 if (char == '\n') inComment = false;
@@ -96,8 +99,8 @@ export class Lexer {
                     // }
                     // if (this.advance() != '>') throw "Expected a > after #include <..."
                     tokens.push({ type: TokenType.INCLUDE, value: identifier });
-                } else if (identifier === "var") tokens.push({ type: TokenType.VAR, value: identifier });
-                else if (identifier === "global") tokens.push({ type: TokenType.VAR, value: identifier });
+                } else if (identifier === "var") tokens.push({ type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
+                else if (identifier === "global") global = 2;
                 else if (identifier === "fn") tokens.push({ type: TokenType.FN, value: identifier });
                 else if (identifier === "if") tokens.push({ type: TokenType.IF, value: identifier });
                 else if (identifier === "for") tokens.push({ type: TokenType.FOR, value: identifier });
