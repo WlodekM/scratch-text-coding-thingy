@@ -1,0 +1,23 @@
+#include <"blocks/js" "base.js">
+#include <"extension" "https://extensions.turbowarp.org/box2d.js">
+
+event_whenflagclicked() {
+    looks_hide()
+    control_forever() {
+        if(sensing_mousedown()) {
+            motion_gotoxy(sensing_mousex(), sensing_mousey())
+            control_create_clone_of("Main")
+            control_wait_until(operator_not(sensing_mousedown()))
+        }
+    }
+}
+
+control_start_as_clone() {
+    var initialY = motion_yposition()
+    var timer = 0
+    looks_show()
+    control_forever() {
+        timer = timer + 1
+        motion_sety(operator_mathop("sin", timer * 10) * 10 + initialY)
+    }
+}
