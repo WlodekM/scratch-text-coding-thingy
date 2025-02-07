@@ -26,6 +26,7 @@ function genVarId(name: string): string {
 
 export class Environment {
     variables: Map<string, string> = new Map();
+    globalVariables: Map<string, string> = new Map();
     extensions: [string, string][] = []
 }
 
@@ -222,8 +223,9 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     globalThis.Blockly = blockly
                     // actually import the blocks
                     await import('./'+includeNode.path);
+                    const bl = jsBlocksToJSON();
                     blockDefinitions = {
-                        ...jsBlocksToJSON(),
+                        ...bl,
                         ...blockDefinitions
                     }
                 } else if (includeNode.itype.startsWith('extension')) {
@@ -283,13 +285,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                             blocks.map((block: any) => {
                                 if (typeof block !== 'object' || !block.opcode)
                                     return [];
-                                console.log(block.opcode)
-                                return [extid+'_'+block.opcode, Object.entries(block.arguments ?? {}).map(a => {
+                                return [extid+'_'+block.opcode, [Object.entries(block.arguments ?? {}).map(a => {
                                     return {
                                         name: a[0],
                                         type: 1
                                     } as Input
-                                })]
+                                }), block.blockType == Scratch.BlockType.EVENT ? 'hat' : 'reporter']]
                             })
                         )
                     }
@@ -301,11 +302,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 if (!blockDefinitions[fnNode.identifier])
                     throw 'Unknown opcode "' + fnNode.identifier + '"';
                 const definition = blockDefinitions[fnNode.identifier]
-                // console.log('last: ', lastBlock)
                 const child: PartialBlockCollection[] = [];
                 const inputs = [];
                 for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
-                    const inp = definition[i];
+                    const inp = definition[0][i];
                     inputs.push(await arg2input(inp, fnNode.args[i], child))
                 }
                 const block: jsonBlock = {
@@ -351,8 +351,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     shadow: false,
                     inputs: {
                         ...Object.fromEntries([
-                            await arg2input(beDefinition[0], beNode.left, beChildren),
-                            await arg2input(beDefinition[1], beNode.right, beChildren)
+                            await arg2input(beDefinition[0][0], beNode.left, beChildren),
+                            await arg2input(beDefinition[0][1], beNode.right, beChildren)
                         ])
                     },
                 };
@@ -391,7 +391,6 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     name: 'CONDITION',
                     type: 1
                 }, ifNode.condition, ifChildren);
-                console.debug(condition)
                 ifBlock.inputs.CONDITION = condition[1] as json.Input
                 if(ifNode.elseBranch) {
                     ifBlock.opcode = 'control_if_else'
@@ -427,11 +426,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             case "BranchFunctionCall":
                 const branchNode = node as BranchFunctionCallNode;
                 const bDefinition = blockDefinitions[branchNode.identifier]
-                console.debug(branchNode, bDefinition)
                 const branchChildren: PartialBlockCollection[] = [];
                 const binputs = [];
                 for (let i = 0; i < Math.min(bDefinition.length, branchNode.args.length); i++) {
-                    const inp = bDefinition[i];
+                    const inp = bDefinition[0][i];
                     binputs.push(await arg2input(inp, branchNode.args[i], branchChildren))
                 }
                 const branchBlock: jsonBlock = {
@@ -441,17 +439,36 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     topLevel,
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
-                    inputs: Object.fromEntries([...await Promise.all(bDefinition
+                    inputs: Object.fromEntries([...await Promise.all(bDefinition[0]
                             .filter(a => a)
                             .filter(a => Array.isArray(a) && a[0])
                         .map(
                             async (inp, i) => {
-                                console.log(bDefinition, branchNode.identifier)
                                 return await arg2input(inp, branchNode.args[i], branchChildren)
                             }
                         )
                     ), ...binputs]),
                 };
+                if(bDefinition[1] == 'hat') {
+                    if (!topLevel)
+                        throw 'Hat is allowed in top-level';
+                    if (branchNode.branches.length > 1)
+                        throw 'Hat can only have 1 branch';
+                    const processedBranchNodes = [];
+                    const branch = branchNode.branches[0]
+                    if(!noLast) lastBlock = branchBlock;
+                    for (let i = 0; i < branch.length; i++) {
+                        const node = branch[i];
+                        processedBranchNodes.push(await processNode(node, false, false, i == 0))
+                    }
+                    const branchBlocks = new PartialBlockCollection(
+                        processedBranchNodes
+                    )
+                    branchChildren.push(branchBlocks)
+                    const firstBranchChild = branchBlocks.children[0] as BlockCollection<blockBlock> | undefined
+                    if (firstBranchChild?.block?.id) branchBlock.next = firstBranchChild?.block?.id;
+                    return new BlockCollection(branchBlock, branchChildren);
+                }
                 if(!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
                 if(!noLast) lastBlock = branchBlock;
                 // const firstBranchChildren: (BlockCollection | undefined)[] = [];
@@ -478,7 +495,9 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             case 'VariableDeclaration':
                 const varDeclNode = node as VariableDeclarationNode;
                 const id: string = genVarId(varDeclNode.identifier);
-                sprite.variables.set(varDeclNode.identifier, id);
+                if (varDeclNode.vtype == 'global')
+                    sprite.globalVariables.set(varDeclNode.identifier, id)
+                    else sprite.variables.set(varDeclNode.identifier, id);
                 const varDeclChildren: PartialBlockCollection[] = [];
                 const varDeclBlock: jsonBlock = {
                     opcode: 'data_setvariableto',
@@ -486,7 +505,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     id: thisBlockID.toString(),
                     inputs: {
                         'VALUE': (await arg2input(
-                            blockDefinitions.data_setvariableto[1],
+                            blockDefinitions.data_setvariableto[0][1],
                             varDeclNode.value,
                             varDeclChildren
                         ))[1] as json.Input
@@ -514,7 +533,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     id: thisBlockID.toString(),
                     inputs: {
                         'VALUE': (await arg2input(
-                            blockDefinitions.data_setvariableto[1],
+                            blockDefinitions.data_setvariableto[0][1],
                             varAssignmentNode.value,
                             varAssignmentChildren
                         ))[1] as json.Input
