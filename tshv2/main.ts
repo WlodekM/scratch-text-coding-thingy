@@ -97,6 +97,7 @@ export class Lexer {
                     // if (this.advance() != '>') throw "Expected a > after #include <..."
                     tokens.push({ type: TokenType.INCLUDE, value: identifier });
                 } else if (identifier === "var") tokens.push({ type: TokenType.VAR, value: identifier });
+                else if (identifier === "global") tokens.push({ type: TokenType.VAR, value: identifier });
                 else if (identifier === "fn") tokens.push({ type: TokenType.FN, value: identifier });
                 else if (identifier === "if") tokens.push({ type: TokenType.IF, value: identifier });
                 else if (identifier === "for") tokens.push({ type: TokenType.FOR, value: identifier });
@@ -159,6 +160,7 @@ export interface VariableDeclarationNode extends ASTNode {
     type: "VariableDeclaration";
     identifier: string;
     value: ASTNode;
+    vtype: 'var' | 'global'
 }
 
 export interface FunctionDeclarationNode extends ASTNode {
@@ -290,10 +292,11 @@ export class Parser {
 
     private parseStatement(): ASTNode {
         if (this.match(TokenType.VAR)) {
+            const type = this.peek(-1).value
             const identifier = this.expect(TokenType.IDENTIFIER, "Expected variable name").value;
             this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
             const value = this.parseAssignment();
-            return { type: "VariableDeclaration", identifier, value } as VariableDeclarationNode;
+            return { type: "VariableDeclaration", identifier, value, vtype: type } as VariableDeclarationNode;
         }
 
         if (this.match(TokenType.INCLUDE)) {

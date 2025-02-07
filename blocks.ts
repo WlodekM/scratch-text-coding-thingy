@@ -47,7 +47,7 @@ await import('./tw-blocks/core/colours.js');
 export const blockly = Blockly
 
 // await import('./tw-blocks/blocks_vertical/control.js');
-// await import('./tw-blocks/blocks_vertical/event.js');
+await import('./tw-blocks/blocks_vertical/event.js');
 // await import('./tw-blocks/blocks_vertical/looks.js');
 // await import('./tw-blocks/blocks_vertical/motion.js');
 // await import('./tw-blocks/blocks_vertical/operators.js');
@@ -107,7 +107,7 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                 .filter(a => a[0]?.type != 'field_image');
             
             if(args.find(k => k.type == 'input_statement')) {
-                return [opcode, (args[0] ?? []).map((arg: any) => {
+                return [opcode, [(args[0] ?? []).map((arg: any) => {
                     if (arg.type == 'field_dropdown') {
                         return { //TODO - in some way implement this
                             name: arg.name,
@@ -140,9 +140,9 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                             throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
                         })()
                     }
-                }), 'branch', args.filter(k => k.type == 'input_statement').map(i => i.name)]
+                }) ?? [], 'branch', args.filter(k => k.type == 'input_statement').map(i => i.name)]]
             }
-            return [opcode, (args[0] ?? []).map((arg: any) => {
+            return [opcode, [((args[0] ?? []).map((arg: any) => {
                 if (arg.type == 'field_dropdown') {
                     return { //TODO - in some way implement this
                         name: arg.name,
@@ -175,7 +175,7 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                         throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
                     })()
                 }
-            }), 'reporter'].filter(a => a != null)
+            }) ?? []), (block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']].filter(a => a != null)
         })
     )
     return processedBlocks
@@ -185,4 +185,4 @@ export const processedBlocks: Record<string, any[]> = jsBlocksToJSON()
 export default {
     ...processedBlocks,
     // blocks not in tw here
-} as Record<string, Input[]>
+} as Record<string, [Input[], string]>

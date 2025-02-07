@@ -99,6 +99,21 @@ for (const spriteName in project.sprites) {
                 ])
             )
         }
+        const stage = projectJson.targets.find(t => t.isStage);
+        if (stage) {
+            stage.variables = {
+                ...Object.fromEntries(
+                    [...env.globalVariables.entries()].map(([v, n]) => [
+                        n,
+                        [
+                            v,
+                            0
+                        ]
+                    ])
+                ),
+                ...stage.variables
+            }
+        }
         env.extensions.forEach(ext => extensions.add(ext))
         jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
     } else {

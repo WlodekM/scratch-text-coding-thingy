@@ -1,19 +1,7 @@
 #include<"blocks/js""base.js">
 #include<"extension""https://extensions.turbowarp.org/box2d.js">
 
-gf {
-    //fuck you, multiple function calls per line
-    //actually all of the whitespace is optional
-    griffpatch_setStage("boxed")griffpatch_setPhysics("normal", "costume")
-    motion_setrotationstyle("don't rotate")
-    var deltax = 0
-    control_forever() {
-        griffpatch_doTick()
-        deltax = sensing_keypressed("d") - sensing_keypressed("a")
-        griffpatch_changeVelocity(deltax, 0)
-        if (sensing_keypressed("w") && operator_not(griffpatch_getTouching() == "")) {
-            griffpatch_changeVelocity(0, 5)
-        }
-        motion_pointindirection(90)
-    }
+event_whenflagclicked() {
+    var a = 0
+    global yes = "yes"
 }
