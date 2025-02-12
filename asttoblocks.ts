@@ -31,6 +31,17 @@ export type jsonBlock = blockBlock | varBlock
 const _class = new (class { })()
 type Class = typeof _class
 
+class Scope {
+    identifierBlocks: Map<string, (id: string) => jsonBlock> = new Map()
+    duplicate(): Scope {
+        const s = new Scope();
+        for (const [key, value] of [...this.identifierBlocks.entries()]) {
+            s.identifierBlocks.set(key, value);
+        }
+        return s;
+    }
+}
+
 let varId = 0;
 
 function genVarId(name: string): string {
@@ -179,7 +190,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
         ]]
     }
 
-    async function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false): Promise<BlockCollection> {
+    async function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
         blockID++;
         const thisBlockID = genId(blockID);
         console.log('procesing node', thisBlockID, node, topLevel, noLast, noNext)
@@ -209,7 +220,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 lastBlock = tempBlock as blockBlock
                 const processedNodes = [];
                 for (const node of gfNode.branch) {
-                    processedNodes.push(await processNode(node))
+                    processedNodes.push(await processNode(node, false, false, false, scope))
                 }
                 const children = new PartialBlockCollection(
                     processedNodes
@@ -391,7 +402,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const processedThenNodes = [];
                 for (let i = 0; i < ifNode.thenBranch.length; i++) {
                     const node = ifNode.thenBranch[i];
-                    processedThenNodes.push(await processNode(node, false, false, i == 0))
+                    processedThenNodes.push(await processNode(node, false, false, i == 0, scope))
                 }
                 const thenBlocks = new PartialBlockCollection(
                     processedThenNodes
@@ -413,7 +424,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     const processedElseNodes = [];
                     for (let i = 0; i < ifNode.elseBranch.length; i++) {
                         const node = ifNode.elseBranch[i];
-                        processedElseNodes.push(await processNode(node, false, false, i == 0))
+                        processedElseNodes.push(await processNode(node, false, false, i == 0, scope))
                     }
                     const elseBlocks = new PartialBlockCollection(
                         processedElseNodes
@@ -475,7 +486,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     if (!noLast) lastBlock = branchBlock;
                     for (let i = 0; i < branch.length; i++) {
                         const node = branch[i];
-                        processedBranchNodes.push(await processNode(node, false, false, i == 0))
+                        processedBranchNodes.push(await processNode(node, false, false, i == 0, scope))
                     }
                     const branchBlocks = new PartialBlockCollection(
                         processedBranchNodes
@@ -494,7 +505,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     const processedBranchNodes = [];
                     for (let i = 0; i < branch.length; i++) {
                         const node = branch[i];
-                        processedBranchNodes.push(await processNode(node, false, false, i == 0))
+                        processedBranchNodes.push(await processNode(node, false, false, i == 0, scope))
                     }
                     const branchBlocks = new PartialBlockCollection(
                         processedBranchNodes
@@ -576,6 +587,9 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
             case "Identifier":
                 const identifierNode = node as IdentifierNode;
+                if (scope.identifierBlocks.has(identifierNode.name)) {
+                    
+                }
                 const vid = sprite.variables.get(identifierNode.name);
                 if (!vid) throw 'Unknown variable'
                 return new BlockCollection({
@@ -587,8 +601,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             case "FunctionDeclaration":
                 const fndNode = node as FunctionDeclarationNode;
                 if (!topLevel) throw 'fn definition only in top level'
-                const fndBlocks = [];
-                const fndChildren: jsonBlock[] = [];
+                const fndBlocks: jsonBlock[] = [];
+                const fndChildren: BlockCollection[] = [];
 
                 if ('x' in blk) delete blk.x;
                 if ('y' in blk) delete blk.y;
@@ -609,6 +623,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const argumentids = [];
                 const argumentdefaults = [];
                 const argumentnames = [];
+                const sc = scope.duplicate();
                 for (const arg of fndNode.params) {
                     const argid = genUid();
                     argumentids.push(argid)
@@ -629,7 +644,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         shadow: true
                     }
 
-                    fndChildren.push(inputBlock)
+                    fndBlocks.push(inputBlock)
+
+                    sc.identifierBlocks.set(arg, id => {return {
+                        ...inputBlock,
+                        id
+                    }})
 
                     prototype.inputs[argid] = [1, inputBlock.id]
                 }
@@ -646,12 +666,25 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
                 prototype.parent = definitionId
 
-                console.log(prototype)
+                lastBlock = {
+                    id: definitionId,
+                    ...blk,
+                    opcode: 'procedures_definition'
+                };
+
+                for (const node of fndNode.body) {
+                    fndChildren.push(await processNode(node, false, false, false, scope))
+                }
+
+                lastBlock = {} as blockBlock;
+
+                const firstFndChild: BlockCollection | undefined =
+                    fndChildren[0] as BlockCollection | undefined
 
                 fndBlocks.push({
                     opcode: 'procedures_definition',
                     ...blk,
-                    next: null,
+                    next: firstFndChild ? firstFndChild.block.id : null,
                     inputs: {
                         custom_block: [
                             1,
@@ -665,7 +698,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 } as jsonBlock, prototype)
                 return new PartialBlockCollection([
                     ...fndBlocks.map(bl => new BlockCollection(bl, [])),
-                    ...fndChildren.map(bl => new BlockCollection(bl, [])),
+                    new PartialBlockCollection(fndChildren),
                 ]) as BlockCollection;
 
             //TODO: do other nodes

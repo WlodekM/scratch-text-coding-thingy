@@ -1,7 +1,7 @@
 #include <"blocks/js" "base.js">
 
 fn test(a, b, c) {
-    say(a + b - c)
+    looks_say(a + b - c)
 }
 
 event_whenflagclicked() {
