@@ -1,10 +1,14 @@
-#include<"blocks/js""base.js">
-#include<"extension""https://extensions.turbowarp.org/box2d.js">
+#include <"blocks/js" "base.js">
+
+fn test(a, b, c) {
+    say(a + b - c)
+}
 
 event_whenflagclicked() {
     list abc = {
-        "a",
-        "b",
-        "c"
+        5,
+        3 // the comma is optional :3
+        2,
     }
+    // test(9, 10, 3)
 }

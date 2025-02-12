@@ -55,12 +55,13 @@ export interface Broadcasts { }
 
 export interface Block {
     opcode: string
-    next: string
+    next: string | null
     parent: string | null
     inputs: Inputs
     fields: any
     shadow: boolean
     topLevel: boolean
+    mutation?: any
     x?: number
     y?: number
 }

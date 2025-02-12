@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations
-import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
@@ -11,10 +11,24 @@ interface Input {
     type: number
 }
 
+const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+function genUid() {
+    const length = 20;
+    const soupLength = soup.length;
+    const id = [];
+    for (let i = 0; i < length; i++) {
+      id[i] = soup.charAt(Math.random() * soupLength);
+    }
+    return id.join('');
+};
+  
+console.log(genUid(), genUid(), genUid())
+
 export type blockBlock = ({ id: string } & json.Block)
-export type varBlock = { id: string, data:  [12, string, string] }
+export type varBlock = { id: string, data: [12, string, string] }
 export type jsonBlock = blockBlock | varBlock
-const _class = new (class {})()
+const _class = new (class { })()
 type Class = typeof _class
 
 let varId = 0;
@@ -34,7 +48,7 @@ export class Environment {
 
 class PartialBlockCollection {
     children: PartialBlockCollection[] = [];
-    constructor (children: PartialBlockCollection[] ) {
+    constructor(children: PartialBlockCollection[]) {
         this.children = children
     };
     unfurl(): jsonBlock[] {
@@ -49,7 +63,7 @@ class PartialBlockCollection {
 
 class BlockCollection<T = jsonBlock> extends PartialBlockCollection {
     block: T;
-    constructor (
+    constructor(
         block: T,
         children: PartialBlockCollection[]
     ) {
@@ -80,10 +94,10 @@ enum InputTypes {
 }
 
 class Cast {
-    string (text: string) {
+    string(text: string) {
         return [InputTypes.text, text]
     }
-    number (number: number) {
+    number(number: number) {
         return [InputTypes.math_number, number]
     }
 }
@@ -111,47 +125,47 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
     async function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[]) {
         console.debug(arg, inp)
-        if(arg.type == 'Identifier') {
+        if (arg.type == 'Identifier') {
             const childBlock = await processNode(arg, false, true, true);
             console.debug(childBlock.block, 'ahhh')
             return [inp.name, Array.isArray(childBlock.block)
-                    ? [inp.type, childBlock.block] : [inp.type,
+                ? [inp.type, childBlock.block] : [inp.type,
                 (childBlock.block as varBlock).data,
                 [
                     ...(
                         arg
-                        ? [
-                            10,
-                            '0'
-                        ]
-                        : []
+                            ? [
+                                10,
+                                '0'
+                            ]
+                            : []
                     )
                 ]
-            ]]
+                ]]
         }
-        if(['FunctionCall', 'Boolean', 'BinaryExpression'].includes(arg.type)) {
+        if (['FunctionCall', 'Boolean', 'BinaryExpression'].includes(arg.type)) {
             const childBlock = await processNode(arg, false, true, true);
             child.push(childBlock);
             console.debug(childBlock.block, 'ahhh')
             return [inp.name, Array.isArray(childBlock.block)
-                    ? [inp.type, childBlock.block] : [inp.type,
+                ? [inp.type, childBlock.block] : [inp.type,
                 childBlock.block.id.toString(),
                 [
                     ...(
                         arg
-                        ? [
-                            10,
-                            '0'
-                        ]
-                        : []
+                            ? [
+                                10,
+                                '0'
+                            ]
+                            : []
                     )
                 ]
-            ]]
+                ]]
         }
-        return [inp.name, [inp.type, 
-            [
-                ...(
-                    arg
+        return [inp.name, [inp.type,
+        [
+            ...(
+                arg
                     ? [
                         ({
                             Literal: typeof (arg as LiteralNode).value == 'number' ? 4 : 10,
@@ -160,8 +174,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         (arg as LiteralNode | any)?.value?.toString()
                     ]
                     : []
-                )
-            ]
+            )
+        ]
         ]]
     }
 
@@ -212,33 +226,33 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 if (firstChild) (firstChild.block as blockBlock).parent = thisBlockID.toString();
                 lastBlock = gfBlock as blockBlock
                 return new BlockCollection(gfBlock, [children])
-            
+
             case 'Include':
                 const includeNode = node as IncludeNode;
                 blockID--
                 if (includeNode.itype == 'blocks/js') {
                     //@ts-ignore: goog...
                     globalThis.goog = {
-                        require: () => {},
-                        provide: () => {},
+                        require: () => { },
+                        provide: () => { },
                     };
                     globalThis.Blockly = blockly
                     // actually import the blocks
-                    await import('./'+includeNode.path);
+                    await import('./' + includeNode.path);
                     const bl = jsBlocksToJSON();
                     blockDefinitions = {
                         ...bl,
                         ...blockDefinitions
                     }
                 } else if (includeNode.itype.startsWith('extension')) {
-                    const nop = () => {};
+                    const nop = () => { };
                     let ext: any = null;
                     //@ts-ignore:
                     const Scratch = globalThis.Scratch = {
-                        translate: (a:string)=>a,
+                        translate: (a: string) => a,
                         extensions: {
                             unsandboxed: true,
-                            register: (e: Class) => {ext = e}
+                            register: (e: Class) => { ext = e }
                         },
                         vm: {
                             runtime: {
@@ -287,7 +301,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                             blocks.map((block: any) => {
                                 if (typeof block !== 'object' || !block.opcode)
                                     return [];
-                                return [extid+'_'+block.opcode, [Object.entries(block.arguments ?? {}).map(a => {
+                                return [extid + '_' + block.opcode, [Object.entries(block.arguments ?? {}).map(a => {
                                     return {
                                         name: a[0],
                                         type: 1
@@ -298,7 +312,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     }
                 }
                 return new PartialBlockCollection([]) as BlockCollection
-            
+
             case 'FunctionCall':
                 const fnNode = node as FunctionCallNode;
                 if (!blockDefinitions[fnNode.identifier])
@@ -322,8 +336,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     shadow: false,
                 }
                 // console.debug(block)
-                if(!topLevel && !noNext) lastBlock.next = block.id.toString();
-                if(!noLast) lastBlock = block;
+                if (!topLevel && !noNext) lastBlock.next = block.id.toString();
+                if (!noLast) lastBlock = block;
                 return new BlockCollection(block, child) //TODO: figure out how to map function args to children
 
             case 'BinaryExpression':
@@ -359,7 +373,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     },
                 };
                 return new BlockCollection(beBlock, beChildren);
-            
+
             case 'If':
                 const ifNode = node as IfNode;
                 const ifBlock: jsonBlock = {
@@ -371,8 +385,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     shadow: false,
                     inputs: {},
                 };
-                if(!topLevel && !noNext) lastBlock.next = ifBlock.id.toString();
-                if(!noLast) lastBlock = ifBlock;
+                if (!topLevel && !noNext) lastBlock.next = ifBlock.id.toString();
+                if (!noLast) lastBlock = ifBlock;
                 const ifChildren: PartialBlockCollection[] = [];
                 const processedThenNodes = [];
                 for (let i = 0; i < ifNode.thenBranch.length; i++) {
@@ -394,7 +408,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     type: 1
                 }, ifNode.condition, ifChildren);
                 ifBlock.inputs.CONDITION = condition[1] as json.Input
-                if(ifNode.elseBranch) {
+                if (ifNode.elseBranch) {
                     ifBlock.opcode = 'control_if_else'
                     const processedElseNodes = [];
                     for (let i = 0; i < ifNode.elseBranch.length; i++) {
@@ -412,9 +426,9 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         firstElseChild?.block?.id
                     ]
                 }
-                if(!noLast) lastBlock = ifBlock;
+                if (!noLast) lastBlock = ifBlock;
                 return new BlockCollection(ifBlock, ifChildren);
-            
+
             case "Boolean":
                 const boolNode = node as BooleanNode;
                 const boolBlock: jsonBlock = {
@@ -424,7 +438,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     topLevel,
                 }
                 return new BlockCollection(boolBlock, []);
-            
+
             case "BranchFunctionCall":
                 const branchNode = node as BranchFunctionCallNode;
                 const bDefinition = blockDefinitions[branchNode.identifier]
@@ -442,8 +456,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,
                     inputs: Object.fromEntries([...await Promise.all(bDefinition[0]
-                            .filter(a => a)
-                            .filter(a => Array.isArray(a) && a[0])
+                        .filter(a => a)
+                        .filter(a => Array.isArray(a) && a[0])
                         .map(
                             async (inp, i) => {
                                 return await arg2input(inp, branchNode.args[i], branchChildren)
@@ -451,14 +465,14 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         )
                     ), ...binputs]),
                 };
-                if(bDefinition[1] == 'hat') {
+                if (bDefinition[1] == 'hat') {
                     if (!topLevel)
                         throw 'Hat is allowed in top-level';
                     if (branchNode.branches.length > 1)
                         throw 'Hat can only have 1 branch';
                     const processedBranchNodes = [];
                     const branch = branchNode.branches[0]
-                    if(!noLast) lastBlock = branchBlock;
+                    if (!noLast) lastBlock = branchBlock;
                     for (let i = 0; i < branch.length; i++) {
                         const node = branch[i];
                         processedBranchNodes.push(await processNode(node, false, false, i == 0))
@@ -471,8 +485,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     if (firstBranchChild?.block?.id) branchBlock.next = firstBranchChild?.block?.id;
                     return new BlockCollection(branchBlock, branchChildren);
                 }
-                if(!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
-                if(!noLast) lastBlock = branchBlock;
+                if (!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
+                if (!noLast) lastBlock = branchBlock;
                 // const firstBranchChildren: (BlockCollection | undefined)[] = [];
                 let branchN = 0;
                 for (const branch of branchNode.branches) {
@@ -493,21 +507,21 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ]
                 }
                 return new BlockCollection(branchBlock, branchChildren);
-            
+
             case 'ListDeclaration':
                 const listDeclNode = node as ListDeclarationNode;
                 const lid: string = genVarId(listDeclNode.identifier);
                 if (listDeclNode.vtype == 'global')
                     sprite.globalLists.set(listDeclNode.identifier, [lid, listDeclNode.value.map(n => (n as LiteralNode).value.toString())])
-                    else sprite.lists.set(listDeclNode.identifier,  [lid, listDeclNode.value.map(n => (n as LiteralNode).value.toString())]);
+                else sprite.lists.set(listDeclNode.identifier, [lid, listDeclNode.value.map(n => (n as LiteralNode).value.toString())]);
                 return new PartialBlockCollection([]) as BlockCollection;
-            
+
             case 'VariableDeclaration':
                 const varDeclNode = node as VariableDeclarationNode;
                 const id: string = genVarId(varDeclNode.identifier);
                 if (varDeclNode.vtype == 'global')
                     sprite.globalVariables.set(varDeclNode.identifier, id)
-                    else sprite.variables.set(varDeclNode.identifier, id);
+                else sprite.variables.set(varDeclNode.identifier, id);
                 const varDeclChildren: PartialBlockCollection[] = [];
                 const varDeclBlock: jsonBlock = {
                     opcode: 'data_setvariableto',
@@ -528,10 +542,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     },
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                 }
-                if(!topLevel && !noNext) lastBlock.next = varDeclBlock.id.toString();
-                if(!noLast) lastBlock = varDeclBlock;
+                if (!topLevel && !noNext) lastBlock.next = varDeclBlock.id.toString();
+                if (!noLast) lastBlock = varDeclBlock;
                 return new BlockCollection(varDeclBlock, varDeclChildren);
-            
+
             case "Assignment":
                 const varAssignmentNode = node as AssignmentNode;
                 const sid = sprite.variables.get(varAssignmentNode.identifier);
@@ -556,10 +570,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     },
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                 }
-                if(!topLevel && !noNext) lastBlock.next = varAssignmentBlock.id.toString();
-                if(!noLast) lastBlock = varAssignmentBlock;
+                if (!topLevel && !noNext) lastBlock.next = varAssignmentBlock.id.toString();
+                if (!noLast) lastBlock = varAssignmentBlock;
                 return new BlockCollection(varAssignmentBlock, varAssignmentChildren);
-            
+
             case "Identifier":
                 const identifierNode = node as IdentifierNode;
                 const vid = sprite.variables.get(identifierNode.name);
@@ -568,13 +582,98 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     id: thisBlockID,
                     data: [12, identifierNode.name, vid]
                 }, []);
-            
+
+
+            case "FunctionDeclaration":
+                const fndNode = node as FunctionDeclarationNode;
+                if (!topLevel) throw 'fn definition only in top level'
+                const fndBlocks = [];
+                const fndChildren: jsonBlock[] = [];
+
+                if ('x' in blk) delete blk.x;
+                if ('y' in blk) delete blk.y;
+
+                const prototype: jsonBlock = {
+                    opcode: 'procedures_prototype',
+                    ...blk,
+                    next: null,
+                    id: genId(blockID).toString(),
+                    inputs: {},
+                    shadow: true
+                }
+
+                blockID++;
+                
+                const definitionId = genId(blockID).toString();
+
+                const argumentids = [];
+                const argumentdefaults = [];
+                const argumentnames = [];
+                for (const arg of fndNode.params) {
+                    const argid = genUid();
+                    argumentids.push(argid)
+                    argumentnames.push(arg);
+                    argumentdefaults.push('');
+
+                    blockID++;
+
+                    const inputBlock: jsonBlock = {
+                        opcode: "argument_reporter_string_number",
+                        ...blk,
+                        next: null,
+                        id: genId(blockID).toString(),
+                        fields: {
+                            VALUE: [arg, null]
+                        },
+                        parent: prototype.id,
+                        shadow: true
+                    }
+
+                    fndChildren.push(inputBlock)
+
+                    prototype.inputs[argid] = [1, inputBlock.id]
+                }
+
+                prototype.mutation = {
+                    tagName: 'mutation',
+                    children: [],
+                    proccode: fndNode.name + ` %s`.repeat(fndNode.params.length),
+                    argumentids: JSON.stringify(argumentids),
+                    argumentnames: JSON.stringify(argumentnames),
+                    argumentdefaults: JSON.stringify(argumentdefaults),
+                    warp: 'false'
+                }
+
+                prototype.parent = definitionId
+
+                console.log(prototype)
+
+                fndBlocks.push({
+                    opcode: 'procedures_definition',
+                    ...blk,
+                    next: null,
+                    inputs: {
+                        custom_block: [
+                            1,
+                            prototype.id
+                        ]
+                    },
+                    topLevel: true,
+                    id: definitionId,
+                    x: 0,
+                    y: 0
+                } as jsonBlock, prototype)
+                return new PartialBlockCollection([
+                    ...fndBlocks.map(bl => new BlockCollection(bl, [])),
+                    ...fndChildren.map(bl => new BlockCollection(bl, [])),
+                ]) as BlockCollection;
+
             //TODO: do other nodes
 
             default:
                 throw `Unimplemented (${node.type})`
         }
-        
+
     }
 
     for (const node of ast) {
