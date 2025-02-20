@@ -62,7 +62,9 @@ to build the project run `deno -A /path/to/backslash/main.ts .` if you're runnin
 
 after that a `project.sb3` should pop up in the project folder, this is your built project, you can edit it in scratch/tw/[other fork] but it's not recommended
 
-btw if you like this tool thingy please star the repo 
+---
+
+btw if you like this tool thingy please star the repo and if youre in the tw discord [dango the post](https://discord.com/channels/837024174865776680/1330150950786043925)
 
 ## where stuff is in the code
 
