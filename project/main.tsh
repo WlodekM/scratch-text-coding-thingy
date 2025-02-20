@@ -1,14 +1,8 @@
 #include <"blocks/js" "base.js">
 
-fn test(a, b, c) {
-    looks_say(a + b - c)
-}
-
 event_whenflagclicked() {
-    list abc = {
-        5,
-        3 // the comma is optional :3
-        2,
-    }
+    looks_say(5 != 3)
+    looks_say(5 >= 3)
+    looks_say(5 <= 3)
     // test(9, 10, 3)
 }

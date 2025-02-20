@@ -1,3 +1,8 @@
 {
-    "deno.enable": true
+    "deno.enable": true,
+    "files.associations": {
+        "string.h": "c",
+        "wait.h": "c",
+        "unistd.h": "c"
+    }
 }

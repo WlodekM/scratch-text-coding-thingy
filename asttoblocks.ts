@@ -383,6 +383,48 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     '>': 'operator_gt',
                 }
                 const beNode = node as BinaryExpressionNode;
+                if (beNode.operator.length > 1) {
+                    const operations: Record<string, [string, string]> = {
+                        '!=': ['operator_not', 'operator_equals'],
+                        '<=': ['operator_not', 'operator_gt'],
+                        '>=': ['operator_not', 'operator_lt']
+                    }
+                    if (!operations[beNode.operator]) throw 'unknown operator ' + beNode.operator;
+                    const beDefinition1 = blockDefinitions[operations[beNode.operator][0]]
+                    const beDefinition2 = blockDefinitions[operations[beNode.operator][1]]
+                    const beChildren: PartialBlockCollection[] = [];
+                    blockID++
+                    const beBlock: jsonBlock = {
+                        opcode: operations[beNode.operator][0] ?? 'undefined',
+                        ...blk,
+                        id: thisBlockID.toString(),
+                        topLevel,
+                        parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                        shadow: false,
+                        inputs: Object.fromEntries([
+                            [beDefinition1[0][0].name, [
+                                beDefinition1[0][0].type,
+                                genId(blockID).toString()
+                            ]]
+                        ]),
+                    };
+                    const beBlock2: jsonBlock = {
+                        opcode: operations[beNode.operator][1] ?? 'undefined',
+                        ...blk,
+                        id: genId(blockID).toString(),
+                        topLevel,
+                        parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                        shadow: false,
+                        inputs: {
+                            ...Object.fromEntries([
+                                await arg2input(beDefinition2[0][0], beNode.left, beChildren, scope),
+                                await arg2input(beDefinition2[0][1], beNode.right, beChildren, scope)
+                            ])
+                        },
+                    };
+                    beChildren.push(new BlockCollection(beBlock2, []))
+                    return new BlockCollection(beBlock, beChildren);
+                }
                 if (!operations[beNode.operator]) throw 'unknown operator ' + beNode.operator;
                 const beDefinition = blockDefinitions[operations[beNode.operator]]
                 const beChildren: PartialBlockCollection[] = []
