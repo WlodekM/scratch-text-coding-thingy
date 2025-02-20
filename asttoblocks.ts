@@ -54,7 +54,8 @@ export class Environment {
     globalVariables: Map<string, string> = new Map();
     lists: Map<string, [string, string[]]> = new Map();
     globalLists: Map<string, [string, string[]]> = new Map();
-    extensions: [string, string][] = []
+    extensions: [string, string][] = [];
+    customBlocks: Record<string, CustomBlock> = {};
 }
 
 class PartialBlockCollection {
@@ -123,6 +124,21 @@ function genId(num: number): string {
         num = Math.floor(num / 26);
     }
     return result;
+}
+
+interface Mutation {
+    tagName: 'mutation' | string,
+    children: any[],
+    proccode: string,
+    argumentids: string,
+    argumentnames: string,
+    argumentdefaults: string,
+    warp: string
+}
+
+interface CustomBlock {
+    inputs: [1, string][],
+    mutation: Mutation
 }
 
 export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[], Environment]> {
@@ -341,6 +357,38 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 }
                 return new PartialBlockCollection([]) as BlockCollection
 
+                // deno-lint-ignore no-fallthrough
+                case 'FunctionCall':
+                    const fnNode2 = node as FunctionCallNode;
+                    if (fnNode2.identifier in sprite.customBlocks) {
+                        const blockDefinition = sprite.customBlocks[fnNode2.identifier]
+                        const definition = [blockDefinition.inputs.map(i => {return {name: i[1], type: i[0]}})]
+                        const child: PartialBlockCollection[] = [];
+                        const inputs = [];
+                        for (let i = 0; i < Math.min(definition[0].length, fnNode2.args.length); i++) {
+                            const inp = definition[0][i];
+                            console.log(inp)
+                            inputs.push(await arg2input(inp, fnNode2.args[i], child, scope))
+                        }
+                        const block: jsonBlock = {
+                            opcode: "procedures_call",
+                            ...blk,
+                            fields: {},
+                            mutation: blockDefinition.mutation,
+                            id: thisBlockID.toString(),
+                            inputs: Object.fromEntries(inputs),
+                            next: '', // no next (yet)
+                            topLevel,
+                            parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                            shadow: false,
+                        }
+                        // console.debug(block)
+                        if (!topLevel && !noNext) lastBlock.next = block.id.toString();
+                        if (!noLast) lastBlock = block;
+                        return new BlockCollection(block, child) //TODO: figure out how to map function args to children
+                    }
+
+            // deno-lint-ignore no-duplicate-case
             case 'FunctionCall':
                 const fnNode = node as FunctionCallNode;
                 if (!blockDefinitions[fnNode.identifier])
@@ -721,7 +769,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     prototype.inputs[argid] = [1, inputBlock.id]
                 }
 
-                prototype.mutation = {
+                const mutation = prototype.mutation = {
                     tagName: 'mutation',
                     children: [],
                     proccode: fndNode.name + ` %s`.repeat(fndNode.params.length),
@@ -729,6 +777,11 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     argumentnames: JSON.stringify(argumentnames),
                     argumentdefaults: JSON.stringify(argumentdefaults),
                     warp: 'false'
+                }
+
+                sprite.customBlocks[fndNode.name] = {
+                    mutation,
+                    inputs: Object.entries(prototype.inputs).map(i => [1, i[0]])
                 }
 
                 prototype.parent = definitionId
