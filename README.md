@@ -14,9 +14,19 @@ it is designed for deno but it will probably work on other runtimes, maybe even 
 
 ## how
 
+### step zero - bsl
+
+bsl is the programming language made for backslash
+
+there is documentation for it [here](https://github.com/WlodekM/scratch-text-coding-thingy/wiki)
+
 ### step one - dependencies
 
 make sure you have [deno](https://deno.com/) installed
+
+download/clone the source code into some folder, if you have git installed you can run `git clone -r https://github.com/WlodekM/scratch-text-coding-thingy.git`
+
+and if you're downloading the zip from git hub, make sure to put [TurboWarp's scratch-blocks](https://github.com/TurboWarp/scratch-blocks) in the `tw-blocks` folder
 
 ### step two - project setup
 
