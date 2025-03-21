@@ -112,13 +112,19 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                         return { //TODO - in some way implement this
                             name: arg.name,
                             type: 1,
-                            options: arg.options
+                            options: arg.options,
+                            variableTypes: arg.variableTypes
                         }
                     } else if (arg.type == 'field_image') {
                         return null
                     } else if (arg.type == 'field_variable') {
-                        //TODO - implement this too i guess, this is used for events only i think
-                        return null
+                        //TODO - implement this in a better way
+                        return {
+                            name: arg.name,
+                            type: 1,
+                            options: arg.options,
+                            variableTypes: arg.variableTypes
+                        }
                     } else if (arg.type == 'field_variable_getter') {
                         //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
                         return null
@@ -129,6 +135,7 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                         return {
                             name: arg.name,
                             type: 1,
+                            variableTypes: arg.variableTypes
                         }
                     } else if (arg.type == 'input_statement') {
                         return {}
@@ -138,7 +145,8 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                         type: arg.type == 'input_value' ? 1 : (() => {
                             console.error(block, args)
                             throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
-                        })()
+                        })(),
+                        variableTypes: arg.variableTypes
                     }
                 }) ?? [], 'branch', args.filter(k => k.type == 'input_statement').map(i => i.name)]]
             }
@@ -147,13 +155,19 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                     return { //TODO - in some way implement this
                         name: arg.name,
                         type: 1,
-                        options: arg.options
+                        options: arg.options,
+                        variableTypes: arg.variableTypes
                     }
                 } else if (arg.type == 'field_image') {
                     return null
                 } else if (arg.type == 'field_variable') {
-                    //TODO - implement this too i guess, this is used for events only i think
-                    return null
+                    //TODO - implement this in a better way
+                    return {
+                        name: arg.name,
+                        type: 1,
+                        field: arg.name,
+                        variableTypes: arg.variableTypes
+                    }
                 } else if (arg.type == 'field_variable_getter') {
                     //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
                     return null
@@ -173,7 +187,8 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                     type: arg.type == 'input_value' ? 1 : (() => {
                         console.error(block, args)
                         throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
-                    })()
+                    })(),
+                    variableTypes: arg.variableTypes
                 }
             }) ?? []), (block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']].filter(a => a != null)
         })

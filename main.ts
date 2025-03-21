@@ -216,7 +216,7 @@ const completeproject: json.Project & { $schema?: string } = {
 
 const encoder = new TextEncoder();
 const data = encoder.encode(JSON.stringify(completeproject, null, 4)) // Since this now outputs an sb3, this is purely for debugging so we can indent
-// Deno.writeFileSync(path.join(dir, 'out.json'), data)
+Deno.writeFileSync(path.join(dir, 'out.json'), data)
 
 //SECTION - Write the project json and assets into a zip
 const zipFileWriter = new zip.BlobWriter();

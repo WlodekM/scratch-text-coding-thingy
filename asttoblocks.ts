@@ -8,7 +8,9 @@ let blockDefinitions = bd
 
 interface Input {
     name: string,
-    type: number
+    type: number,
+    field?: string,
+    variableTypes?: string[]
 }
 
 const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
@@ -18,11 +20,11 @@ function genUid() {
     const soupLength = soup.length;
     const id = [];
     for (let i = 0; i < length; i++) {
-      id[i] = soup.charAt(Math.random() * soupLength);
+        id[i] = soup.charAt(Math.random() * soupLength);
     }
     return id.join('');
 };
-  
+
 console.log(genUid(), genUid(), genUid())
 
 export type blockBlock = ({ id: string } & json.Block)
@@ -158,8 +160,28 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             if (!(childBlock.block as varBlock).data) {
                 const blbl = childBlock.block as blockBlock; // the blockaroo
                 child.push(childBlock);
-                return [inp.name, [inp.type,
-                    blbl.id.toString(),
+                return {
+                    inputs: [inp.name, [
+                        inp.type,
+                        blbl.id.toString(),
+                        [
+                            ...(
+                                arg
+                                    ? [
+                                        10,
+                                        '0'
+                                    ]
+                                    : []
+                            )
+                        ]
+                    ]],
+                    fields: [] as [string, any] | []
+                }
+            }
+            return {
+                inputs: [inp.name, Array.isArray(childBlock.block)
+                    ? [inp.type, childBlock.block] : [inp.type,
+                    (childBlock.block as varBlock).data,
                     [
                         ...(
                             arg
@@ -170,57 +192,52 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                                 : []
                         )
                     ]
-                    ]]
+                    ]],
+                fields: [] as [string, any] | []
             }
-            return [inp.name, Array.isArray(childBlock.block)
-                ? [inp.type, childBlock.block] : [inp.type,
-                (childBlock.block as varBlock).data,
-                [
-                    ...(
-                        arg
-                            ? [
-                                10,
-                                '0'
-                            ]
-                            : []
-                    )
-                ]
-                ]]
         }
         if (['FunctionCall', 'Boolean', 'BinaryExpression'].includes(arg.type)) {
             const childBlock = await processNode(arg, false, true, true, scope);
             child.push(childBlock);
             console.debug(childBlock.block, 'ahhh')
-            return [inp.name, Array.isArray(childBlock.block)
-                ? [inp.type, childBlock.block] : [inp.type,
-                childBlock.block.id.toString(),
+            return {
+                inputs: [inp.name, Array.isArray(childBlock.block)
+                    ? [inp.type, childBlock.block] : [inp.type,
+                    childBlock.block.id.toString(),
+                    [
+                        ...(
+                            arg
+                                ? [
+                                    10,
+                                    '0'
+                                ]
+                                : []
+                        )
+                    ]
+                    ]],
+                fields: [] as [string, any] | []
+            }
+        }
+        // console.log(inp, 'uh', arg)
+        return {
+            inputs:
+                [inp.name, [inp.type,
                 [
                     ...(
                         arg
                             ? [
-                                10,
-                                '0'
+                                ({
+                                    Literal: typeof (arg as LiteralNode).value == 'number' ? 4 : 10,
+                                })[arg.type] ?? 10,
+                                // deno-lint-ignore no-explicit-any
+                                (arg as LiteralNode | any)?.value?.toString()
                             ]
                             : []
                     )
                 ]
-                ]]
+                ]],
+            fields: (inp.field ? [inp.name, [(arg as LiteralNode | any)?.value?.toString(), (arg as LiteralNode | any)?.value?.toString(), (inp.variableTypes ?? ['broadcast_msg'])[0]]] : []) as [string, any] | []
         }
-        return [inp.name, [inp.type,
-        [
-            ...(
-                arg
-                    ? [
-                        ({
-                            Literal: typeof (arg as LiteralNode).value == 'number' ? 4 : 10,
-                        })[arg.type] ?? 10,
-                        // deno-lint-ignore no-explicit-any
-                        (arg as LiteralNode | any)?.value?.toString()
-                    ]
-                    : []
-            )
-        ]
-        ]]
     }
 
     async function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
@@ -357,36 +374,39 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 }
                 return new PartialBlockCollection([]) as BlockCollection
 
-                // deno-lint-ignore no-fallthrough
-                case 'FunctionCall':
-                    const fnNode2 = node as FunctionCallNode;
-                    if (fnNode2.identifier in sprite.customBlocks) {
-                        const blockDefinition = sprite.customBlocks[fnNode2.identifier]
-                        const definition = [blockDefinition.inputs.map(i => {return {name: i[1], type: i[0]}})]
-                        const child: PartialBlockCollection[] = [];
-                        const inputs = [];
-                        for (let i = 0; i < Math.min(definition[0].length, fnNode2.args.length); i++) {
-                            const inp = definition[0][i];
-                            console.log(inp)
-                            inputs.push(await arg2input(inp, fnNode2.args[i], child, scope))
-                        }
-                        const block: jsonBlock = {
-                            opcode: "procedures_call",
-                            ...blk,
-                            fields: {},
-                            mutation: blockDefinition.mutation,
-                            id: thisBlockID.toString(),
-                            inputs: Object.fromEntries(inputs),
-                            next: '', // no next (yet)
-                            topLevel,
-                            parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
-                            shadow: false,
-                        }
-                        // console.debug(block)
-                        if (!topLevel && !noNext) lastBlock.next = block.id.toString();
-                        if (!noLast) lastBlock = block;
-                        return new BlockCollection(block, child) //TODO: figure out how to map function args to children
+            // deno-lint-ignore no-fallthrough
+            case 'FunctionCall':
+                const fnNode2 = node as FunctionCallNode;
+                if (fnNode2.identifier in sprite.customBlocks) {
+                    const blockDefinition = sprite.customBlocks[fnNode2.identifier]
+                    const definition = [blockDefinition.inputs.map(i => { return { name: i[1], type: i[0] } })]
+                    const child: PartialBlockCollection[] = [];
+                    const inputs = [];
+                    const fields: ([string, any] | [])[] = [];
+                    for (let i = 0; i < Math.min(definition[0].length, fnNode2.args.length); i++) {
+                        const inp = definition[0][i];
+                        console.log(inp)
+                        const { inputs: inps, fields: flds } = await arg2input(inp, fnNode2.args[i], child, scope)
+                        inputs.push(inps)
+                        fields.push(flds)
                     }
+                    const block: jsonBlock = {
+                        opcode: "procedures_call",
+                        ...blk,
+                        fields: Object.fromEntries(fields),
+                        mutation: blockDefinition.mutation,
+                        id: thisBlockID.toString(),
+                        inputs: Object.fromEntries(inputs),
+                        next: '', // no next (yet)
+                        topLevel,
+                        parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                        shadow: false,
+                    }
+                    // console.debug(block)
+                    if (!topLevel && !noNext) lastBlock.next = block.id.toString();
+                    if (!noLast) lastBlock = block;
+                    return new BlockCollection(block, child) //TODO: figure out how to map function args to children
+                }
 
             // deno-lint-ignore no-duplicate-case
             case 'FunctionCall':
@@ -396,9 +416,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const definition = blockDefinitions[fnNode.identifier]
                 const child: PartialBlockCollection[] = [];
                 const inputs = [];
+                const fields: ([string, any] | [])[] = [];
                 for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
                     const inp = definition[0][i];
-                    inputs.push(await arg2input(inp, fnNode.args[i], child, scope))
+                    const { inputs: inps, fields: flds } = await arg2input(inp, fnNode.args[i], child, scope)
+                    inputs.push(inps)
+                    fields.push(flds)
                 }
                 const block: jsonBlock = {
                     opcode: fnNode.identifier,
@@ -465,8 +488,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         shadow: false,
                         inputs: {
                             ...Object.fromEntries([
-                                await arg2input(beDefinition2[0][0], beNode.left, beChildren, scope),
-                                await arg2input(beDefinition2[0][1], beNode.right, beChildren, scope)
+                                (await arg2input(beDefinition2[0][0], beNode.left, beChildren, scope)).inputs,
+                                (await arg2input(beDefinition2[0][1], beNode.right, beChildren, scope)).inputs
                             ])
                         },
                     };
@@ -485,8 +508,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     shadow: false,
                     inputs: {
                         ...Object.fromEntries([
-                            await arg2input(beDefinition[0][0], beNode.left, beChildren, scope),
-                            await arg2input(beDefinition[0][1], beNode.right, beChildren, scope)
+                            (await arg2input(beDefinition[0][0], beNode.left, beChildren, scope)).inputs,
+                            (await arg2input(beDefinition[0][1], beNode.right, beChildren, scope)).inputs
                         ])
                     },
                 };
@@ -521,10 +544,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     2,
                     firstThenChild?.block?.id
                 ]
-                const condition = await arg2input({
+                const condition = (await arg2input({
                     name: 'CONDITION',
                     type: 1
-                }, ifNode.condition, ifChildren, scope);
+                }, ifNode.condition, ifChildren, scope)).inputs;
                 ifBlock.inputs.CONDITION = condition[1] as json.Input
                 if (ifNode.elseBranch) {
                     ifBlock.opcode = 'control_if_else'
@@ -562,9 +585,13 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const bDefinition = blockDefinitions[branchNode.identifier]
                 const branchChildren: PartialBlockCollection[] = [];
                 const binputs = [];
+                const bfields = [];
                 for (let i = 0; i < Math.min(bDefinition.length, branchNode.args.length); i++) {
                     const inp = bDefinition[0][i];
-                    binputs.push(await arg2input(inp, branchNode.args[i], branchChildren, scope))
+                    const { inputs: inps, fields: flds } = await arg2input(inp, branchNode.args[i], branchChildren, scope)
+                    // binputs.push(().inputs)
+                    binputs.push(inps)
+                    bfields.push(flds)
                 }
                 const branchBlock: jsonBlock = {
                     opcode: branchNode.identifier,
@@ -578,10 +605,11 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         .filter(a => Array.isArray(a) && a[0])
                         .map(
                             async (inp, i) => {
-                                return await arg2input(inp, branchNode.args[i], branchChildren, scope)
+                                return (await arg2input(inp, branchNode.args[i], branchChildren, scope)).inputs
                             }
                         )
                     ), ...binputs]),
+                    fields: Object.fromEntries(bfields)
                 };
                 if (bDefinition[1] == 'hat') {
                     if (!topLevel)
@@ -646,12 +674,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ...blk,
                     id: thisBlockID.toString(),
                     inputs: {
-                        'VALUE': (await arg2input(
+                        'VALUE': ((await arg2input(
                             blockDefinitions.data_setvariableto[0][1],
                             varDeclNode.value,
                             varDeclChildren,
                             scope
-                        ))[1] as json.Input
+                        )).inputs)[1] as json.Input
                     },
                     fields: {
                         "VARIABLE": [
@@ -675,12 +703,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ...blk,
                     id: thisBlockID.toString(),
                     inputs: {
-                        'VALUE': (await arg2input(
+                        'VALUE': ((await arg2input(
                             blockDefinitions.data_setvariableto[0][1],
                             varAssignmentNode.value,
                             varAssignmentChildren,
                             scope
-                        ))[1] as json.Input
+                        )).inputs)[1] as json.Input
                     },
                     fields: {
                         "VARIABLE": [
@@ -732,7 +760,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 }
 
                 blockID++;
-                
+
                 const definitionId = genId(blockID).toString();
 
                 const argumentids = [];
@@ -761,10 +789,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
                     fndBlocks.push(inputBlock)
 
-                    sc.identifierBlocks.set(arg, id => {return {
-                        ...inputBlock,
-                        id
-                    }})
+                    sc.identifierBlocks.set(arg, id => {
+                        return {
+                            ...inputBlock,
+                            id
+                        }
+                    })
 
                     prototype.inputs[argid] = [1, inputBlock.id]
                 }
