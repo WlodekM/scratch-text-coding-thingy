@@ -9,10 +9,17 @@ sprites:
         path: assets/empty.svg
     sounds:
     code: null
-  sprite1:
-    name: Main
+  main:
+    name: player
     costumes:
       costume1:
         format: svg
         path: assets/cat_dango.svg
     code: main.tsh
+  platforms:
+    name: platforms
+    costumes:
+      costume1:
+        format: svg
+        path: assets/level 1 1.svg
+    code: platforms.tsh

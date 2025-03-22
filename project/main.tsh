@@ -1,14 +1,44 @@
 #include <"blocks/js" "base.js">
 
-fn test(a, b, c) {
-    looks_say(a + b - c)
+event_whenflagclicked() {
+    global var LEVEL = 0
+    global var SCROLLX = 0
+    global var SCROLLY = 0
+    var x = 0
+    var y = 0
 }
 
 event_whenflagclicked() {
-    looks_say(5 != 3)
-    looks_say(5 >= 3)
-    looks_say(5 <= 3)
-    motion_gotoxy(5, 3)
-    test(0, 4, 2)
-    // test(9, 10, 3)
+    event_broadcastandwait("greenFlag")
+    event_broadcastandwait("playGame")
+}
+
+event_whenbroadcastreceived("greenFlag") {
+    looks_hide()
+    looks_gotofrontback("front")
+}
+
+fn gameOn() {
+    x = 0
+    y = 0
+    looks_show()
+}
+
+fn tick() {
+    var v = sensing_keypressed("d") - sensing_keypressed("a")
+    x = x + (v * 8)
+}
+
+event_whenbroadcastreceived("playGame") {
+    LEVEL = 1
+    control_forever() {
+        event_broadcastandwait("reset")
+        event_broadcastandwait("setup")
+        gameOn()
+        control_repeat_until() {
+            tick()
+            motion_gotoxy(x - SCROLLX, y - SCROLLY)
+            event_broadcastandwait("tick")
+        }
+    }
 }
