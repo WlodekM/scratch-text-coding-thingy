@@ -82,7 +82,14 @@ for (const spriteName in project.sprites) {
         const lexer = new Lexer(sourceCode);
         const tokens = lexer.tokenize();
         const parser = new Parser(tokens);
-        const ast = parser.parse();
+        let ast;
+        try {
+            ast = parser.parse();
+        } catch (error) {
+            console.error(error)
+            console.log('at', parser.position, tokens.map((a, i) => i == parser.position ? `${a.type}(${a.value}) <--` : `${a.type}(${a.value})`).join('\n'))
+            throw 'error during parsing'
+        }
         if (Deno.args.includes('-a')) {
             Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
         }
