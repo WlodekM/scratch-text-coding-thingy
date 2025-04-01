@@ -270,7 +270,7 @@ export interface ListDeclarationNode extends ASTNode {
 // Parser
 export class Parser {
     private tokens: Token[];
-    private position: number = 0;
+    position: number = 0;
 
     constructor(tokens: Token[]) {
         this.tokens = tokens;
