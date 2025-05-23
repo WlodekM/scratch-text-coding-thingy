@@ -232,7 +232,14 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     )
                 ]
                 ]],
-            fields: (inp.field ? [inp.name, [(arg as LiteralNode | any)?.value?.toString(), (arg as LiteralNode | any)?.value?.toString(), (inp.variableTypes ?? ['broadcast_msg'])[0]]] : []) as [string, any] | []
+            fields: (inp.field ?
+                [inp.name,
+                    [
+                        (arg as LiteralNode | any)?.value?.toString(),
+                        (arg as LiteralNode | any)?.value?.toString(),
+                        (inp.variableTypes ?? [])[0]
+                    ].filter(k=>k)
+                ] : []) as [string, any] | []
         }
     }
 
@@ -241,7 +248,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
         const thisBlockID = genId(blockID);
         console.log('procesing node', thisBlockID, node, topLevel, noLast, noNext)
         let blk = {
-            next: '',
+            next: null,
             parent: null,
             inputs: {},
             fields: {},
@@ -260,7 +267,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const tempBlock = {
                     opcode: 'event_whenflagclicked',
                     id: thisBlockID.toString(),
-                    next: '',
+                    next: null,
                     topLevel
                 } as jsonBlock
                 lastBlock = tempBlock as blockBlock
@@ -393,7 +400,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         mutation: blockDefinition.mutation,
                         id: thisBlockID.toString(),
                         inputs: Object.fromEntries(inputs),
-                        next: '', // no next (yet)
+                        next: null, // no next (yet)
                         topLevel,
                         parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                         shadow: false,
@@ -422,10 +429,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const block: jsonBlock = {
                     opcode: fnNode.identifier,
                     ...blk,
-                    fields: {},
+                    fields: Object.fromEntries(fields),
                     id: thisBlockID.toString(),
                     inputs: Object.fromEntries(inputs),
-                    next: '', // no next (yet)
+                    next: null, // no next (yet)
                     topLevel,
                     parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                     shadow: false,

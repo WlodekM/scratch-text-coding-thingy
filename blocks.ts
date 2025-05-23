@@ -112,6 +112,7 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                         return { //TODO - in some way implement this
                             name: arg.name,
                             type: 1,
+                            field: arg.name,
                             options: arg.options,
                             variableTypes: arg.variableTypes
                         }
@@ -155,6 +156,7 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
                     return { //TODO - in some way implement this
                         name: arg.name,
                         type: 1,
+                        field: arg.name,
                         options: arg.options,
                         variableTypes: arg.variableTypes
                     }
