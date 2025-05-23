@@ -1,5 +1,3 @@
-import { timeStamp } from "node:console";
-
 // Token types
 export enum TokenType {
     VAR = "VAR",

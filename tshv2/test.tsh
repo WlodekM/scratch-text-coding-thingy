@@ -13,4 +13,8 @@ gf {
     } {
         say("no")
     }
-}aa
+
+    if (!false && false) {
+
+    }
+}

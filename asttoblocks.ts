@@ -153,10 +153,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     let lastBlock: blockBlock = {} as blockBlock;
 
     async function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[], scope: Scope) {
-        console.debug(arg, inp)
         if (arg.type == 'Identifier') {
             const childBlock = await processNode(arg, false, true, true, scope);
-            console.debug(childBlock.block, 'ahhh')
             if (!(childBlock.block as varBlock).data) {
                 const blbl = childBlock.block as blockBlock; // the blockaroo
                 child.push(childBlock);
@@ -199,7 +197,6 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
         if (['FunctionCall', 'Boolean', 'BinaryExpression'].includes(arg.type)) {
             const childBlock = await processNode(arg, false, true, true, scope);
             child.push(childBlock);
-            console.debug(childBlock.block, 'ahhh')
             return {
                 inputs: [inp.name, Array.isArray(childBlock.block)
                     ? [inp.type, childBlock.block] : [inp.type,
@@ -218,7 +215,6 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 fields: [] as [string, any] | []
             }
         }
-        // console.log(inp, 'uh', arg)
         return {
             inputs:
                 [inp.name, [inp.type,
@@ -385,7 +381,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     const fields: ([string, any] | [])[] = [];
                     for (let i = 0; i < Math.min(definition[0].length, fnNode2.args.length); i++) {
                         const inp = definition[0][i];
-                        console.log(inp)
+                        // console.log(inp)
                         const { inputs: inps, fields: flds } = await arg2input(inp, fnNode2.args[i], child, scope)
                         inputs.push(inps)
                         fields.push(flds)
@@ -724,7 +720,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
             case "Identifier":
                 const identifierNode = node as IdentifierNode;
-                console.debug(scope)
+                // console.debug(scope)
                 if (scope.identifierBlocks.has(identifierNode.name)) {
                     const bl = scope.identifierBlocks.get(identifierNode.name);
                     if (!bl) throw 'how the fuck';
@@ -822,7 +818,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     opcode: 'procedures_definition'
                 };
 
-                console.debug(sc)
+                // console.debug(sc)
 
                 for (const node of fndNode.body) {
                     fndChildren.push(await processNode(node, false, false, false, sc))
