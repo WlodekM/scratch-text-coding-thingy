@@ -25,7 +25,7 @@ function genUid() {
     return id.join('');
 };
 
-console.log(genUid(), genUid(), genUid())
+// console.log(genUid(), genUid(), genUid())
 
 export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data: [12, string, string] }
@@ -152,9 +152,9 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     let blockID: number = 0;
     let lastBlock: blockBlock = {} as blockBlock;
 
-    async function arg2input(inp: Input, arg: ASTNode, child: PartialBlockCollection[], scope: Scope) {
+    async function arg2input(level: number, inp: Input, arg: ASTNode, child: PartialBlockCollection[], scope: Scope) {
         if (arg.type == 'Identifier') {
-            const childBlock = await processNode(arg, false, true, true, scope);
+            const childBlock = await processNode(level + 1, arg, false, true, true, scope);
             if (!(childBlock.block as varBlock).data) {
                 const blbl = childBlock.block as blockBlock; // the blockaroo
                 child.push(childBlock);
@@ -195,7 +195,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
             }
         }
         if (['FunctionCall', 'Boolean', 'BinaryExpression', 'Not'].includes(arg.type)) {
-            const childBlock = await processNode(arg, false, true, true, scope);
+            const childBlock = await processNode(level + 1, arg, false, true, true, scope);
             child.push(childBlock);
             return {
                 inputs: [inp.name, Array.isArray(childBlock.block)
@@ -242,10 +242,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
         }
     }
 
-    async function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
+    async function processNode(level: number, node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
         blockID++;
         const thisBlockID = genId(blockID);
-        console.log('procesing node', thisBlockID, node.type,'\n', {topLevel, noLast, noNext}, lastBlock.id)
+        console.log(' '.repeat(level*2), 'procesing node', thisBlockID, node.type,'\n'+' '.repeat(level*2), {topLevel, noLast, noNext}, lastBlock.id)
         let blk = {
             next: null,
             parent: null,
@@ -272,7 +272,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 lastBlock = tempBlock as blockBlock
                 const processedNodes = [];
                 for (const node of gfNode.branch) {
-                    processedNodes.push(await processNode(node, false, false, false, scope))
+                    processedNodes.push(await processNode(level + 1, node, false, false, false, scope))
                 }
                 const children = new PartialBlockCollection(
                     processedNodes
@@ -388,7 +388,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     for (let i = 0; i < Math.min(definition[0].length, fnNode2.args.length); i++) {
                         const inp = definition[0][i];
                         // console.log(inp)
-                        const { inputs: inps, fields: flds } = await arg2input(inp, fnNode2.args[i], child, scope)
+                        const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode2.args[i], child, scope)
                         inputs.push(inps)
                         fields.push(flds)
                     }
@@ -421,7 +421,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const fields: ([string, any] | [])[] = [];
                 for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
                     const inp = definition[0][i];
-                    const { inputs: inps, fields: flds } = await arg2input(inp, fnNode.args[i], child, scope)
+                    const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode.args[i], child, scope)
                     inputs.push(inps)
                     fields.push(flds)
                 }
@@ -476,7 +476,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 lastBlock = notBlock;
                 notBlock.inputs = {
                     ...Object.fromEntries([
-                        (await arg2input(notDefinition[0][0], notNode.body, notChildren, scope)).inputs,
+                        (await arg2input(level, notDefinition[0][0], notNode.body, notChildren, scope)).inputs,
                     ])
                 };
                 lastBlock = lastLastBlock
@@ -531,8 +531,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         shadow: false,
                         inputs: {
                             ...Object.fromEntries([
-                                (await arg2input(beDefinition2[0][0], beNode.left, beChildren, scope)).inputs,
-                                (await arg2input(beDefinition2[0][1], beNode.right, beChildren, scope)).inputs
+                                (await arg2input(level, beDefinition2[0][0], beNode.left, beChildren, scope)).inputs,
+                                (await arg2input(level, beDefinition2[0][1], beNode.right, beChildren, scope)).inputs
                             ])
                         },
                     };
@@ -551,8 +551,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     shadow: false,
                     inputs: {
                         ...Object.fromEntries([
-                            (await arg2input(beDefinition[0][0], beNode.left, beChildren, scope)).inputs,
-                            (await arg2input(beDefinition[0][1], beNode.right, beChildren, scope)).inputs
+                            (await arg2input(level, beDefinition[0][0], beNode.left, beChildren, scope)).inputs,
+                            (await arg2input(level, beDefinition[0][1], beNode.right, beChildren, scope)).inputs
                         ])
                     },
                 };
@@ -575,7 +575,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const processedThenNodes = [];
                 for (let i = 0; i < ifNode.thenBranch.length; i++) {
                     const node = ifNode.thenBranch[i];
-                    processedThenNodes.push(await processNode(node, false, false, i == 0, scope))
+                    processedThenNodes.push(await processNode(level + 1, node, false, false, i == 0, scope))
                 }
                 const thenBlocks = new PartialBlockCollection(
                     processedThenNodes
@@ -588,7 +588,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     firstThenChild?.block?.id
                 ]
                 if (!noLast) lastBlock = ifBlock;
-                const condition = (await arg2input({
+                const condition = (await arg2input(level, {
                     name: 'CONDITION',
                     type: 1
                 }, ifNode.condition, ifChildren, scope)).inputs;
@@ -599,7 +599,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     if (!noLast) lastBlock = ifBlock;
                     for (let i = 0; i < ifNode.elseBranch.length; i++) {
                         const node = ifNode.elseBranch[i];
-                        processedElseNodes.push(await processNode(node, false, false, i == 0, scope))
+                        processedElseNodes.push(await processNode(level + 1, node, false, false, i == 0, scope))
                     }
                     const elseBlocks = new PartialBlockCollection(
                         processedElseNodes
@@ -638,7 +638,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 } as blockBlock
                 for (let i = 0; i < Math.min(bDefinition.length, branchNode.args.length); i++) {
                     const inp = bDefinition[0][i];
-                    const { inputs: inps, fields: flds } = await arg2input(inp, branchNode.args[i], branchChildren, scope)
+                    const { inputs: inps, fields: flds } = await arg2input(level, inp, branchNode.args[i], branchChildren, scope)
                     // binputs.push(().inputs)
                     binputs.push(inps)
                     bfields.push(flds)
@@ -659,7 +659,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         .map(
                             async (inp, i) => {
                                 lastBlock = branchBlock;
-                                return (await arg2input(inp, branchNode.args[i], branchChildren, scope)).inputs
+                                return (await arg2input(level, inp, branchNode.args[i], branchChildren, scope)).inputs
                             }
                         )
                     ), ...binputs]);
@@ -673,7 +673,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     if (!noLast) lastBlock = branchBlock;
                     for (let i = 0; i < branch.length; i++) {
                         const node = branch[i];
-                        processedBranchNodes.push(await processNode(node, false, false, i == 0, scope))
+                        processedBranchNodes.push(await processNode(level + 1, node, false, false, i == 0, scope))
                     }
                     const branchBlocks = new PartialBlockCollection(
                         processedBranchNodes
@@ -692,7 +692,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     const processedBranchNodes = [];
                     for (let i = 0; i < branch.length; i++) {
                         const node = branch[i];
-                        processedBranchNodes.push(await processNode(node, false, false, i == 0, scope))
+                        processedBranchNodes.push(await processNode(level + 1, node, false, false, i == 0, scope))
                     }
                     const branchBlocks = new PartialBlockCollection(
                         processedBranchNodes
@@ -727,7 +727,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ...blk,
                     id: thisBlockID.toString(),
                     inputs: {
-                        'VALUE': ((await arg2input(
+                        'VALUE': ((await arg2input(level, 
                             blockDefinitions.data_setvariableto[0][1],
                             varDeclNode.value,
                             varDeclChildren,
@@ -756,7 +756,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ...blk,
                     id: thisBlockID.toString(),
                     inputs: {
-                        'VALUE': ((await arg2input(
+                        'VALUE': ((await arg2input(level, 
                             blockDefinitions.data_setvariableto[0][1],
                             varAssignmentNode.value,
                             varAssignmentChildren,
@@ -878,7 +878,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 // console.debug(sc)
 
                 for (const node of fndNode.body) {
-                    fndChildren.push(await processNode(node, false, false, false, sc))
+                    fndChildren.push(await processNode(level + 1, node, false, false, false, sc))
                 }
 
                 lastBlock = {} as blockBlock;
@@ -915,7 +915,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     }
 
     for (const node of ast) {
-        const coll = await processNode(node, true);
+        const coll = await processNode(0, node, true);
         const unfurled = coll.unfurl()
         // console.log(coll, unfurled)
         blocks.push(...unfurled)
