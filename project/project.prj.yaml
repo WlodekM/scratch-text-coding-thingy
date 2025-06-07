@@ -16,10 +16,10 @@ sprites:
         format: svg
         path: assets/cat_dango.svg
     code: main.tsh
-  platforms:
-    name: platforms
-    costumes:
-      costume1:
-        format: svg
-        path: assets/level 1 1.svg
-    code: platforms.tsh
+  # platforms:
+  #   name: platforms
+  #   costumes:
+  #     costume1:
+  #       format: svg
+  #       path: assets/level 1 1.svg
+  #   code: platforms.tsh

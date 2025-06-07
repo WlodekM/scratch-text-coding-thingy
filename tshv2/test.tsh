@@ -14,7 +14,7 @@ gf {
         say("no")
     }
 
-    if (!false && false) {
+    if (!(false && false && true)) {
 
     }
 }

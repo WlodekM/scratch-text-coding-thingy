@@ -1,44 +1,56 @@
 #include <"blocks/js" "base.js">
 
-event_whenflagclicked() {
-    global var LEVEL = 0
-    global var SCROLLX = 0
-    global var SCROLLY = 0
-    var x = 0
-    var y = 0
+// event_whenflagclicked() {
+//     global var LEVEL = 0
+//     global var SCROLLX = 0
+//     global var SCROLLY = 0
+//     var x = 0
+//     var y = 0
+// }
+
+// event_whenflagclicked() {
+//     event_broadcastandwait("greenFlag")
+//     event_broadcastandwait("playGame")
+// }
+
+// event_whenbroadcastreceived("greenFlag") {
+//     looks_hide()
+//     looks_gotofrontback("front")
+// }
+
+// fn gameOn() {
+//     x = 0
+//     y = 0
+//     looks_show()
+// }
+
+// fn tick() {
+//     var v = sensing_keypressed("d") - sensing_keypressed("a")
+//     x = x + (v * 8)
+// }
+
+fn test(balls) {
+    looks_say("deez")
 }
 
-event_whenflagclicked() {
-    event_broadcastandwait("greenFlag")
-    event_broadcastandwait("playGame")
-}
-
-event_whenbroadcastreceived("greenFlag") {
-    looks_hide()
-    looks_gotofrontback("front")
-}
-
-fn gameOn() {
-    x = 0
-    y = 0
-    looks_show()
-}
-
-fn tick() {
-    var v = sensing_keypressed("d") - sensing_keypressed("a")
-    x = x + (v * 8)
-}
-
-event_whenbroadcastreceived("playGame") {
-    LEVEL = 1
-    control_forever() {
-        event_broadcastandwait("reset")
-        event_broadcastandwait("setup")
-        gameOn()
-        control_repeat_until() {
-            tick()
-            motion_gotoxy(x - SCROLLX, y - SCROLLY)
-            event_broadcastandwait("tick")
-        }
+// event_whenbroadcastreceived("playGame") {
+gf {
+    // LEVEL = 1
+    // control_forever() {
+    //     // event_broadcastandwait("reset")
+    //     // event_broadcastandwait("setup")
+    //     // gameOn()
+    //     looks_say("uh 1")
+    //     control_repeat_until() {
+    //         // tick()
+    //         // motion_gotoxy(x - SCROLLX, y - SCROLLY)
+    //         // event_broadcastandwait("tick")
+    //         looks_say("uh 2")
+    //     }
+    //     looks_say("uh 3")
+    // }
+    looks_say("uh 4")
+    if (!false) {
+        looks_say("true...")
     }
 }

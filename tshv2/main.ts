@@ -19,7 +19,8 @@ export enum TokenType {
     GREATER    = "GREATER",
     GREENFLAG  = "GREENFLAG",
     INCLUDE    = "INCLUDE",
-    LIST       = "LIST"
+    LIST       = "LIST",
+    NOT        = "NOT",
 }
 
 export interface Token {
@@ -126,15 +127,16 @@ export class Lexer {
                 }
                 tokens.push({ type: TokenType.STRING, value: string });
             } else if (char === "(") tokens.push({ type: TokenType.LPAREN, value: char });
-            else if (char === ")") tokens.push({ type: TokenType.RPAREN, value: char });
-            else if (char === "{") tokens.push({ type: TokenType.LBRACE, value: char });
-            else if (char === "}") tokens.push({ type: TokenType.RBRACE, value: char });
-            else if (char === ",") tokens.push({ type: TokenType.COMMA, value: char });
-            else if (char === "+") tokens.push({ type: TokenType.BINOP, value: char });
-            else if (char === "-") tokens.push({ type: TokenType.BINOP, value: char });
-            else if (char === "*") tokens.push({ type: TokenType.BINOP, value: char });
-            else if (char === "/") tokens.push({ type: TokenType.BINOP, value: char });
-            else if (char === "%") tokens.push({ type: TokenType.BINOP, value: char });
+            else if (char === ")")   tokens.push({ type: TokenType.RPAREN, value: char });
+            else if (char === "{")   tokens.push({ type: TokenType.LBRACE, value: char });
+            else if (char === "}")   tokens.push({ type: TokenType.RBRACE, value: char });
+            else if (char === ",")   tokens.push({ type: TokenType.COMMA,  value: char });
+            else if (char === "!")   tokens.push({ type: TokenType.NOT,    value: char });
+            else if (char === "+")   tokens.push({ type: TokenType.BINOP,  value: char });
+            else if (char === "-")   tokens.push({ type: TokenType.BINOP,  value: char });
+            else if (char === "*")   tokens.push({ type: TokenType.BINOP,  value: char });
+            else if (char === "/")   tokens.push({ type: TokenType.BINOP,  value: char });
+            else if (char === "%")   tokens.push({ type: TokenType.BINOP,  value: char });
             else if (char === "=" && this.peek() === '=') {
                 tokens.push({ type: TokenType.BINOP, value: char });
                 this.advance();
@@ -198,6 +200,11 @@ export interface BinaryExpressionNode extends ASTNode {
     operator: string;
     left: ASTNode;
     right: ASTNode;
+}
+
+export interface NotNode extends ASTNode {
+    type: "Not";
+    body: ASTNode;
 }
 
 export interface LiteralNode extends ASTNode {
@@ -417,7 +424,12 @@ export class Parser {
     }
 
     private parseAssignment(): ASTNode {
-
+        if (this.match(TokenType.NOT)) {
+            return {
+                type: 'Not',
+                body: this.parseAssignment(),
+            } as NotNode
+        }
         const expr = this.parseBinaryExpression();
         if (this.match(TokenType.ASSIGN)) {
             if (expr.type !== "Identifier")
@@ -442,7 +454,6 @@ export class Parser {
     private parseCall(): ASTNode {
         let expr = this.parsePrimary();
 
-
         while (this.peek().type === TokenType.LPAREN) {
             expr = this.finishCall(expr);
         }
@@ -450,8 +461,6 @@ export class Parser {
     }
 
     private finishCall(callee: ASTNode): ASTNode {
-
-
         this.expect(TokenType.LPAREN, "Expected '(' after function name");
         const args: ASTNode[] = [];
         if (this.peek().type !== TokenType.RPAREN) {

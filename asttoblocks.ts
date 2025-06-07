@@ -1,5 +1,5 @@
-// deno-lint-ignore-file no-case-declarations
-import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
+// deno-lint-ignore-file no-case-declarations no-explicit-any
+import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NotNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
@@ -194,7 +194,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 fields: [] as [string, any] | []
             }
         }
-        if (['FunctionCall', 'Boolean', 'BinaryExpression'].includes(arg.type)) {
+        if (['FunctionCall', 'Boolean', 'BinaryExpression', 'Not'].includes(arg.type)) {
             const childBlock = await processNode(arg, false, true, true, scope);
             child.push(childBlock);
             return {
@@ -225,7 +225,6 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                                 ({
                                     Literal: typeof (arg as LiteralNode).value == 'number' ? 4 : 10,
                                 })[arg.type] ?? 10,
-                                // deno-lint-ignore no-explicit-any
                                 (arg as LiteralNode | any)?.value?.toString()
                             ]
                             : []
@@ -246,7 +245,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
     async function processNode(node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
         blockID++;
         const thisBlockID = genId(blockID);
-        console.log('procesing node', thisBlockID, node, topLevel, noLast, noNext)
+        console.log('procesing node', thisBlockID, node.type,'\n', {topLevel, noLast, noNext}, lastBlock.id)
         let blk = {
             next: null,
             parent: null,
@@ -378,7 +377,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 return new PartialBlockCollection([]) as BlockCollection
 
             // deno-lint-ignore no-fallthrough
-            case 'FunctionCall':
+            case 'FunctionCall': // custom blocks
                 const fnNode2 = node as FunctionCallNode;
                 if (fnNode2.identifier in sprite.customBlocks) {
                     const blockDefinition = sprite.customBlocks[fnNode2.identifier]
@@ -440,7 +439,48 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 // console.debug(block)
                 if (!topLevel && !noNext) lastBlock.next = block.id.toString();
                 if (!noLast) lastBlock = block;
-                return new BlockCollection(block, child) //TODO: figure out how to map function args to children
+                return new BlockCollection(block, child); //TODO: figure out how to map function args to children
+            
+            case 'Not':
+                if (!Object.keys(blockDefinitions).find(k => k.startsWith('operator_')))
+                    throw `To use the not operator you have to include the operators category`
+                const notNode = node as NotNode;
+                const notDefinition = blockDefinitions['operator_not'];
+                if (!notDefinition)
+                    throw 'couldn\'t find definition for operator_not'
+                blockID++;
+                const notChildren: PartialBlockCollection[] = [];
+                const lastLastBlock = lastBlock;
+                const notBlock: jsonBlock = {
+                    // opcode: 'operator_not',
+                    // ...blk,
+                    // id: thisBlockID.toString(),
+                    // topLevel,
+                    // parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                    // shadow: false,
+                    // inputs: Object.fromEntries([
+                    //     [notDefinition[0][0].name, [
+                    //         notDefinition[0][0].type,
+                    //         genId(blockID).toString()
+                    //     ]]
+                    // ]),
+                    // next: null
+                    opcode: 'operator_not',
+                    ...blk,
+                    id: thisBlockID.toString(),
+                    topLevel,
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                    shadow: false,
+                    inputs: {}
+                };
+                lastBlock = notBlock;
+                notBlock.inputs = {
+                    ...Object.fromEntries([
+                        (await arg2input(notDefinition[0][0], notNode.body, notChildren, scope)).inputs,
+                    ])
+                };
+                lastBlock = lastLastBlock
+                return new BlockCollection(notBlock, notChildren);
 
             case 'BinaryExpression':
                 if (!Object.keys(blockDefinitions).find(k => k.startsWith('operator_')))
@@ -547,6 +587,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     2,
                     firstThenChild?.block?.id
                 ]
+                if (!noLast) lastBlock = ifBlock;
                 const condition = (await arg2input({
                     name: 'CONDITION',
                     type: 1
@@ -555,6 +596,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 if (ifNode.elseBranch) {
                     ifBlock.opcode = 'control_if_else'
                     const processedElseNodes = [];
+                    if (!noLast) lastBlock = ifBlock;
                     for (let i = 0; i < ifNode.elseBranch.length; i++) {
                         const node = ifNode.elseBranch[i];
                         processedElseNodes.push(await processNode(node, false, false, i == 0, scope))
@@ -580,6 +622,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ...blk,
                     id: thisBlockID.toString(),
                     topLevel,
+                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
                 }
                 return new BlockCollection(boolBlock, []);
 
@@ -589,6 +632,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                 const branchChildren: PartialBlockCollection[] = [];
                 const binputs = [];
                 const bfields = [];
+                const bLastLastBlock = lastBlock;
+                lastBlock = {
+                    id: thisBlockID.toString()
+                } as blockBlock
                 for (let i = 0; i < Math.min(bDefinition.length, branchNode.args.length); i++) {
                     const inp = bDefinition[0][i];
                     const { inputs: inps, fields: flds } = await arg2input(inp, branchNode.args[i], branchChildren, scope)
@@ -601,19 +648,21 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     ...blk,
                     id: thisBlockID.toString(),
                     topLevel,
-                    parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+                    parent: topLevel || !bLastLastBlock ? null : bLastLastBlock.id.toString(),
                     shadow: false,
-                    inputs: Object.fromEntries([...await Promise.all(bDefinition[0]
+                    inputs: {},
+                    fields: Object.fromEntries(bfields)
+                };
+                branchBlock.inputs = Object.fromEntries([...await Promise.all(bDefinition[0]
                         .filter(a => a)
                         .filter(a => Array.isArray(a) && a[0])
                         .map(
                             async (inp, i) => {
+                                lastBlock = branchBlock;
                                 return (await arg2input(inp, branchNode.args[i], branchChildren, scope)).inputs
                             }
                         )
-                    ), ...binputs]),
-                    fields: Object.fromEntries(bfields)
-                };
+                    ), ...binputs]);
                 if (bDefinition[1] == 'hat') {
                     if (!topLevel)
                         throw 'Hat is allowed in top-level';
@@ -634,7 +683,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     if (firstBranchChild?.block?.id) branchBlock.next = firstBranchChild?.block?.id;
                     return new BlockCollection(branchBlock, branchChildren);
                 }
-                if (!topLevel && !noNext) lastBlock.next = branchBlock.id.toString();
+                if (!topLevel && !noNext) bLastLastBlock.next = branchBlock.id.toString();
                 if (!noLast) lastBlock = branchBlock;
                 // const firstBranchChildren: (BlockCollection | undefined)[] = [];
                 let branchN = 0;
@@ -655,6 +704,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         firstBranchChild?.block?.id
                     ]
                 }
+                lastBlock = branchBlock;
                 return new BlockCollection(branchBlock, branchChildren);
 
             case 'ListDeclaration':
