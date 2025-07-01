@@ -859,7 +859,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                     argumentids: JSON.stringify(argumentids),
                     argumentnames: JSON.stringify(argumentnames),
                     argumentdefaults: JSON.stringify(argumentdefaults),
-                    warp: 'false'
+                    warp: JSON.stringify(fndNode.warp)
                 }
 
                 sprite.customBlocks[fndNode.name] = {

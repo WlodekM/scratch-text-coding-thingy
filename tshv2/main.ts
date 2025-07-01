@@ -1,7 +1,8 @@
 // Token types
 export enum TokenType {
-    VAR = "VAR",
-    FN = "FN",
+    VAR        = "VAR",
+    FN         = "FN",
+    WARP_FN    = "WFN",
     IDENTIFIER = "IDENTIFIER",
     NUMBER     = "NUMBER",
     ASSIGN     = "ASSIGN",
@@ -105,6 +106,7 @@ export class Lexer {
                 else if (identifier === "list") tokens.push({ type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
                 else if (identifier === "global") global = 2;
                 else if (identifier === "fn") tokens.push({ type: TokenType.FN, value: identifier });
+                else if (identifier === "warp") tokens.push({ type: TokenType.WARP_FN, value: identifier })
                 else if (identifier === "if") tokens.push({ type: TokenType.IF, value: identifier });
                 else if (identifier === "for") tokens.push({ type: TokenType.FOR, value: identifier });
                 else if (identifier === "gf") tokens.push({ type: TokenType.GREENFLAG, value: identifier });
@@ -187,6 +189,8 @@ export interface FunctionDeclarationNode extends ASTNode {
     name: string;
     params: string[];
     body: ASTNode[];
+    /** run without screen refresh */
+    warp: boolean;
 }
 
 export interface AssignmentNode extends ASTNode {
@@ -357,7 +361,7 @@ export class Parser {
             return { itype, path, type: "Include" } as IncludeNode;
         }
 
-        if (this.match(TokenType.FN)) {
+        function doFn(this: Parser, warp: boolean): FunctionDeclarationNode {
             const name = this.expect(TokenType.IDENTIFIER, "Expected function name").value;
             this.expect(TokenType.LPAREN, "Expected '(' after function name");
             const params: string[] = [];
@@ -369,7 +373,16 @@ export class Parser {
             }
             this.expect(TokenType.LBRACE, "Expected '{' before function body");
             const body = this.parseBlock();
-            return { type: "FunctionDeclaration", name, params, body } as FunctionDeclarationNode;
+            return { type: "FunctionDeclaration", name, params, body, warp } as FunctionDeclarationNode;
+        }
+
+        if (this.match(TokenType.WARP_FN)) {
+            this.expect(TokenType.FN, "Expected 'fn' after 'warp'");
+            return doFn.call(this, true)
+        }
+
+        if (this.match(TokenType.FN)) {
+            return doFn.call(this, false)
         }
 
 
