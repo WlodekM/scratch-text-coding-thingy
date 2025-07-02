@@ -1,4 +1,5 @@
 #include <"blocks/js" "base.js">
+#include <"extension/builtin" "scratch3_pen">
 
 // event_whenflagclicked() {
 //     global var LEVEL = 0
@@ -35,6 +36,7 @@ fn test(balls) {
 
 // event_whenbroadcastreceived("playGame") {
 gf {
+    pen_penDown()
     // LEVEL = 1
     // control_forever() {
     //     // event_broadcastandwait("reset")

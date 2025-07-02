@@ -307,6 +307,96 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
                         ...bl,
                         ...blockDefinitions
                     }
+                } else if (includeNode.itype.startsWith('extension/builtin')) {
+                    const nop = () => { };
+                    let ext: any = null;
+                    //@ts-ignore:
+                    const Scratch = globalThis.Scratch = {
+                        translate: (a: string) => a,
+                        extensions: {
+                            unsandboxed: true,
+                            register: (e: Class) => { ext = e }
+                        },
+                        vm: {
+                            runtime: {
+                                on: nop
+                            }
+                        },
+                        BlockType: {
+                            BOOLEAN: "Boolean",
+                            BUTTON: "button",
+                            LABEL: "label",
+                            COMMAND: "command",
+                            CONDITIONAL: "conditional",
+                            EVENT: "event",
+                            HAT: "hat",
+                            LOOP: "loop",
+                            REPORTER: "reporter",
+                            XML: "xml"
+                        },
+                        TargetType: {
+                            SPRITE: "sprite",
+                            STAGE: "stage"
+                        },
+                        Cast,
+                        ArgumentType: {
+                            ANGLE: "angle",
+                            BOOLEAN: "Boolean",
+                            COLOR: "color",
+                            NUMBER: "number",
+                            STRING: "string",
+                            MATRIX: "matrix",
+                            NOTE: "note",
+                            IMAGE: "image",
+                            COSTUME: "costume",
+                            SOUND: "sound"
+                        }
+                    }
+                    //@ts-ignore:
+                    globalThis.module = {}
+                    await import('./tw-vm/src/extension-support/argument-type.js');
+                    const ArgumentType = module.exports;
+                    await import('./tw-vm/src/extension-support/block-type.js');
+                    const BlockType = module.exports;
+                    await import('./tw-vm/src/extension-support/target-type.js');
+                    const TargetType = module.exports;
+                    //@ts-ignore:
+                    Scratch.translate.setup = nop
+                    //@ts-ignore:
+                    globalThis.require = (moduleName) => {
+                        if (moduleName == 'format-message')
+                            return (message: {default: string}) => message.default;
+                        switch (moduleName) {
+                            case '../../extension-support/argument-type':
+                                return ArgumentType;
+                            case '../../extension-support/block-type':
+                                return BlockType
+                            case '../../extension-support/target-type':
+                                return TargetType
+                        }
+                        return undefined
+                    }
+                    await import(`./tw-vm/src/extensions/${includeNode.path}/index.js`);
+                    ext = new globalThis.module.exports(Scratch.vm.runtime);
+                    
+                    if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
+                    const { blocks, id: extid } = ext.getInfo();
+                    sprite.extensions.push([includeNode.path, extid]);
+                    blockDefinitions = {
+                        ...blockDefinitions,
+                        ...Object.fromEntries(
+                            blocks.map((block: any) => {
+                                if (typeof block !== 'object' || !block.opcode)
+                                    return [];
+                                return [extid + '_' + block.opcode, [Object.entries(block.arguments ?? {}).map(a => {
+                                    return {
+                                        name: a[0],
+                                        type: 1
+                                    } as Input
+                                }), block.blockType == Scratch.BlockType.EVENT ? 'hat' : 'reporter']]
+                            })
+                        )
+                    }
                 } else if (includeNode.itype.startsWith('extension')) {
                     const nop = () => { };
                     let ext: any = null;

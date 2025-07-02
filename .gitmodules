@@ -1,3 +1,6 @@
 [submodule "tw-blocks"]
 	path = tw-blocks
 	url = https://github.com/TurboWarp/scratch-blocks.git
+[submodule "tw-vm"]
+	path = tw-vm
+	url = https://github.com/TurboWarp/scratch-vm.git
