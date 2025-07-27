@@ -6,9 +6,13 @@ import ASTtoBlocks, { Environment } from "./asttoblocks.ts";
 import * as zip from "jsr:@zip-js/zip-js";
 import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
 import path from 'node:path'
+import mus from 'music-metadata';
 
 // the t stands for tosh3
-type TSound = any // TODO: finish this
+type TSound = {
+    format: 'wav' | 'mp3' | string
+    path: string
+}
 type TCostume = {
     format: 'svg' | string
     path: string
@@ -197,6 +201,36 @@ for (const spriteName in project.sprites) {
             name,
             rotationCenterX,
             rotationCenterY,
+        })
+    }
+
+    for (const [name, sound] of Object.entries(sprite.sounds)) {
+        const metadata = await mus.parseFile(path.join(dir, sound.path));
+        if (!metadata.format.sampleRate)
+            throw 'couldnt get sample rate'
+        if (!metadata.format.numberOfSamples)
+            throw 'couldnt get sample rate';
+        if (!assets.has(sound.path)) {
+            const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sound.path)));
+            const hash = CryptoJS.MD5(assetData).toString();
+            assets.set(sound.path, hash);
+        }
+        const ext = sound.path.match(/\.(.*?)$/g)?.[0];
+        (jsonSprite.sounds as {
+            assetId: string
+            dataFormat: "wav" | "wave" | "mp3"
+            md5ext?: string
+            name: string
+            rate?: number
+            sampleCount?: number
+            [k: string]: unknown
+        }[]).push({
+            assetId: assets.get(sound.path) ?? '',
+            dataFormat: sound.format as "wav" | "wave" | "mp3",
+            md5ext: assets.get(sound.path) as string + ext,
+            name,
+            rate: metadata.format.sampleRate,
+            sampleCount: metadata.format.numberOfSamples
         })
     }
     projectJson.targets.push(completesprite)
