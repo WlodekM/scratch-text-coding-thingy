@@ -5,3 +5,4 @@ node_modules
 deno.lock
 ast.json
 pm-blocks
+pm-vm

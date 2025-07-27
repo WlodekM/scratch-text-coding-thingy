@@ -6,7 +6,7 @@ import ASTtoBlocks, { Environment } from "./asttoblocks.ts";
 import * as zip from "jsr:@zip-js/zip-js";
 import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
 import path from 'node:path'
-import mus from 'music-metadata';
+import * as mus from 'music-metadata';
 
 // the t stands for tosh3
 type TSound = {
@@ -40,7 +40,7 @@ const rawProjectConfig: string = decoder.decode(
 )
 const project: TProject = parse(rawProjectConfig) as TProject
 
-console.debug(project)
+// console.debug(project)
 
 const projectJson: {
     targets: json.Sprite[],
@@ -81,75 +81,84 @@ for (const spriteName in project.sprites) {
     jsonSprite.costumes = []
 
     if (sprite.code) {
-        const sourceCode = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sprite.code)));
-
-        const lexer = new Lexer(sourceCode);
-        const tokens = lexer.tokenize();
-        const parser = new Parser(tokens);
-        let ast;
         try {
-            ast = parser.parse();
-        } catch (error) {
-            console.error(error)
-            console.log('at', parser.position, tokens.map((a, i) => i == parser.position ? `${a.type}(${a.value}) <--` : `${a.type}(${a.value})`).join('\n'))
-            throw 'error during parsing'
-        }
-        if (Deno.args.includes('-a')) {
-            Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
-        }
-        const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(ast);
-        // console.log(ast, blockaroonies, env)
-        jsonSprite.variables = {
-            ...Object.fromEntries(
-                [...env.variables.entries()].map(([v, n]) => [
-                    n,
-                    [
-                        v,
-                        0
-                    ]
-                ])
-            )
-        }
-        jsonSprite.lists = {
-            ...Object.fromEntries(
-                [...env.lists.entries()].map(([v, n]) => [
-                    n[0],
-                    [
-                        v,
-                        n[1]
-                    ]
-                ])
-            )
-        }
-        const stage = projectJson.targets.find(t => t.isStage);
-        if (stage) {
-            stage.variables = {
+            const sourceCode = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sprite.code)));
+
+            const lexer = new Lexer(sourceCode);
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens);
+            let ast;
+            try {
+                ast = parser.parse();
+            } catch (error) {
+                console.error(error)
+                console.log('at', parser.position, '\n'+tokens
+                    .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
+                    .filter((_, i) => Math.abs(parser.position - i) < 5)
+                    .join('\n')
+                )
+                throw 'error during parsing'
+            }
+            if (Deno.args.includes('-a')) {
+                Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
+            }
+            const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(ast);
+            // console.log(ast, blockaroonies, env)
+            jsonSprite.variables = {
                 ...Object.fromEntries(
-                    [...env.globalVariables.entries()].map(([v, n]) => [
+                    [...env.variables.entries()].map(([v, n]) => [
                         n,
                         [
                             v,
                             0
                         ]
                     ])
-                ),
-                ...stage.variables
+                )
             }
-            stage.lists = {
+            jsonSprite.lists = {
                 ...Object.fromEntries(
-                    [...env.globalLists.entries()].map(([v, n]) => [
+                    [...env.lists.entries()].map(([v, n]) => [
                         n[0],
                         [
                             v,
                             n[1]
                         ]
                     ])
-                ),
-                ...stage.variables
+                )
             }
+            const stage = projectJson.targets.find(t => t.isStage);
+            if (stage) {
+                stage.variables = {
+                    ...Object.fromEntries(
+                        [...env.globalVariables.entries()].map(([v, n]) => [
+                            n,
+                            [
+                                v,
+                                0
+                            ]
+                        ])
+                    ),
+                    ...stage.variables
+                }
+                stage.lists = {
+                    ...Object.fromEntries(
+                        [...env.globalLists.entries()].map(([v, n]) => [
+                            n[0],
+                            [
+                                v,
+                                n[1]
+                            ]
+                        ])
+                    ),
+                    ...stage.variables
+                }
+            }
+            env.extensions.forEach(ext => extensions.add(ext))
+            jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
+        } catch (error) {
+            console.error('error while parsing code for', sprite.name);
+            throw error;
         }
-        env.extensions.forEach(ext => extensions.add(ext))
-        jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
     } else {
         jsonSprite.blocks = {}
     }
@@ -185,7 +194,7 @@ for (const spriteName in project.sprites) {
         if (!assets.has(asset.path)) {
             const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, asset.path)));
             const match = [...assetData.matchAll(/<!--rotationCenter:(.*?):(.*?)-->/g)][0];
-            console.log(match ? match[1] : 'a')
+            // console.log(match ? match[1] : 'a')
             if(match && match[1] && match[2]) {
                 [rotationCenterX, rotationCenterY] = [Number(match[1]), Number(match[2])]
             }
@@ -204,7 +213,7 @@ for (const spriteName in project.sprites) {
         })
     }
 
-    for (const [name, sound] of Object.entries(sprite.sounds)) {
+    for (const [name, sound] of Object.entries(sprite.sounds ?? {})) {
         const metadata = await mus.parseFile(path.join(dir, sound.path));
         if (!metadata.format.sampleRate)
             throw 'couldnt get sample rate'

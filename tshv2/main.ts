@@ -1,3 +1,5 @@
+import { timestamp } from "https://jsr.io/@std/yaml/1.0.6/_type/timestamp.ts";
+
 // Token types
 export enum TokenType {
 	VAR			= "VAR",
@@ -55,8 +57,8 @@ export class Lexer {
 		return this.source[this.position++];
 	}
 
-	private peek(): string {
-		return this.source[this.position] || "";
+	private peek(offset: number = 0): string {
+		return this.source[this.position + offset] || "";
 	}
 
 	private match(expected: string): boolean {
@@ -112,7 +114,7 @@ export class Lexer {
 				tokens.push({ type: TokenType.NUMBER, value: number });
 			} else if (char === '"') {
 				let string = "";
-				while (this.peek() !== '"' && this.peek() !== "") {
+				while (!((this.peek() == '"' && this.peek(-1) !== '\\') || this.peek() == "")) {
 					string += this.advance();
 				}
 				if (!this.match('"')) {
@@ -538,6 +540,16 @@ export class Parser {
 			const expr = this.parseAssignment();
 			this.expect(TokenType.RPAREN, "Expected ')' after expression");
 			return expr;
+		}
+
+		if (this.peek().type == TokenType.BINOP && this.peek(1).type == TokenType.NUMBER) {
+			const operator = this.expect(TokenType.BINOP, 'uh oh').value
+			const right = this.parseCall();
+			const left: LiteralNode = {
+				type: 'Literal',
+				value: 0
+			}
+			return { type: "BinaryExpression", operator, left, right } as BinaryExpressionNode;
 		}
 
 		throw new Error(`Unexpected token: ${token.type}`);

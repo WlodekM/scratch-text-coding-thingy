@@ -3,6 +3,7 @@ import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, Branch
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
+import fs from "node:fs";
 
 let blockDefinitions = bd
 
@@ -143,6 +144,9 @@ interface CustomBlock {
 	mutation: Mutation
 }
 
+const vmPath = fs.existsSync('pm-vm') ?
+	'./pm-vm' : './tw-vm'
+
 export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[], Environment]> {
 	const blocks: jsonBlock[] = [];
 	const sprite = new Environment();
@@ -247,7 +251,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 	async function processNode(level: number, node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
 		blockID++;
 		const thisBlockID = genId(blockID);
-		console.log(' '.repeat(level*2), 'procesing node', thisBlockID, node.type,'\n'+' '.repeat(level*2), {topLevel, noLast, noNext}, lastBlock.id)
+		if (Deno.args.includes('-v'))
+			console.log(' '.repeat(level*2), 'procesing node', thisBlockID, node.type,'\n'+' '.repeat(level*2), {topLevel, noLast, noNext}, lastBlock.id)
 		let blk = {
 			next: null,
 			parent: null,
@@ -322,7 +327,18 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						},
 						vm: {
 							runtime: {
-								on: nop
+								on: nop,
+								frameLoop: {
+									framerate: 0
+								},
+								ioDevices: {
+									userData: {},
+									mouse: {
+										bindToCamera: nop
+									}
+								},
+								registerCompiledExtensionBlocks: nop,
+								setRuntimeOptions: nop
 							}
 						},
 						BlockType: {
@@ -356,30 +372,84 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						}
 					}
 					//@ts-ignore:
+					globalThis.vm = Scratch.vm;
+					//@ts-ignore:
 					globalThis.module = {}
-					await import('./tw-vm/src/extension-support/argument-type.js');
-					const ArgumentType = module.exports;
-					await import('./tw-vm/src/extension-support/block-type.js');
-					const BlockType = module.exports;
-					await import('./tw-vm/src/extension-support/target-type.js');
-					const TargetType = module.exports;
+					// const _ArgumentType = await import(`${vmPath}/src/extension-support/argument-type.js`);
+					// //@ts-ignore:
+					// const ArgumentType = _ArgumentType ?? module.exports;
+					// const _BlockType = await import(`${vmPath}/src/extension-support/block-type.js`);
+					// //@ts-ignore:
+					// const BlockType = _BlockType ?? module.exports;
+					// const _TargetType = await import(`${vmPath}/src/extension-support/target-type.js`);
+					// //@ts-ignore:
+					// const TargetType = _TargetType ?? module.exports;
 					//@ts-ignore:
 					Scratch.translate.setup = nop
+					// //@ts-ignore:
+					// globalThis.require = (moduleName) => {
+					// 	if (moduleName == 'format-message')
+					// 		return (message: {default: string}) => message.default;
+					// 	switch (moduleName) {
+					// 		case '../../extension-support/argument-type':
+					// 			return ArgumentType;
+					// 		case '../../extension-support/block-type':
+					// 			return BlockType
+					// 		case '../../extension-support/target-type':
+					// 			return TargetType;
+					// 		case '../../extension-support/tw-l10n':
+					// 			return ()=>Scratch.translate;
+					// 	}
+					// 	return class {}
+					// }
 					//@ts-ignore:
-					globalThis.require = (moduleName) => {
+					globalThis.require = (moduleName: string) => {
 						if (moduleName == 'format-message')
 							return (message: {default: string}) => message.default;
+						// console.log(moduleName)
 						switch (moduleName) {
 							case '../../extension-support/argument-type':
-								return ArgumentType;
+								return Scratch.ArgumentType;
 							case '../../extension-support/block-type':
-								return BlockType
+								return Scratch.BlockType
 							case '../../extension-support/target-type':
-								return TargetType
+								return Scratch.TargetType;
+							case '../../extension-support/tw-l10n':
+								return ()=>Scratch.translate;
 						}
-						return undefined
+						return class {}
 					}
-					await import(`./tw-vm/src/extensions/${includeNode.path}/index.js`);
+					const dir = includeNode.path == 'lmsTempVars2' ? 'lily_tempVars2' : includeNode.path;
+					let path = fs.existsSync(`${vmPath}/src/extensions/${dir}/index.js`) ?
+						`${vmPath}/src/extensions/${dir}/index.js` :
+						fs.existsSync(`${vmPath}/src/extensions/scratch3_${dir}/index.js`) ?
+						`${vmPath}/src/extensions/scratch3_${dir}/index.js` :
+						dir.match(/^jw[A-Z]/) && 
+						fs.existsSync(`${vmPath}/src/extensions/${
+							dir.replace(/^jw([A-Z])/,(_,l)=>'jw_'+l.toLowerCase())}/index.js`) ?
+						`${vmPath}/src/extensions/${
+							dir.replace(/^jw([A-Z])/,(_,l)=>'jw_'+l.toLowerCase())
+						}/index.js` :
+						dir.match(/^pm[A-Z]/) && 
+						fs.existsSync(`${vmPath}/src/extensions/${
+							dir.replace(/^pm([A-Z])/,(_,l)=>'pm_'+l.toLowerCase())}/index.js`) ?
+						`${vmPath}/src/extensions/${
+							dir.replace(/^pm([A-Z])/,(_,l)=>'pm_'+l.toLowerCase())
+						}/index.js` :
+						dir.match(/^jg[A-Z]/) && 
+						fs.existsSync(`${vmPath}/src/extensions/${
+							dir.replace(/^jg([A-Z])/,(_,l)=>'jg_'+l).toLowerCase()}/index.js`) ?
+						`${vmPath}/src/extensions/${
+							dir.replace(/^jg([A-Z])/,(_,l)=>'jg_'+l).toLowerCase()
+						}/index.js` :
+						dir.match(/^jg[A-Z]/) && 
+						fs.existsSync(`${vmPath}/src/extensions/${
+							dir.replace(/^jg([A-Z])/,(_,l)=>'jg_'+l.toLowerCase())}/index.js`) ?
+						`${vmPath}/src/extensions/${
+							dir.replace(/^jg([A-Z])/,(_,l)=>'jg_'+l.toLowerCase())
+						}/index.js` :
+						`${vmPath}/src/extensions/${dir}/index.js`;
+					await import(path);
 					ext = new globalThis.module.exports(Scratch.vm.runtime);
 					
 					if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
@@ -404,6 +474,8 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 					const nop = () => { };
 					let ext: any = null;
 					//@ts-ignore:
+					globalThis.window = globalThis
+					//@ts-ignore:
 					const Scratch = globalThis.Scratch = {
 						translate: (a: string) => a,
 						extensions: {
@@ -412,8 +484,33 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						},
 						vm: {
 							runtime: {
-								on: nop
-							}
+								on: nop,
+								targets: [],
+								ioDevices: {
+									userData: {},
+									mouse: {
+										bindToCamera: nop
+									}
+								},
+								frameLoop: {
+									framerate: 0
+								},
+								exports: {},
+								setRuntimeOptions: nop
+							},
+							renderer: {
+								on: nop,
+								exports: {
+									Skin: class {}
+								},
+								canvas: {},
+							},
+							exports: {
+								RenderedTarget: class RenderedTarget {
+									constructor() {}
+									blocks = {}
+								}
+							},
 						},
 						BlockType: {
 							BOOLEAN: "Boolean",
@@ -432,6 +529,9 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 							STAGE: "stage"
 						},
 						Cast,
+						renderer: {
+							canvas: {},
+						},
 						ArgumentType: {
 							ANGLE: "angle",
 							BOOLEAN: "Boolean",
@@ -446,7 +546,11 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						}
 					}
 					//@ts-ignore:
-					Scratch.translate.setup = nop
+					globalThis.MutationObserver = class {
+						observe() {}
+					}
+					//@ts-ignore:
+					Scratch.translate.setup = nop;
 					await import(includeNode.path);
 					if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
 					const { blocks, id: extid } = ext.getInfo();
