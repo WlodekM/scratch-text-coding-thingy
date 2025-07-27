@@ -1,6 +1,10 @@
 #include <"blocks/js" "base.js">
 #include <"extension/builtin" "scratch3_pen">
 
+fn testReturn() {
+    return 3
+}
+
 // event_whenflagclicked() {
 //     global var LEVEL = 0
 //     global var SCROLLX = 0

@@ -1,3 +1,4 @@
+import fs from "node:fs"
 // deno-lint-ignore-file no-explicit-any
 interface Input {
     name: string,
@@ -9,7 +10,8 @@ globalThis.goog = {
     require: () => {},
     provide: () => {},
 };
-globalThis.Blockly = {
+//@ts-ignore:
+const Blockly = globalThis.Blockly = {
     //@ts-ignore:
     Blocks: {},
     Constants: {
@@ -39,26 +41,33 @@ globalThis.Blockly = {
     FieldDropdown: class FieldDropdown {}
 };
 
-await import('./tw-blocks/msg/js/en.js');
+const blocksRoot = fs.existsSync(`pm-blocks`) ? 'pm-blocks' : 'tw-blocks'
+//@ts-ignore:
+globalThis.blocksRoot = blocksRoot;
 
-await import('./tw-blocks/core/constants.js');
-await import('./tw-blocks/core/colours.js');
+if (!fs.existsSync(blocksRoot))
+    throw `you forgot to clone the submodules. do git submodule update --init --recursive`
+
+await import(`./${blocksRoot}/msg/js/en.js`);
+
+await import(`./${blocksRoot}/core/constants.js`);
+await import(`./${blocksRoot}/core/colours.js`);
 
 export const blockly = Blockly
 
 // await import('./tw-blocks/blocks_vertical/control.js');
-await import('./tw-blocks/blocks_vertical/event.js');
+await import(`./${blocksRoot}/blocks_vertical/event.js`);
 // await import('./tw-blocks/blocks_vertical/looks.js');
 // await import('./tw-blocks/blocks_vertical/motion.js');
 // await import('./tw-blocks/blocks_vertical/operators.js');
 // await import('./tw-blocks/blocks_vertical/sound.js');
 // await import('./tw-blocks/blocks_vertical/sensing.js');
-await import('./tw-blocks/blocks_vertical/data.js');
+await import(`./${blocksRoot}/blocks_vertical/data.js`);
 
 // this is used for custom blocks
 // await import('./tw-blocks/blocks_vertical/procedures.js');
 
-export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
+export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
     const blocks: Record<string, any> = {};
     for (const [opcode, data] of Object.entries(jsblocks)) {
         let blockdata: any = {};
@@ -78,7 +87,7 @@ export function jsBlocksToJSON(jsblocks = globalThis.Blockly.Blocks) {
             //@ts-ignore:
             workspace: Blockly.mainWorkspace,
         };
-        data.init.call(fakeThis);
+        (data as any)!.init?.call(fakeThis);
         // if(!blockdata.args1 || blockdata.args1.type == 'field_image') {
         blocks[opcode] = blockdata;
         // }

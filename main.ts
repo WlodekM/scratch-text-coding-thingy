@@ -203,7 +203,7 @@ for (const spriteName in project.sprites) {
 }
 
 projectJson.extensions = [...extensions].map(a => a[1])
-projectJson.extensionURLs = Object.fromEntries([...extensions].map(([a, b]) => [b, a]))
+projectJson.extensionURLs = Object.fromEntries([...extensions].filter(([a])=>a.startsWith('http')).map(([a, b]) => [b, a]))
 
 projectJson.meta = {
     agent: '',
