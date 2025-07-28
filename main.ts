@@ -289,10 +289,14 @@ const zipFileWriter = new zip.BlobWriter();
 
 const zipWriter = new zip.ZipWriter(zipFileWriter);
 await zipWriter.add("project.json", new zip.TextReader(JSON.stringify(completeproject)));
-await zipWriter.add('assets/')
+// await zipWriter.add('assets/')
+const uuids: string[] = []
 for (const [asset, uuid] of [...assets.entries()]) {
     const file = Deno.readFileSync(path.join(dir, asset))
-    await zipWriter.add(`assets/${uuid}.svg`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
+    if (uuids.includes(uuid))
+        continue;
+    await zipWriter.add(`${uuid}.svg`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
+    uuids.push(uuid)
 }
 await zipWriter.close();
 

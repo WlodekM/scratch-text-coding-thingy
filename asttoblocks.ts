@@ -274,7 +274,10 @@ export default async function ASTtoBlocks(
 		}
 	}
 
-	async function processNode(level: number, node: ASTNode, topLevel = false, noLast = false, noNext = false, scope = new Scope()): Promise<BlockCollection> {
+	async function processNode(level: number, node: ASTNode, topLevel = false,
+		noLast = false, noNext = false, scope = new Scope(),
+		preprocessFnDecl: boolean = false
+	): Promise<BlockCollection> {
 		blockID++;
 		const thisBlockID = genId(blockID);
 		if (Deno.args.includes('-v'))
@@ -986,7 +989,7 @@ export default async function ASTtoBlocks(
 					?? sprite.globalVariables.get(varAssignmentNode.identifier);
 				// const global =
 				// 	sprite.globalVariables.has(varAssignmentNode.identifier);
-				if (!sid) throw 'unknown var'
+				if (!sid) throw `unknown var "${varAssignmentNode.identifier}"`
 				const varAssignmentChildren: PartialBlockCollection[] = [];
 				const varAssignmentBlock: jsonBlock = {
 					opcode: 'data_setvariableto',
@@ -1053,7 +1056,8 @@ export default async function ASTtoBlocks(
 					shadow: true
 				}
 
-				blockID++;
+				if (!preprocessFnDecl)
+					blockID++;
 
 				const definitionId = genId(blockID).toString();
 
@@ -1067,7 +1071,8 @@ export default async function ASTtoBlocks(
 					argumentnames.push(arg);
 					argumentdefaults.push('');
 
-					blockID++;
+					if (!preprocessFnDecl)
+						blockID++;
 
 					const inputBlock: jsonBlock = {
 						opcode: "argument_reporter_string_number",
@@ -1107,6 +1112,8 @@ export default async function ASTtoBlocks(
 					mutation,
 					inputs: Object.entries(prototype.inputs).map(i => [1, i[0]])
 				}
+				if (preprocessFnDecl)
+					return new PartialBlockCollection([]) as BlockCollection;
 
 				prototype.parent = definitionId
 
@@ -1191,6 +1198,13 @@ export default async function ASTtoBlocks(
 				throw `Unimplemented (${node.type})`
 		}
 
+	}
+
+	for (const node of ast) {
+		if (node.type != 'FunctionDeclaration')
+			continue;
+		//preprocess function declarations
+		await processNode(0, node, true, false, false, new Scope(), true);
 	}
 
 	for (const node of ast) {
