@@ -117,7 +117,13 @@ export class Lexer {
 				tokens.push({ line, type: TokenType.NUMBER, value: number });
 			} else if (char === '"') {
 				let string = "";
-				while (!((this.peek() == '"' && this.peek(-1) !== '\\') || this.peek() == "")) {
+				while (
+					!(
+						(this.peek() == '"' && this.peek(-1) !== '\\')
+						|| this.peek() == ""
+					)
+				) {
+					// console.log(this.position, this.peek(), this.peek(-1))
 					string += this.advance();
 				}
 				if (!this.match('"')) {
@@ -159,7 +165,9 @@ export class Lexer {
 			else if (char === "=")	tokens.push({ line, type: TokenType.ASSIGN, value: char });
 			else if (char === "!")	tokens.push({ line, type: TokenType.NOT,    value: char });
 			else {
-				throw new Error(`Unexpected character: ${char}`);
+				throw new Error(`Unexpected character: ${char} on line ${line+1}\n${
+					this.source.split('').filter((_,i)=>Math.abs(i-this.position) <= 6).join('')
+				}\n     ^`);
 			}
 		}
 
@@ -315,8 +323,37 @@ export class Parser {
 		if (this.peek().type === type) {
 			return this.advance();
 		}
-		console.error('trace: tokens', this.tokens, '\nIDX:', this.position);
-		throw new Error(errorMessage);
+		let ch = 0;
+		const line = 
+			(this.source.split('\n')
+				.map((l, i) => {
+					ch += l.length
+					return {
+						start: ch - l.length,
+						len: l.length,
+						i,
+						l,
+					}
+				})
+				.find((l) => l.start <= this.position
+					&& l.start + l.len >= this.position))
+		let positionInLine = this.position - (line ? (
+			line.start
+		) : 0);
+		// if (line)
+		// 	positionInLine - (line.l.length - line.l.replace(/^\s*/,'').length)
+		// console.error('trace: tokens', this.tokens, '\nIDX:', this.position);
+		const trace = this.source.split('\n')
+			.map(l => l.replace(/^\s*/, ''))
+			.map((t, l) => `${l+1} | ${t}`)
+			.map((t, l) => {
+				if (l != this.peek().line)
+					return t;
+				return `${t}\n${' '.repeat(l.toString().length)} |${' '.repeat(positionInLine)}^ ${errorMessage}`
+			})
+			.filter((_, l) => Math.abs(l - this.peek().line) < 4)
+
+		throw new Error('\n'+trace.join('\n'));
 	}
 
 
