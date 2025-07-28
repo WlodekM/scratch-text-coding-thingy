@@ -29,7 +29,7 @@ function genUid() {
 // console.log(genUid(), genUid(), genUid())
 
 export type blockBlock = ({ id: string } & json.Block)
-export type varBlock = { id: string, data: [12, string, string] }
+export type varBlock = { id: string, data: [12|13, string, string] }
 export type jsonBlock = blockBlock | varBlock
 const _class = new (class { })()
 type Class = typeof _class
@@ -453,7 +453,11 @@ export default async function ASTtoBlocks(
 						}
 						return class {}
 					}
-					const dir = includeNode.path == 'lmsTempVars2' ? 'lily_tempVars2' : includeNode.path;
+					const dir = 
+						includeNode.path == 'lmsTempVars2' ? 'lily_tempVars2' :
+						includeNode.path == 'text' ? 'scratchLab_animatedText' :
+						includeNode.path == 'tempVars' ? 'gsa_tempVars' :
+						includeNode.path;
 					const path = fs.existsSync(`${vmPath}/src/extensions/${dir}/index.js`) ?
 						`${vmPath}/src/extensions/${dir}/index.js` :
 						fs.existsSync(`${vmPath}/src/extensions/scratch3_${dir}/index.js`) ?
@@ -1028,10 +1032,18 @@ export default async function ASTtoBlocks(
 				}
 				const vid = sprite.variables.get(identifierNode.name)
 					?? sprite.globalVariables.get(identifierNode.name);
-				if (!vid) {
+				const lisid = sprite.lists.get(identifierNode.name)
+					?? sprite.globalLists.get(identifierNode.name);
+				if (!vid && !lisid) {
 					// console.log(sprite.globalVariables)
 					throw new Error(`Unknown variable "${identifierNode.name}"`)
 				}
+				if (!vid && lisid)
+					return new BlockCollection({
+						id: thisBlockID,
+						data: [13, identifierNode.name, lisid[0]]
+					}, []);
+				if (!vid) throw 'uh';
 				return new BlockCollection({
 					id: thisBlockID,
 					data: [12, identifierNode.name, vid]
