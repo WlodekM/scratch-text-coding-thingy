@@ -147,9 +147,35 @@ interface CustomBlock {
 const vmPath = fs.existsSync('pm-vm') ?
 	'./pm-vm' : './tw-vm'
 
-export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[], Environment]> {
+export default async function ASTtoBlocks(
+	ast: ASTNode[],
+	globalVariables?: Record<string, string>,
+	globalLists?: Record<string, [string, string[]]>
+): Promise<[jsonBlock[], Environment]> {
 	const blocks: jsonBlock[] = [];
 	const sprite = new Environment();
+	// //@ts-ignore
+	// sprite.globalVariables.set = (...args: any[]) => {
+	// 	console.log('set', args)
+	// }
+	// sprite.globalVariables = new Proxy(sprite.globalVariables, {
+	// 	get(t, p, r) {
+	// 		console.log('j', p, t);
+	// 		//@ts-ignore
+	// 		return t[p];
+	// 	}
+	// })
+
+	if (globalVariables) {
+		for (const key of Object.keys(globalVariables)) {
+			sprite.globalVariables.set(key, globalVariables[key])
+		}
+	}
+	if (globalLists) {
+		for (const key of Object.keys(globalLists)) {
+			sprite.globalLists.set(key, globalLists[key])
+		}
+	}
 
 	// console.debug('debug: ast\n', JSON.stringify(ast, null, 2))
 
@@ -317,10 +343,15 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 					}
 				} else if (includeNode.itype.startsWith('extension/builtin')) {
 					const nop = () => { };
+					const asyncNop = () => {
+						const a = { then: ()=>a, catch: ()=>a };
+						return a
+					}
 					let ext: any = null;
 					//@ts-ignore:
 					const Scratch = globalThis.Scratch = {
 						translate: (a: string) => a,
+						fetch: asyncNop,
 						extensions: {
 							unsandboxed: true,
 							register: (e: Class) => { ext = e }
@@ -420,7 +451,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						return class {}
 					}
 					const dir = includeNode.path == 'lmsTempVars2' ? 'lily_tempVars2' : includeNode.path;
-					let path = fs.existsSync(`${vmPath}/src/extensions/${dir}/index.js`) ?
+					const path = fs.existsSync(`${vmPath}/src/extensions/${dir}/index.js`) ?
 						`${vmPath}/src/extensions/${dir}/index.js` :
 						fs.existsSync(`${vmPath}/src/extensions/scratch3_${dir}/index.js`) ?
 						`${vmPath}/src/extensions/scratch3_${dir}/index.js` :
@@ -450,6 +481,7 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						}/index.js` :
 						`${vmPath}/src/extensions/${dir}/index.js`;
 					await import(path);
+					//@ts-ignore:
 					ext = new globalThis.module.exports(Scratch.vm.runtime);
 					
 					if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
@@ -472,12 +504,17 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 					}
 				} else if (includeNode.itype.startsWith('extension')) {
 					const nop = () => { };
+					const asyncNop = () => {
+						const a = { then: ()=>a, catch: ()=>a };
+						return a
+					}
 					let ext: any = null;
 					//@ts-ignore:
 					globalThis.window = globalThis
 					//@ts-ignore:
 					const Scratch = globalThis.Scratch = {
 						translate: (a: string) => a,
+						fetch: asyncNop,
 						extensions: {
 							unsandboxed: true,
 							register: (e: Class) => { ext = e }
@@ -945,7 +982,10 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 
 			case "Assignment":
 				const varAssignmentNode = node as AssignmentNode;
-				const sid = sprite.variables.get(varAssignmentNode.identifier);
+				const sid = sprite.variables.get(varAssignmentNode.identifier)
+					?? sprite.globalVariables.get(varAssignmentNode.identifier);
+				// const global =
+				// 	sprite.globalVariables.has(varAssignmentNode.identifier);
 				if (!sid) throw 'unknown var'
 				const varAssignmentChildren: PartialBlockCollection[] = [];
 				const varAssignmentBlock: jsonBlock = {
@@ -983,8 +1023,12 @@ export default async function ASTtoBlocks(ast: ASTNode[]): Promise<[jsonBlock[],
 						[]
 					);
 				}
-				const vid = sprite.variables.get(identifierNode.name);
-				if (!vid) throw 'Unknown variable'
+				const vid = sprite.variables.get(identifierNode.name)
+					?? sprite.globalVariables.get(identifierNode.name);
+				if (!vid) {
+					// console.log(sprite.globalVariables)
+					throw new Error(`Unknown variable "${identifierNode.name}"`)
+				}
 				return new BlockCollection({
 					id: thisBlockID,
 					data: [12, identifierNode.name, vid]

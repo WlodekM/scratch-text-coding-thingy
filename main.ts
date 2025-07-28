@@ -67,11 +67,16 @@ export type jsonBlock = blockBlock | varBlock
 
 const assets: Map<string, string> = new Map();
 const extensions: Set<[string, string]> = new Set();
+let lastGlobalVariables: Record<string, string> | undefined = undefined;
+let lastGlobalLists: Record<string, [string, string[]]> | undefined = undefined;
 
 let layer = -1;
-for (const spriteName in project.sprites) {
+for (const spriteName of Object.keys(project.sprites)
+    .sort((a, b) => +(project.sprites[b].stage??0) - +(project.sprites[a].stage??0))
+) {
     layer++;
     const sprite: TSprite = project.sprites[spriteName];
+    console.log('processing', sprite.name)
     const jsonSprite: Partial<json.Sprite> = {};
     jsonSprite.name = sprite.name
     jsonSprite.isStage = sprite.stage ?? false
@@ -86,7 +91,7 @@ for (const spriteName in project.sprites) {
 
             const lexer = new Lexer(sourceCode);
             const tokens = lexer.tokenize();
-            const parser = new Parser(tokens);
+            const parser = new Parser(tokens, sourceCode);
             let ast;
             try {
                 ast = parser.parse();
@@ -102,7 +107,11 @@ for (const spriteName in project.sprites) {
             if (Deno.args.includes('-a')) {
                 Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
             }
-            const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(ast);
+            const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(
+                ast,
+                lastGlobalVariables,
+                lastGlobalLists
+            );
             // console.log(ast, blockaroonies, env)
             jsonSprite.variables = {
                 ...Object.fromEntries(
@@ -153,6 +162,13 @@ for (const spriteName in project.sprites) {
                     ...stage.variables
                 }
             }
+            lastGlobalVariables = Object.fromEntries([...env.globalVariables.entries()]);
+            lastGlobalLists = Object.fromEntries([...env.globalLists.entries()])
+            // console.log(
+            //     lastGlobalVariables,
+            //     lastGlobalLists,
+            //     env.globalVariables
+            // )
             env.extensions.forEach(ext => extensions.add(ext))
             jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
         } catch (error) {
