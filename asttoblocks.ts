@@ -260,7 +260,21 @@ export default async function ASTtoBlocks(
 	let lastCustomBlock: blockBlock | undefined;
 	let lastPrototypeBlock: blockBlock | undefined;
 
-	async function arg2input(level: number, inp: Input, arg: ASTNode, child: PartialBlockCollection[], scope: Scope) {
+	async function arg2input(level: number, inp: Input, arg: ASTNode, child: PartialBlockCollection[], scope: Scope, setLastBlockId?: string) {
+		const thisLast = lastBlock;
+		if (setLastBlockId) {
+			console.log('setid', setLastBlockId)
+			lastBlock = {
+				id: setLastBlockId,
+				next: null,
+				parent: null,
+				inputs: {},
+				fields: {},
+				shadow: false,
+				topLevel: false,
+				opcode: setLastBlockId
+			};
+		}
 		if (arg.type == 'Identifier') {
 			const childBlock = await processNode(level + 1, arg, false, true, true, scope);
 			if (!(childBlock.block as varBlock).data) {
@@ -284,6 +298,7 @@ export default async function ASTtoBlocks(
 					fields: [] as [string, any] | []
 				}
 			}
+			lastBlock = thisLast
 			return {
 				inputs: [inp.name, Array.isArray(childBlock.block)
 					? [inp.type, childBlock.block] : [inp.type,
@@ -303,8 +318,9 @@ export default async function ASTtoBlocks(
 			}
 		}
 		if (['FunctionCall', 'Boolean', 'BinaryExpression', 'Not'].includes(arg.type)) {
-			const childBlock = await processNode(level + 1, arg, false, true, true, scope);
+			const childBlock = await processNode(level + 1, arg, false, false, true, scope);
 			child.push(childBlock);
+			lastBlock = thisLast
 			return {
 				inputs: [inp.name, Array.isArray(childBlock.block)
 					? [inp.type, childBlock.block] : [inp.type,
@@ -323,6 +339,7 @@ export default async function ASTtoBlocks(
 				fields: [] as [string, any] | []
 			}
 		}
+		lastBlock = thisLast
 		return {
 			inputs:
 				[inp.name, [inp.type,
@@ -356,8 +373,14 @@ export default async function ASTtoBlocks(
 	): Promise<BlockCollection> {
 		blockID++;
 		const thisBlockID = genId(blockID);
+		function log(...args: any[]) {
+			//@ts-ignore: i am too tired and hungry for this
+			// deno-lint-ignore no-process-globals
+			process.stdout.write(' '.repeat(level*2))
+			console.log(...args)
+		}
 		if (Deno.args.includes('-v'))
-			console.log(' '.repeat(level*2), 'procesing node', thisBlockID, node.type,'\n'+' '.repeat(level*2), {topLevel, noLast, noNext}, lastBlock.id)
+			log('procesing node', thisBlockID, node.type,'\n'+' '.repeat(level*2-1+(+(level==0))), {topLevel, noLast, noNext}, lastBlock.id);
 		let blk = {
 			next: null,
 			parent: null,
@@ -736,12 +759,19 @@ export default async function ASTtoBlocks(
 				const child: PartialBlockCollection[] = [];
 				const inputs = [];
 				const fields: ([string, any] | [])[] = [];
+				const _fncLastLastBlock = lastBlock;
+				lastBlock = {
+					opcode: fnNode.identifier,
+					...blk,
+					id: thisBlockID.toString(),
+				};
 				for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
 					const inp = definition[0][i];
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode.args[i], child, scope)
 					inputs.push(inps)
 					fields.push(flds)
 				}
+				lastBlock = _fncLastLastBlock
 				const block: jsonBlock = {
 					opcode: fnNode.identifier,
 					...blk,
@@ -756,6 +786,7 @@ export default async function ASTtoBlocks(
 				// console.debug(block)
 				if (!topLevel && !noNext) lastBlock.next = block.id.toString();
 				if (!noLast) lastBlock = block;
+				else lastBlock = _fncLastLastBlock;
 				return new BlockCollection(block, child); //TODO: figure out how to map function args to children
 			
 			case 'Not':
@@ -813,7 +844,9 @@ export default async function ASTtoBlocks(
 					'<': 'operator_lt',
 					'>': 'operator_gt',
 				}
+				const _lastLastBlock = lastBlock;
 				const beNode = node as BinaryExpressionNode;
+				const beNodeId = thisBlockID.toString();
 				if (beNode.operator.length > 1) {
 					const operations: Record<string, [string, string]> = {
 						'!=': ['operator_not', 'operator_equals'],
@@ -828,7 +861,7 @@ export default async function ASTtoBlocks(
 					const beBlock: jsonBlock = {
 						opcode: operations[beNode.operator][0] ?? 'undefined',
 						...blk,
-						id: thisBlockID.toString(),
+						id: beNodeId,
 						topLevel,
 						parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 						shadow: false,
@@ -859,19 +892,36 @@ export default async function ASTtoBlocks(
 				if (!operations[beNode.operator]) throw 'unknown operator ' + beNode.operator;
 				const beDefinition = blockDefinitions[operations[beNode.operator]]
 				const beChildren: PartialBlockCollection[] = []
+				// console.log(lastBlock.id)
+				let beInputs = {};
+				// lastBlock = {
+				// 	opcode: operations[beNode.operator] ?? 'undefined',
+				// 	...blk,
+				// 	id: beNodeId,
+				// };
+				log('aushsifuijso', beNodeId)
+				beInputs = {
+					...Object.fromEntries([
+						(await arg2input(level, beDefinition[0][0], beNode.left, beChildren, scope, beNodeId)).inputs,
+					])
+				}
+				log('fduwonsnm')
+				beInputs = {
+					...beInputs,
+					...Object.fromEntries([
+						(await arg2input(level, beDefinition[0][1], beNode.right, beChildren, scope, beNodeId)).inputs
+					])
+				}
+				lastBlock = _lastLastBlock;
+				log(beNodeId, _lastLastBlock)
 				const beBlock: jsonBlock = {
 					opcode: operations[beNode.operator] ?? 'undefined',
 					...blk,
-					id: thisBlockID.toString(),
+					id: beNodeId,
 					topLevel,
 					parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 					shadow: false,
-					inputs: {
-						...Object.fromEntries([
-							(await arg2input(level, beDefinition[0][0], beNode.left, beChildren, scope)).inputs,
-							(await arg2input(level, beDefinition[0][1], beNode.right, beChildren, scope)).inputs
-						])
-					},
+					inputs: beInputs,
 				};
 				return new BlockCollection(beBlock, beChildren);
 
@@ -1043,12 +1093,14 @@ export default async function ASTtoBlocks(
 					opcode: 'data_setvariableto',
 					...blk,
 					id: thisBlockID.toString(),
+					parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 					inputs: {
 						'VALUE': ((await arg2input(level, 
 							blockDefinitions.data_setvariableto[0][1],
 							varDeclNode.value,
 							varDeclChildren,
-							scope
+							scope,
+							thisBlockID.toString()
 						)).inputs)[1] as json.Input
 					},
 					fields: {
@@ -1057,8 +1109,8 @@ export default async function ASTtoBlocks(
 							id
 						]
 					},
-					parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 				}
+				// console.log(lastBlock)
 				if (!topLevel && !noNext) lastBlock.next = varDeclBlock.id.toString();
 				if (!noLast) lastBlock = varDeclBlock;
 				return new BlockCollection(varDeclBlock, varDeclChildren);
@@ -1080,7 +1132,8 @@ export default async function ASTtoBlocks(
 							blockDefinitions.data_setvariableto[0][1],
 							varAssignmentNode.value,
 							varAssignmentChildren,
-							scope
+							scope,
+							thisBlockID.toString(),
 						)).inputs)[1] as json.Input
 					},
 					fields: {
@@ -1091,6 +1144,7 @@ export default async function ASTtoBlocks(
 					},
 					parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 				}
+				console.log(lastBlock)
 				if (!topLevel && !noNext) lastBlock.next = varAssignmentBlock.id.toString();
 				if (!noLast) lastBlock = varAssignmentBlock;
 				return new BlockCollection(varAssignmentBlock, varAssignmentChildren);
