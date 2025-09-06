@@ -16,6 +16,7 @@ type TSound = {
 type TCostume = {
     format: 'svg' | string
     path: string
+    rotationCenter?: [number, number]
 }
 type TSprite = {
     stage?: boolean
@@ -219,6 +220,8 @@ for (const spriteName of Object.keys(project.sprites)
             const hash = CryptoJS.MD5(assetData).toString();
             assets.set(asset.path, hash);
         }
+        if (asset.rotationCenter)
+            [rotationCenterX, rotationCenterY] = asset.rotationCenter;
         const ext = asset.path.match(/\.(.*?)$/g)?.[0]
         jsonSprite.costumes.push({
             assetId: assets.get(asset.path) ?? '',
