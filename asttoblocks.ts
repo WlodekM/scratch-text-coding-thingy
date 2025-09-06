@@ -1,9 +1,10 @@
 // deno-lint-ignore-file no-case-declarations no-explicit-any
-import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NotNode, ReturnNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NotNode, ReturnNode, StartBlockNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
 import fs from "node:fs";
+import { ForNode } from "./tshv2/main.ts";
 
 let blockDefinitions = bd
 
@@ -144,6 +145,76 @@ interface CustomBlock {
 	mutation: Mutation
 }
 
+function getNodeChildren(node: ASTNode): ASTNode[] {
+	const children: ASTNode[] = [];
+
+	let n;
+	n = node as FunctionDeclarationNode;
+	if (n.type == 'FunctionDeclaration') {
+		children.push(...n.body)
+	}
+	n = node as AssignmentNode;
+	if (n.type == 'Assignment') {
+		children.push(n.value)
+	}
+	n = node as BinaryExpressionNode;
+	if (n.type == 'BinaryExpression') {
+		children.push(n.left, n.right)
+	}
+	n = node as NotNode;
+	if (n.type == 'Not') {
+		children.push(n.body)
+	}
+	n = node as FunctionCallNode;
+	if (n.type == 'FunctionCall') {
+		children.push(...n.args)
+	}
+	n = node as BranchFunctionCallNode;
+	if (n.type == 'BranchFunctionCall') {
+		children.push(...n.args, ...n.branches.reduce<ASTNode[]>((p, c) => {
+			p.push(...c);
+			return p;
+		}, []))
+	}
+	//FIXME - i dont think this was ever actually implemented in asttoblocks :sob:
+	n = node as StartBlockNode;
+	if (n.type == 'StartBlock') {
+		children.push(...n.body)
+	}
+	n = node as IfNode;
+	if (n.type == 'If') {
+		children.push(...n.thenBranch, ...(n.elseBranch??[]),n.condition)
+	}
+	//FIXME - or this,, this sounds useful i really shoul implement it
+	n = node as ForNode;
+	if (n.type == 'For') {
+		children.push(...n.branch, n.times, n.varname)
+	}
+	n = node as GreenFlagNode;
+	if (n.type == 'GreenFlag') {
+		children.push(...n.branch)
+	}
+	n = node as ListDeclarationNode;
+	if (n.type == 'ListDeclaration') {
+		children.push(...n.value)
+	}
+	n = node as ReturnNode;
+	if (n.type == 'Return') {
+		children.push(n.value)
+	}
+
+	return children
+}
+
+function findVarDecls(env: Environment, node: ASTNode): void {
+	if ((node as VariableDeclarationNode).type == 'VariableDeclaration') {
+		const id: string = genVarId((node as VariableDeclarationNode).identifier);
+		env.variables.set((node as VariableDeclarationNode).identifier, id);
+	} else for (const child of getNodeChildren(node)) {
+		findVarDecls(env, child)
+	}
+}
+
 const vmPath = fs.existsSync('pm-vm') ?
 	'./pm-vm' : './tw-vm'
 
@@ -175,6 +246,11 @@ export default async function ASTtoBlocks(
 		for (const key of Object.keys(globalLists)) {
 			sprite.globalLists.set(key, globalLists[key])
 		}
+	}
+
+	// hoist all sprite-only variables since scope doesnt exist in scratch
+	for (const node of ast) {
+		findVarDecls(sprite, node)
 	}
 
 	// console.debug('debug: ast\n', JSON.stringify(ast, null, 2))

@@ -2,7 +2,7 @@
 import { parse } from "jsr:@std/yaml";
 import * as json from './jsontypes.ts'
 import { Lexer, Parser } from "./tshv2/main.ts";
-import ASTtoBlocks, { Environment } from "./asttoblocks.ts";
+import ASTtoBlocks, { Environment, jsonBlock } from "./asttoblocks.ts";
 import * as zip from "jsr:@zip-js/zip-js";
 import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
 import path from 'node:path'
@@ -63,7 +63,7 @@ function removeId(a: blockBlock): json.Block {
 
 export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data:  [12, string, string] }
-export type jsonBlock = blockBlock | varBlock
+// export type jsonBlock = blockBlock | varBlock
 
 const assets: Map<string, string> = new Map();
 const extensions: Set<[string, string]> = new Set();
@@ -170,6 +170,8 @@ for (const spriteName of Object.keys(project.sprites)
             //     env.globalVariables
             // )
             env.extensions.forEach(ext => extensions.add(ext))
+            //FIXME - fix either the type or this idfk
+            //@ts-ignore: im just so tired atp
             jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
         } catch (error) {
             console.error('error while parsing code for', sprite.name);

@@ -1,4 +1,4 @@
-import { timestamp } from "https://jsr.io/@std/yaml/1.0.6/_type/timestamp.ts";
+// import { timestamp } from "https://jsr.io/@std/yaml/1.0.6/_type/timestamp.ts";
 
 // Token types
 export enum TokenType {
@@ -337,7 +337,7 @@ export class Parser {
 				})
 				.find((l) => l.start <= this.position
 					&& l.start + l.len >= this.position))
-		let positionInLine = this.position - (line ? (
+		const positionInLine = this.position - (line ? (
 			line.start
 		) : 0);
 		// if (line)
