@@ -159,7 +159,7 @@ for (const spriteName of Object.keys(project.sprites)
                             ]
                         ])
                     ),
-                    ...stage.variables
+                    ...stage.lists
                 }
             }
             lastGlobalVariables = Object.fromEntries([...env.globalVariables.entries()]);
