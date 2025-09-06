@@ -4,7 +4,8 @@ var _colliding = 0
 var y = 0
 var FLOOR = 0
 fn checkCollisionY() {
-    y = motion_xposition()//8 + 8
+    //y = motion_xposition()//8 + 8
+    looks_say(estrogen)
     // looks_say("test")
 	// _colliding = operator_add(operator_lt(y, FLOOR), 0)
 }

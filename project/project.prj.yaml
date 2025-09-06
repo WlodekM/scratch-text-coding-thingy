@@ -16,6 +16,13 @@ sprites:
         format: svg
         path: assets/cat_dango.svg
     code: main.tsh
+  two:
+    name: two
+    costumes:
+      costume1:
+        format: svg
+        path: assets/cat_dango.svg
+    code: sprite2.bsl
   # platforms:
   #   name: platforms
   #   costumes:

@@ -7,6 +7,7 @@ import * as zip from "jsr:@zip-js/zip-js";
 import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
 import path from 'node:path'
 import * as mus from 'music-metadata';
+import getSpriteGlobals from "./getGlobalVars.ts";
 
 // the t stands for tosh3
 type TSound = {
@@ -68,8 +69,50 @@ export type varBlock = { id: string, data:  [12, string, string] }
 
 const assets: Map<string, string> = new Map();
 const extensions: Set<[string, string]> = new Set();
-let lastGlobalVariables: Record<string, string> | undefined = undefined;
-let lastGlobalLists: Record<string, [string, string[]]> | undefined = undefined;
+let lastGlobalVariables: Record<string, string> = {};
+let lastGlobalLists: Record<string, [string, string[]]> = {};
+
+for (const spriteName of Object.keys(project.sprites)
+    .sort((a, b) => +(project.sprites[b].stage??0) - +(project.sprites[a].stage??0))
+) {
+    const sprite: TSprite = project.sprites[spriteName];
+    console.log('preprocessing', sprite.name)
+    const jsonSprite: Partial<json.Sprite> = {};
+    jsonSprite.name = sprite.name
+    jsonSprite.isStage = sprite.stage ?? false
+    jsonSprite.lists = {}
+    jsonSprite.variables = {}
+    jsonSprite.broadcasts = {}
+    jsonSprite.costumes = []
+
+    if (sprite.code) {
+        // console.debug('has code!')
+        try {
+            const sourceCode = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sprite.code)));
+            const lexer = new Lexer(sourceCode);
+            const tokens = lexer.tokenize();
+            const parser = new Parser(tokens, sourceCode);
+            let ast;
+            try {
+                ast = parser.parse();
+            } catch (error) {
+                console.error(error)
+                console.log('at', parser.position, '\n'+tokens
+                    .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
+                    .filter((_, i) => Math.abs(parser.position - i) < 5)
+                    .join('\n')
+                )
+                throw 'error during parsing'
+            }
+            const newGlobals = getSpriteGlobals(ast, lastGlobalVariables, lastGlobalLists);
+            // console.debug('new globals:', newGlobals);
+            [lastGlobalVariables, lastGlobalLists] = newGlobals;
+        } catch (error) {
+            console.error('error while parsing code for', sprite.name);
+            throw error;
+        }
+    }
+}
 
 let layer = -1;
 for (const spriteName of Object.keys(project.sprites)
