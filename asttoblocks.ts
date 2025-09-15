@@ -20,7 +20,7 @@ const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
 function genUid() {
 	const length = 20;
 	const soupLength = soup.length;
-	const id = [];
+	const id: string[] = [];
 	for (let i = 0; i < length; i++) {
 		id[i] = soup.charAt(Math.random() * soupLength);
 	}
@@ -68,7 +68,7 @@ class PartialBlockCollection {
 		this.children = children
 	};
 	unfurl(): jsonBlock[] {
-		const blocks = []
+		const blocks: jsonBlock[] = []
 		for (const child of this.children) {
 			const childBlocks = child.unfurl();
 			blocks.push(...childBlocks)
@@ -209,7 +209,8 @@ function getNodeChildren(node: ASTNode): ASTNode[] {
 function findVarDecls(env: Environment, node: ASTNode): void {
 	if ((node as VariableDeclarationNode).type == 'VariableDeclaration') {
 		const id: string = genVarId((node as VariableDeclarationNode).identifier);
-		env.variables.set((node as VariableDeclarationNode).identifier, id);
+		if ((node as VariableDeclarationNode).vtype == 'var')
+			env.variables.set((node as VariableDeclarationNode).identifier, id);
 	} else for (const child of getNodeChildren(node)) {
 		findVarDecls(env, child)
 	}
@@ -767,6 +768,7 @@ export default async function ASTtoBlocks(
 				};
 				for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
 					const inp = definition[0][i];
+					// console.log(definition, 'ssjfksjfksjkfssj<--', i, inp, fnNode.identifier)
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode.args[i], child, scope)
 					inputs.push(inps)
 					fields.push(flds)
@@ -1083,11 +1085,16 @@ export default async function ASTtoBlocks(
 				return new PartialBlockCollection([]) as BlockCollection;
 
 			case 'VariableDeclaration':
+				console.log('====================================================', sprite)
 				const varDeclNode = node as VariableDeclarationNode;
-				const id: string = genVarId(varDeclNode.identifier);
-				if (varDeclNode.vtype == 'global')
-					sprite.globalVariables.set(varDeclNode.identifier, id)
-				else sprite.variables.set(varDeclNode.identifier, id);
+				let id: string;
+				if (!(sprite.globalVariables.has(varDeclNode.identifier) || sprite.variables.has(varDeclNode.identifier))) {
+					id = genVarId(varDeclNode.identifier);
+					console.log(varDeclNode, id, 'djdosijaijdo <=======')
+					if (varDeclNode.vtype == 'global')
+						sprite.globalVariables.set(varDeclNode.identifier, id)
+					else sprite.variables.set(varDeclNode.identifier, id);
+				} else id = sprite.globalVariables.get(varDeclNode.identifier) ?? sprite.variables.get(varDeclNode.identifier)!
 				const varDeclChildren: PartialBlockCollection[] = [];
 				const varDeclBlock: jsonBlock = {
 					opcode: 'data_setvariableto',

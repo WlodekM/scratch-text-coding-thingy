@@ -25,6 +25,7 @@ export enum TokenType {
 	LIST		= "LIST",
 	NOT			= "NOT",
 	RETURN		= "RETURN",
+	ASSIGNBINOP	= "ASSIGNBINOP"
 }
 
 export interface Token {
@@ -96,7 +97,7 @@ export class Lexer {
 					identifier += this.advance();
 				}
 
-				if 		(identifier === "#include")	tokens.push({ line, type: TokenType.INCLUDE, value: identifier })
+				if 		(identifier.toLowerCase() === "#include")	tokens.push({ line, type: TokenType.INCLUDE, value: identifier })
 				else if	(identifier === 'return')	tokens.push({ line, type: TokenType.RETURN, value: identifier })
 				else if	(identifier === "var")		tokens.push({ line, type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
 				else if	(identifier === "list")		tokens.push({ line, type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
@@ -135,6 +136,26 @@ export class Lexer {
 			else if (char === "{")   tokens.push({ line, type: TokenType.LBRACE, value: char });
 			else if (char === "}")   tokens.push({ line, type: TokenType.RBRACE, value: char });
 			else if (char === ",")   tokens.push({ line, type: TokenType.COMMA,  value: char });
+			else if (char === "+" && this.peek() === '=') {
+				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '+=' });
+				this.advance();
+			}
+			else if (char === "-" && this.peek() === '=') {
+				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '-=' });
+				this.advance();
+			}
+			else if (char === "/" && this.peek() === '=') {
+				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '/=' });
+				this.advance();
+			}
+			else if (char === "*" && this.peek() === '=') {
+				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '*=' });
+				this.advance();
+			}
+			else if (char === "%" && this.peek() === '=') {
+				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '%=' });
+				this.advance();
+			}
 			else if (char === "+")   tokens.push({ line, type: TokenType.BINOP,  value: char });
 			else if (char === "-")   tokens.push({ line, type: TokenType.BINOP,  value: char });
 			else if (char === "*")   tokens.push({ line, type: TokenType.BINOP,  value: char });
@@ -495,6 +516,22 @@ export class Parser {
 				throw new Error("Invalid assignment target; expected an identifier");
 			const value = this.parseAssignment();
 			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value } as AssignmentNode;
+		}
+		if (this.peek().type == TokenType.ASSIGNBINOP) {
+			const uh = this.advance();
+			//FIXME - prolly would be better to put this in asttoblocks
+			if (expr.type !== "Identifier")
+				throw new Error("Invalid assignment target; expected an identifier");
+			const value = this.parseAssignment();
+			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value: {
+				type: 'BinaryExpression',
+				left: {
+					type: 'Identifier',
+					name: (expr as IdentifierNode).name
+				} as IdentifierNode,
+				right: value,
+				operator: uh.value[0]
+			} as BinaryExpressionNode} as AssignmentNode;
 		}
 		return expr;
 	}

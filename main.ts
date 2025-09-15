@@ -28,6 +28,7 @@ type TSprite = {
 }
 type TProject = {
     sprites: Record<string, TSprite>
+    preprocess?: string
 }
 
 const dir: string = path.resolve(Deno.args[0] || Deno.cwd() || '.');
@@ -63,6 +64,31 @@ function removeId(a: blockBlock): json.Block {
     return b
 }
 
+async function getCode(sourcePath:string) {
+    if (!project.preprocess)
+        return new TextDecoder().decode(Deno.readFileSync(sourcePath));
+    const cmd = [...project.preprocess.replaceAll('$$', sourcePath).split(' ')]
+    const prog = cmd.shift()
+    if(!prog)throw 'no program'
+    const c = new Deno.Command(prog, {
+        args: cmd,
+        stdout: "piped",
+        stderr: "piped",
+    })
+    const output = await c.output();
+    if (output.code != 0) {
+        console.error(`prepreprocessing code code not OK; code is ${output.code}.`)
+        console.log('stdout:')
+        Deno.stdout.write(output.stdout)
+        console.log('stderr:')
+        Deno.stderr.write(output.stderr);
+        throw 'error at prepreprocessing'
+    }
+    if (Deno.args.includes('-dd')) 
+        Deno.stdout.write(output.stdout)
+    return new TextDecoder().decode(output.stdout)
+}
+
 export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data:  [12, string, string] }
 // export type jsonBlock = blockBlock | varBlock
@@ -88,7 +114,7 @@ for (const spriteName of Object.keys(project.sprites)
     if (sprite.code) {
         // console.debug('has code!')
         try {
-            const sourceCode = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sprite.code)));
+            const sourceCode = await getCode(path.join(dir, sprite.code));
             const lexer = new Lexer(sourceCode);
             const tokens = lexer.tokenize();
             const parser = new Parser(tokens, sourceCode);
@@ -131,7 +157,7 @@ for (const spriteName of Object.keys(project.sprites)
 
     if (sprite.code) {
         try {
-            const sourceCode = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sprite.code)));
+            const sourceCode = await getCode(path.join(dir, sprite.code));
 
             const lexer = new Lexer(sourceCode);
             const tokens = lexer.tokenize();
