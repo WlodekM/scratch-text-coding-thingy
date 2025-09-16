@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import path from "node:path";
 // deno-lint-ignore-file no-explicit-any
 interface Input {
     name: string,
@@ -40,29 +41,30 @@ const Blockly = globalThis.Blockly = {
     Categories: {},
     FieldDropdown: class FieldDropdown {}
 };
-
-const blocksRoot = fs.existsSync(`pm-blocks`) ? 'pm-blocks' : 'tw-blocks'
+let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `pm-blocks`)) ? path.resolve(import.meta.dirname, `pm-blocks`) : path.join(import.meta.dirname, `tw-blocks`)
+if (!blocksRoot.startsWith('/') && !blocksRoot.match(/^[A-Z]:/))
+    blocksRoot = './' + blocksRoot;
 //@ts-ignore:
 globalThis.blocksRoot = blocksRoot;
 
 if (!fs.existsSync(blocksRoot))
     throw `you forgot to clone the submodules. do git submodule update --init --recursive`
 
-await import(`./${blocksRoot}/msg/js/en.js`);
+await import(`${blocksRoot}/msg/js/en.js`);
 
-await import(`./${blocksRoot}/core/constants.js`);
-await import(`./${blocksRoot}/core/colours.js`);
+await import(`${blocksRoot}/core/constants.js`);
+await import(`${blocksRoot}/core/colours.js`);
 
 export const blockly = Blockly
 
 // await import('./tw-blocks/blocks_vertical/control.js');
-await import(`./${blocksRoot}/blocks_vertical/event.js`);
+await import(`${blocksRoot}/blocks_vertical/event.js`);
 // await import('./tw-blocks/blocks_vertical/looks.js');
 // await import('./tw-blocks/blocks_vertical/motion.js');
 // await import('./tw-blocks/blocks_vertical/operators.js');
 // await import('./tw-blocks/blocks_vertical/sound.js');
 // await import('./tw-blocks/blocks_vertical/sensing.js');
-await import(`./${blocksRoot}/blocks_vertical/data.js`);
+await import(`${blocksRoot}/blocks_vertical/data.js`);
 
 // this is used for custom blocks
 // await import('./tw-blocks/blocks_vertical/procedures.js');

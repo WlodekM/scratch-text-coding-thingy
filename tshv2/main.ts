@@ -1,5 +1,5 @@
 // import { timestamp } from "https://jsr.io/@std/yaml/1.0.6/_type/timestamp.ts";
-
+//TODO - add explicit arg/field defintion
 // Token types
 export enum TokenType {
 	VAR			= "VAR",
@@ -25,7 +25,9 @@ export enum TokenType {
 	LIST		= "LIST",
 	NOT			= "NOT",
 	RETURN		= "RETURN",
-	ASSIGNBINOP	= "ASSIGNBINOP"
+	ASSIGNBINOP	= "ASSIGNBINOP",
+	LBRACKET	= "LBRAKET",
+	RBRACKET	= "RBRAKET"
 }
 
 export interface Token {
@@ -135,6 +137,8 @@ export class Lexer {
 			else if (char === ")")   tokens.push({ line, type: TokenType.RPAREN, value: char });
 			else if (char === "{")   tokens.push({ line, type: TokenType.LBRACE, value: char });
 			else if (char === "}")   tokens.push({ line, type: TokenType.RBRACE, value: char });
+			else if (char === "[")   tokens.push({ line, type: TokenType.LBRACKET, value: char });
+			else if (char === "]")   tokens.push({ line, type: TokenType.RBRACKET, value: char });
 			else if (char === ",")   tokens.push({ line, type: TokenType.COMMA,  value: char });
 			else if (char === "+" && this.peek() === '=') {
 				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '+=' });
@@ -602,7 +606,17 @@ export class Parser {
 		}
 
 		if (this.match(TokenType.STRING)) {
-			return { type: "Literal", value: token.value } as LiteralNode;
+			return { type: "Literal", value: token.value.replace(/\\(.)/g, (m, s) => {
+				if (s == '\\')
+					return '\\';
+				if (s == '"')
+					return '"';
+				if (s == 'n')
+					return '\n';
+				if (s == 'r')
+					return '\r';
+				return m;
+			}) } as LiteralNode;
 		}
 
 		if (this.match(TokenType.IDENTIFIER) && allowOther) {

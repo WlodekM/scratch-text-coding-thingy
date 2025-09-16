@@ -5,6 +5,8 @@ import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
 import fs from "node:fs";
 import { ForNode } from "./tshv2/main.ts";
+import path from "node:path";
+import {Buffer} from 'node:buffer'
 
 let blockDefinitions = bd
 
@@ -221,6 +223,7 @@ const vmPath = fs.existsSync('pm-vm') ?
 
 export default async function ASTtoBlocks(
 	ast: ASTNode[],
+	basedir: string,
 	globalVariables?: Record<string, string>,
 	globalLists?: Record<string, [string, string[]]>
 ): Promise<[jsonBlock[], Environment]> {
@@ -695,10 +698,24 @@ export default async function ASTtoBlocks(
 					}
 					//@ts-ignore:
 					Scratch.translate.setup = nop;
-					await import(includeNode.path);
+					let ipath = includeNode.path;
+					if (includeNode.itype == 'extensions/file')
+						ipath = path.resolve(basedir, ipath);
+					let extUrl = includeNode.path;
+					if (includeNode.itype == 'extensions/file') {
+						const file = fs.readFileSync(path.resolve(basedir, ipath));
+						const base64 = Buffer.from(file).toString('base64')
+						const url = encodeURIComponent(file.toString())
+						// console.log(base64, url)
+						if (base64.length < url.length)
+							extUrl = `data:text/javascript;base64,${base64}`;
+						else
+							extUrl = `data:text/javascript,${url}`;
+					}
+					await import(ipath);
 					if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
 					const { blocks, id: extid } = ext.getInfo();
-					sprite.extensions.push([includeNode.path, extid]);
+					sprite.extensions.push([extUrl, extid]);
 					blockDefinitions = {
 						...blockDefinitions,
 						...Object.fromEntries(
@@ -1085,12 +1102,10 @@ export default async function ASTtoBlocks(
 				return new PartialBlockCollection([]) as BlockCollection;
 
 			case 'VariableDeclaration':
-				console.log('====================================================', sprite)
 				const varDeclNode = node as VariableDeclarationNode;
 				let id: string;
 				if (!(sprite.globalVariables.has(varDeclNode.identifier) || sprite.variables.has(varDeclNode.identifier))) {
 					id = genVarId(varDeclNode.identifier);
-					console.log(varDeclNode, id, 'djdosijaijdo <=======')
 					if (varDeclNode.vtype == 'global')
 						sprite.globalVariables.set(varDeclNode.identifier, id)
 					else sprite.variables.set(varDeclNode.identifier, id);

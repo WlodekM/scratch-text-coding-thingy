@@ -177,10 +177,12 @@ for (const spriteName of Object.keys(project.sprites)
             if (Deno.args.includes('-a')) {
                 Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
             }
+            const basedir = path.dirname(path.join(dir, sprite.code))
             const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(
                 ast,
+                basedir,
                 lastGlobalVariables,
-                lastGlobalLists
+                lastGlobalLists,
             );
             // console.log(ast, blockaroonies, env)
             jsonSprite.variables = {
@@ -336,7 +338,7 @@ for (const spriteName of Object.keys(project.sprites)
 }
 
 projectJson.extensions = [...extensions].map(a => a[1])
-projectJson.extensionURLs = Object.fromEntries([...extensions].filter(([a])=>a.startsWith('http')).map(([a, b]) => [b, a]))
+projectJson.extensionURLs = Object.fromEntries([...extensions].filter(([a])=>a.startsWith('http')||a.startsWith('data')).map(([a, b]) => [b, a]))
 
 projectJson.meta = {
     agent: '',
