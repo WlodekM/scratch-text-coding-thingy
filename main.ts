@@ -89,6 +89,13 @@ async function getCode(sourcePath:string) {
     return new TextDecoder().decode(output.stdout)
 }
 
+function parseIncludes(code:string, basedir: string) {
+    code = code.replace(/^.include(\s*)"(.*)"/gm, (m,_, _path) => {
+        return Deno.readTextFileSync(path.resolve(basedir, _path))
+    })
+    return code
+}
+
 export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data:  [12, string, string] }
 // export type jsonBlock = blockBlock | varBlock
@@ -157,7 +164,11 @@ for (const spriteName of Object.keys(project.sprites)
 
     if (sprite.code) {
         try {
-            const sourceCode = await getCode(path.join(dir, sprite.code));
+            const basedir = path.dirname(path.join(dir, sprite.code))
+            const sourceCode = parseIncludes(
+                await getCode(path.join(dir, sprite.code)),
+                basedir
+            );
 
             const lexer = new Lexer(sourceCode);
             const tokens = lexer.tokenize();
@@ -177,7 +188,6 @@ for (const spriteName of Object.keys(project.sprites)
             if (Deno.args.includes('-a')) {
                 Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
             }
-            const basedir = path.dirname(path.join(dir, sprite.code))
             const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(
                 ast,
                 basedir,
