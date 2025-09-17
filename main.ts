@@ -84,7 +84,7 @@ async function getCode(sourcePath:string) {
         Deno.stderr.write(output.stderr);
         throw 'error at prepreprocessing'
     }
-    if (Deno.args.includes('-dd')) 
+    if (Deno.args.includes('-dd'))
         Deno.stdout.write(output.stdout)
     return new TextDecoder().decode(output.stdout)
 }
@@ -169,6 +169,8 @@ for (const spriteName of Object.keys(project.sprites)
                 await getCode(path.join(dir, sprite.code)),
                 basedir
             );
+            if (Deno.args.includes('-da'))
+                console.log(sourceCode)
 
             const lexer = new Lexer(sourceCode);
             const tokens = lexer.tokenize();

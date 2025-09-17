@@ -80,7 +80,17 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
             },
             appendDummyInput() {
                 return {
-                    appendField() {return this}
+                    appendField(f: any, id?: string) {
+                        if (typeof f == 'string' || !id)
+                            return this;
+                        if (!blockdata.args0)
+                            blockdata.args0 = []
+                        blockdata.args0.push({
+                            type: 'field_dropdown',
+                            name: id,
+                        })
+                        return this
+                    }
                 }
             },
             setCategory() {},
