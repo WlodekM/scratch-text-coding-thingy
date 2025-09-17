@@ -267,7 +267,7 @@ export default async function ASTtoBlocks(
 	async function arg2input(level: number, inp: Input, arg: ASTNode, child: PartialBlockCollection[], scope: Scope, setLastBlockId?: string) {
 		const thisLast = lastBlock;
 		if (setLastBlockId) {
-			console.log('setid', setLastBlockId)
+			// console.log('setid', setLastBlockId)
 			lastBlock = {
 				id: setLastBlockId,
 				next: null,
@@ -1166,7 +1166,6 @@ export default async function ASTtoBlocks(
 					},
 					parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 				}
-				console.log(lastBlock)
 				if (!topLevel && !noNext) lastBlock.next = varAssignmentBlock.id.toString();
 				if (!noLast) lastBlock = varAssignmentBlock;
 				return new BlockCollection(varAssignmentBlock, varAssignmentChildren);
