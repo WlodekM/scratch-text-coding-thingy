@@ -1176,8 +1176,11 @@ export default async function ASTtoBlocks(
 				if (scope.identifierBlocks.has(identifierNode.name)) {
 					const bl = scope.identifierBlocks.get(identifierNode.name);
 					if (!bl) throw 'how the fuck';
+					const blo = bl(thisBlockID);
+					if (!Array.isArray(blo))
+						(blo as blockBlock).parent = lastBlock.id;
 					return new BlockCollection(
-						bl(thisBlockID),
+						blo,
 						[]
 					);
 				}
