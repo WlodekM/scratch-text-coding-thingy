@@ -65,6 +65,12 @@ await import(`${blocksRoot}/blocks_vertical/event.js`);
 // await import('./tw-blocks/blocks_vertical/sound.js');
 // await import('./tw-blocks/blocks_vertical/sensing.js');
 await import(`${blocksRoot}/blocks_vertical/data.js`);
+declare global {
+    function aditionalImports(): void | Promise<void>
+}
+if (globalThis.aditionalImports && typeof globalThis.aditionalImports == 'function') {
+    await globalThis.aditionalImports()
+}
 
 // this is used for custom blocks
 // await import('./tw-blocks/blocks_vertical/procedures.js');
