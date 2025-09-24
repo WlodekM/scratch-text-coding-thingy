@@ -133,7 +133,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                 .map(n => block[n])
                 .filter(a => a[0]?.type != 'field_image');
             
-            if(args.find(k => k.type == 'input_statement')) {
+            if(args.find(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))) {
+                // console.log('branch!!', (args[0] ?? []))
                 return [opcode, [(args[0] ?? []).map((arg: any) => {
                     if (arg.type == 'field_dropdown') {
                         return { //TODO - in some way implement this
@@ -176,7 +177,12 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                         })(),
                         variableTypes: arg.variableTypes
                     }
-                }) ?? [], 'branch', args.filter(k => k.type == 'input_statement').map(i => i.name)]]
+                }) ?? [], 'branch',
+                    args.filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
+                        .reduce<any[]>((p: any, c: any) => {
+                            p.push(...c.filter(k => k.type == 'input_statement'));
+                            return p;
+                        }, []).map(i => i.name)]]
             }
             return [opcode, [((args[0] ?? []).map((arg: any) => {
                 if (arg.type == 'field_dropdown') {
