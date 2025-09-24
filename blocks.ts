@@ -142,7 +142,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                             type: 1,
                             field: arg.name,
                             options: arg.options,
-                            variableTypes: arg.variableTypes
+                            variableTypes: arg.variableTypes,
+                            blocklyType: arg.type
                         }
                     } else if (arg.type == 'field_image') {
                         return null
@@ -152,7 +153,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                             name: arg.name,
                             type: 1,
                             options: arg.options,
-                            variableTypes: arg.variableTypes
+                            variableTypes: arg.variableTypes,
+                            blocklyType: arg.type
                         }
                     } else if (arg.type == 'field_variable_getter') {
                         //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
@@ -164,7 +166,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                         return {
                             name: arg.name,
                             type: 1,
-                            variableTypes: arg.variableTypes
+                            variableTypes: arg.variableTypes,
+                            blocklyType: arg.type
                         }
                     } else if (arg.type == 'input_statement') {
                         return {}
@@ -175,7 +178,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                             console.error(block, args)
                             throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
                         })(),
-                        variableTypes: arg.variableTypes
+                        variableTypes: arg.variableTypes,
+                        blocklyType: arg.type
                     }
                 }) ?? [], 'branch',
                     args.filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
@@ -191,7 +195,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                         type: 1,
                         field: arg.name,
                         options: arg.options,
-                        variableTypes: arg.variableTypes
+                        variableTypes: arg.variableTypes,
+                        blocklyType: arg.type
                     }
                 } else if (arg.type == 'field_image') {
                     return null
@@ -201,7 +206,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                         name: arg.name,
                         type: 1,
                         field: arg.name,
-                        variableTypes: arg.variableTypes
+                        variableTypes: arg.variableTypes,
+                        blocklyType: arg.type
                     }
                 } else if (arg.type == 'field_variable_getter') {
                     //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
@@ -213,6 +219,7 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                     return {
                         name: arg.name,
                         type: 1,
+                        blocklyType: arg.type
                     }
                 } else if (arg.type == 'input_statement') {
                     return {}
@@ -223,7 +230,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                         console.error(block, args)
                         throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
                     })(),
-                    variableTypes: arg.variableTypes
+                    variableTypes: arg.variableTypes,
+                    blocklyType: arg.type
                 }
             }) ?? []), (block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']].filter(a => a != null)
         })
