@@ -408,7 +408,7 @@ export class Parser {
 
 			this.expect(TokenType.LBRACE, "Expected {array} as list value")
 
-			while (!this.match(TokenType.RBRACE) || this.match(TokenType.EOF)) {
+			while (!this.match(TokenType.RBRACE, TokenType.EOF)) {
 				value.push(this.parsePrimary());
 				this.match(TokenType.COMMA)
 			}
