@@ -34,7 +34,9 @@ export enum TokenType {
 export interface Token {
 	type: TokenType;
 	value: string;
-	line: number
+	line: number;
+	end: number;
+	start: number;
 }
 
 // Lexer
@@ -74,8 +76,24 @@ export class Lexer {
 		return false;
 	}
 
+	pushToken(tokenData: {
+		type: TokenType;
+		value: string;
+		line: number;
+		start?: number;
+	}) {
+		// console.log(tokenData, this.position)
+		const fullToken: Token = {
+			start: tokenData.start ?? this.position,
+			...tokenData,
+			end: tokenData.start ? this.position : this.position + 1
+		};
+		this.tokens.push(fullToken)
+	}
+
+	tokens: Token[] = [];
 	tokenize(): Token[] {
-		const tokens: Token[] = [];
+		this.tokens = []
 
 		let inComment = false;
 		let global = 0;
@@ -102,26 +120,26 @@ export class Lexer {
 					identifier += this.advance();
 				}
 
-				if 		(identifier.toLowerCase() === "#include")	tokens.push({ line, type: TokenType.INCLUDE, value: identifier })
-				else if	(identifier === 'return')	tokens.push({ line, type: TokenType.RETURN, value: identifier })
-				else if	(identifier === "var")		tokens.push({ line, type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
-				else if	(identifier === "list")		tokens.push({ line, type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
+				if 		(identifier.toLowerCase() === "#include")	this.pushToken({ line, type: TokenType.INCLUDE, value: identifier })
+				else if	(identifier === 'return')	this.pushToken({ line, type: TokenType.RETURN, value: identifier })
+				else if	(identifier === "var")		this.pushToken({ line, type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
+				else if	(identifier === "list")		this.pushToken({ line, type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
 				else if	(identifier === "global")	global = 3;
-				else if	(identifier === "fn")		tokens.push({ line, type: TokenType.FN, value: identifier });
-				else if	(identifier === "warp")		tokens.push({ line, type: TokenType.WARP_FN, value: identifier })
-				else if	(identifier === "if")		tokens.push({ line, type: TokenType.IF, value: identifier });
-				else if	(identifier === "for")		tokens.push({ line, type: TokenType.FOR, value: identifier });
-				else if	(identifier === "gf")		tokens.push({ line, type: TokenType.GREENFLAG, value: identifier });
-				else if	(identifier === "start")	tokens.push({ line, type: TokenType.GREENFLAG, value: identifier });
-				else if	(identifier === "else")		tokens.push({ line, type: TokenType.ELSE, value: identifier });
-				else 								tokens.push({ line, type: TokenType.IDENTIFIER, value: identifier });
+				else if	(identifier === "fn")		this.pushToken({ line, type: TokenType.FN, value: identifier });
+				else if	(identifier === "warp")		this.pushToken({ line, type: TokenType.WARP_FN, value: identifier })
+				else if	(identifier === "if")		this.pushToken({ line, type: TokenType.IF, value: identifier });
+				else if	(identifier === "for")		this.pushToken({ line, type: TokenType.FOR, value: identifier });
+				else if	(identifier === "gf")		this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
+				else if	(identifier === "start")	this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
+				else if	(identifier === "else")		this.pushToken({ line, type: TokenType.ELSE, value: identifier });
+				else 								this.pushToken({ line, type: TokenType.IDENTIFIER, value: identifier });
 			} else if (this.isDigit(char)) {
 				let number = char;
 				start = this.position;
 				while (this.isDigit(this.peek())) {
 					number += this.advance();
 				}
-				tokens.push({ line, type: TokenType.NUMBER, value: number });
+				this.pushToken({ line, type: TokenType.NUMBER, value: number });
 			} else if (char === '"') {
 				start = this.position;
 				let string = "";
@@ -137,67 +155,67 @@ export class Lexer {
 				if (!this.match('"')) {
 					throw new Error("Unterminated string");
 				}
-				tokens.push({ line, type: TokenType.STRING, value: string });
-			} else if (char === "(") tokens.push({ line, type: TokenType.LPAREN, value: char });
-			else if (char === ")")   tokens.push({ line, type: TokenType.RPAREN, value: char });
-			else if (char === "{")   tokens.push({ line, type: TokenType.LBRACE, value: char });
-			else if (char === "}")   tokens.push({ line, type: TokenType.RBRACE, value: char });
-			else if (char === "[")   tokens.push({ line, type: TokenType.LBRACKET, value: char });
-			else if (char === "]")   tokens.push({ line, type: TokenType.RBRACKET, value: char });
-			else if (char === ",")   tokens.push({ line, type: TokenType.COMMA,  value: char });
+				this.pushToken({ line, type: TokenType.STRING, value: string });
+			} else if (char === "(") this.pushToken({ line, type: TokenType.LPAREN, value: char });
+			else if (char === ")")   this.pushToken({ line, type: TokenType.RPAREN, value: char });
+			else if (char === "{")   this.pushToken({ line, type: TokenType.LBRACE, value: char });
+			else if (char === "}")   this.pushToken({ line, type: TokenType.RBRACE, value: char });
+			else if (char === "[")   this.pushToken({ line, type: TokenType.LBRACKET, value: char });
+			else if (char === "]")   this.pushToken({ line, type: TokenType.RBRACKET, value: char });
+			else if (char === ",")   this.pushToken({ line, type: TokenType.COMMA,  value: char });
 			else if (char === ":" && this.peek() === ':') {
-				tokens.push({ line, type: TokenType.COLON_THINGY, value: '+=' });
+				this.pushToken({ line, type: TokenType.COLON_THINGY, value: '+=' });
 				this.advance();
 			}
 			else if (char === "+" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '+=' });
+				this.pushToken({ line, type: TokenType.ASSIGNBINOP, value: '+=' });
 				this.advance();
 			}
 			else if (char === "-" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '-=' });
+				this.pushToken({ line, type: TokenType.ASSIGNBINOP, value: '-=' });
 				this.advance();
 			}
 			else if (char === "/" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '/=' });
+				this.pushToken({ line, type: TokenType.ASSIGNBINOP, value: '/=' });
 				this.advance();
 			}
 			else if (char === "*" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '*=' });
+				this.pushToken({ line, type: TokenType.ASSIGNBINOP, value: '*=' });
 				this.advance();
 			}
 			else if (char === "%" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '%=' });
+				this.pushToken({ line, type: TokenType.ASSIGNBINOP, value: '%=' });
 				this.advance();
 			}
-			else if (char === "+")   tokens.push({ line, type: TokenType.BINOP,  value: char });
-			else if (char === "-")   tokens.push({ line, type: TokenType.BINOP,  value: char });
-			else if (char === "*")   tokens.push({ line, type: TokenType.BINOP,  value: char });
-			else if (char === "/")   tokens.push({ line, type: TokenType.BINOP,  value: char });
-			else if (char === "%")   tokens.push({ line, type: TokenType.BINOP,  value: char });
+			else if (char === "+")   this.pushToken({ line, type: TokenType.BINOP,  value: char });
+			else if (char === "-")   this.pushToken({ line, type: TokenType.BINOP,  value: char });
+			else if (char === "*")   this.pushToken({ line, type: TokenType.BINOP,  value: char });
+			else if (char === "/")   this.pushToken({ line, type: TokenType.BINOP,  value: char });
+			else if (char === "%")   this.pushToken({ line, type: TokenType.BINOP,  value: char });
 			else if (char === "=" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.BINOP, value: char });
+				this.pushToken({ line, type: TokenType.BINOP, value: char });
 				this.advance();
 			}
 			else if (char === "&" && this.peek() === '&') {
-				tokens.push({ line, type: TokenType.BINOP, value: char });
+				this.pushToken({ line, type: TokenType.BINOP, value: char });
 				this.advance();
 			}
 			else if (char === "!" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.BINOP, value: '!=' });
+				this.pushToken({ line, type: TokenType.BINOP, value: '!=' });
 				this.advance();
 			}
 			else if (char === "<" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.BINOP, value: '<=' });
+				this.pushToken({ line, type: TokenType.BINOP, value: '<=' });
 				this.advance();
 			}
 			else if (char === ">" && this.peek() === '=') {
-				tokens.push({ line, type: TokenType.BINOP, value: '>=' });
+				this.pushToken({ line, type: TokenType.BINOP, value: '>=' });
 				this.advance();
 			}
-			else if (char === ">")	tokens.push({ line, type: TokenType.BINOP, value: char });
-			else if (char === "<")	tokens.push({ line, type: TokenType.BINOP, value: char });
-			else if (char === "=")	tokens.push({ line, type: TokenType.ASSIGN, value: char });
-			else if (char === "!")	tokens.push({ line, type: TokenType.NOT,    value: char });
+			else if (char === ">")	this.pushToken({ line, type: TokenType.BINOP, value: char });
+			else if (char === "<")	this.pushToken({ line, type: TokenType.BINOP, value: char });
+			else if (char === "=")	this.pushToken({ line, type: TokenType.ASSIGN, value: char });
+			else if (char === "!")	this.pushToken({ line, type: TokenType.NOT,    value: char });
 			else {
 				throw new Error(`Unexpected character: ${char} on line ${line+1}\n${
 					this.source.split('').filter((_,i)=>Math.abs(i-this.position) <= 6).join('')
@@ -205,8 +223,8 @@ export class Lexer {
 			}
 		}
 
-		tokens.push({ line, type: TokenType.EOF, value: "" });
-		return tokens;
+		this.pushToken({ line, type: TokenType.EOF, value: "" });
+		return this.tokens;
 	}
 }
 
