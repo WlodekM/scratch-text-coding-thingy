@@ -179,13 +179,39 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 						],
 						type: 'FunctionCall'
 					} as FunctionCallNode
-				
 
 				case 'indexof':
 					if (!node.args[0])
 						throw 'list::indexof() requires an item'
 					return {
 						identifier: 'data_itemnumoflist',
+						args: [
+							node.args[0],
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode,
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+				
+				case 'clear':
+					return {
+						identifier: 'data_deletealloflist',
+						args: [
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode,
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+
+				case 'contains':
+					if (!node.args[0])
+						throw 'list::contains() requires an item'
+					return {
+						identifier: 'data_listcontainsitem',
 						args: [
 							node.args[0],
 							{
