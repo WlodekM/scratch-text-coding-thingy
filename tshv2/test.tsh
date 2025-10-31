@@ -1,20 +1,8 @@
 #include <"blocks/js" "tw-blocks/blocks_vertical/control.js">
 
+list test = {}
+
 gf {
-    var a = 0
-
-    looks_say(a - 5)
-
-    looks_say(motion_xposition() < 5)
-
-    // if x position > 5
-    control_if_else(true, false) {
-        say("hi")
-    } {
-        say("no")
-    }
-
-    if (!(false && false && true)) {
-
-    }
+    test::length
+    test::push("meow")
 }

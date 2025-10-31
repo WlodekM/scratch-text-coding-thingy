@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-case-declarations no-explicit-any
-import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NotNode, ReturnNode, StartBlockNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NodeType, NotNode, ReturnNode, StartBlockNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
@@ -7,6 +7,7 @@ import fs from "node:fs";
 import { ForNode } from "./tshv2/main.ts";
 import path from "node:path";
 import {Buffer} from 'node:buffer'
+import transformAST from "./preprocess.ts";
 
 let blockDefinitions = bd
 
@@ -37,7 +38,7 @@ export type jsonBlock = blockBlock | varBlock
 const _class = new (class { })()
 type Class = typeof _class
 
-class Scope {
+export class Scope {
 	identifierBlocks: Map<string, (id: string) => jsonBlock> = new Map()
 	duplicate(): Scope {
 		const s = new Scope();
@@ -321,7 +322,10 @@ export default async function ASTtoBlocks(
 				fields: [] as [string, any] | []
 			}
 		}
-		if (['FunctionCall', 'Boolean', 'BinaryExpression', 'Not'].includes(arg.type)) {
+		if (([
+			'FunctionCall', 'Boolean', 'BinaryExpression', 'Not',
+			'ObjectAccess', 'ObjectMethodCall'
+		] as NodeType[]).includes(arg.type as NodeType)) {
 			const childBlock = await processNode(level + 1, arg, false, false, true, scope);
 			child.push(childBlock);
 			lastBlock = thisLast
@@ -371,10 +375,11 @@ export default async function ASTtoBlocks(
 		}
 	}
 
-	async function processNode(level: number, node: ASTNode, topLevel = false,
+	async function processNode(level: number, raw_node: ASTNode, topLevel = false,
 		noLast = false, noNext = false, scope = new Scope(),
 		preprocessFnDecl: boolean = false
 	): Promise<BlockCollection> {
+		const node = transformAST(raw_node, sprite)
 		blockID++;
 		const thisBlockID = genId(blockID);
 		function log(...args: any[]) {

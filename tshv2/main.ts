@@ -27,7 +27,8 @@ export enum TokenType {
 	RETURN		= "RETURN",
 	ASSIGNBINOP	= "ASSIGNBINOP",
 	LBRACKET	= "LBRAKET",
-	RBRACKET	= "RBRAKET"
+	RBRACKET	= "RBRAKET",
+	COLON_THINGY= "COLON_THINGY"
 }
 
 export interface Token {
@@ -140,6 +141,10 @@ export class Lexer {
 			else if (char === "[")   tokens.push({ line, type: TokenType.LBRACKET, value: char });
 			else if (char === "]")   tokens.push({ line, type: TokenType.RBRACKET, value: char });
 			else if (char === ",")   tokens.push({ line, type: TokenType.COMMA,  value: char });
+			else if (char === ":" && this.peek() === ':') {
+				tokens.push({ line, type: TokenType.COLON_THINGY, value: '+=' });
+				this.advance();
+			}
 			else if (char === "+" && this.peek() === '=') {
 				tokens.push({ line, type: TokenType.ASSIGNBINOP, value: '+=' });
 				this.advance();
@@ -202,6 +207,26 @@ export class Lexer {
 }
 
 // AST Nodes
+export type NodeType = "VariableDeclaration" |
+	"FunctionDeclaration" |
+	"Assignment" |
+	"BinaryExpression" |
+	"Not" |
+	"Literal" |
+	"Identifier" |
+	"FunctionCall" |
+	"BranchFunctionCall" |
+	"StartBlock" |
+	"If" |
+	"For" |
+	"GreenFlag" |
+	"Boolean" |
+	"Include" |
+	"ListDeclaration" |
+	"Return" |
+	"ObjectAccess" |
+	"ObjectMethodCall"
+
 export interface ASTNode {
 	type: string;
 }
@@ -309,6 +334,40 @@ export interface ReturnNode extends ASTNode {
 	type: "Return";
 	value: ASTNode;
 }
+
+export interface ObjectAccessNode extends ASTNode {
+	type: "ObjectAccess";
+	object: ASTNode;
+	property: string;
+}
+
+export interface ObjectMethodCallNode extends ASTNode {
+	type: "ObjectMethodCall";
+	object: ASTNode;
+	method: string;
+	args: ASTNode[];
+}
+
+export type Node = VariableDeclarationNode |
+	FunctionDeclarationNode |
+	AssignmentNode |
+	BinaryExpressionNode |
+	NotNode |
+	LiteralNode |
+	IdentifierNode |
+	FunctionCallNode |
+	BranchFunctionCallNode |
+	StartBlockNode |
+	IfNode |
+	ForNode |
+	GreenFlagNode |
+	BooleanNode |
+	IncludeNode |
+	ListDeclarationNode |
+	ReturnNode |
+	ObjectAccessNode |
+	ObjectMethodCallNode
+
 
 // Parser
 export class Parser {
@@ -560,7 +619,10 @@ export class Parser {
 		return expr;
 	}
 
-	private finishCall(callee: ASTNode): ASTNode {
+	private finishCall(callee: ASTNode, allowBranch: false): FunctionCallNode
+	private finishCall(callee: ASTNode, allowBranch?: true): BranchFunctionCallNode | FunctionCallNode
+	private finishCall(callee: ASTNode, allowBranch = true): BranchFunctionCallNode | FunctionCallNode {
+		// console.log(this.peek())
 		this.expect(TokenType.LPAREN, "Expected '(' after function name");
 		const args: ASTNode[] = [];
 		if (this.peek().type !== TokenType.RPAREN) {
@@ -572,6 +634,8 @@ export class Parser {
 
 
 		if (this.peek().type === TokenType.LBRACE) {
+			if (!allowBranch)
+				throw 'Branch function calls are not allowed in the current context'
 			const branches: ASTNode[][] = [];
 			do {
 				this.expect(TokenType.LBRACE, "Expected '{' for branch block");
@@ -620,14 +684,36 @@ export class Parser {
 		}
 
 		if (this.match(TokenType.IDENTIFIER) && allowOther) {
-
 			if (["True", "true", "False", "false"].includes(token.value)) {
 				return {
 					type: "Boolean",
 					value: token.value === "True" || token.value === "true"
 				} as BooleanNode;
 			}
-			return { type: "Identifier", name: token.value } as IdentifierNode;
+			let returnValue: IdentifierNode | ObjectAccessNode | ObjectMethodCallNode = {
+				type: "Identifier",
+				name: token.value
+			} as IdentifierNode
+			while (this.matchTk([TokenType.COLON_THINGY])) {
+				this.advance();
+				const identifier = this.expect(TokenType.IDENTIFIER, "Expected identifier after OOP dereferencer");
+				if (this.matchTk([TokenType.LPAREN])) {
+					const fnCallNode = this.finishCall(returnValue, false);
+					returnValue = {
+						object: returnValue,
+						type: 'ObjectMethodCall',
+						args: fnCallNode.args,
+						method: identifier.value
+					} as ObjectMethodCallNode
+					continue;
+				}
+				returnValue = {
+					object: returnValue,
+					property: identifier.value,
+					type: 'ObjectAccess'
+				} as ObjectAccessNode
+			}
+			return returnValue;
 		}
 
 		if (this.match(TokenType.LPAREN) && allowOther) {
