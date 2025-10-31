@@ -859,6 +859,7 @@ export default async function ASTtoBlocks(
 					throw `To use BinExp you have to include the operators category`
 				const operations: Record<string, string> = {
 					'&': 'operator_and',
+					'|': 'operator_or',
 					'=': 'operator_equals',
 					'+': 'operator_add',
 					'-': 'operator_subtract',
