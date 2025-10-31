@@ -80,6 +80,7 @@ export class Lexer {
 		let inComment = false;
 		let global = 0;
 		let line = 0;
+		let start = 0;
 
 		while (this.position < this.source.length) {
 			const char = this.advance();
@@ -96,6 +97,7 @@ export class Lexer {
 				continue;
 			} else if (this.isAlpha(char)) {
 				let identifier = char;
+				start = this.position;
 				while (this.isAlpha(this.peek()) || this.isDigit(this.peek())) {
 					identifier += this.advance();
 				}
@@ -115,11 +117,13 @@ export class Lexer {
 				else 								tokens.push({ line, type: TokenType.IDENTIFIER, value: identifier });
 			} else if (this.isDigit(char)) {
 				let number = char;
+				start = this.position;
 				while (this.isDigit(this.peek())) {
 					number += this.advance();
 				}
 				tokens.push({ line, type: TokenType.NUMBER, value: number });
 			} else if (char === '"') {
+				start = this.position;
 				let string = "";
 				while (
 					!(
@@ -374,6 +378,9 @@ export class Parser {
 	private tokens: Token[];
 	private source: string;
 	position: number = 0;
+	localVars: string[] = [];
+	globalVars: string[] = [];
+	traces: boolean = true;
 
 	constructor(tokens: Token[], source: string) {
 		this.tokens = tokens;
@@ -382,6 +389,20 @@ export class Parser {
 
 	private peek(ahead = 0): Token {
 		return this.tokens[this.position + ahead];
+	}
+
+	private trace(error: string, line: number) {
+		if (!this.traces) return error;
+		return this.source.split('\n')
+			.map(l => l.replace(/^\s*/, ''))
+			.map((t, l) => `${l+1} | ${t}`)
+			.map((t, l) => {
+				if (l != line)
+					return t;
+				return `${t}\n${' '.repeat(l.toString().length)} | ^ ${error}`
+			})
+			.filter((_, l) => Math.abs(l - line) < 4)
+			.join('\n')
 	}
 
 	private advance(): Token {
@@ -407,37 +428,37 @@ export class Parser {
 		if (this.peek().type === type) {
 			return this.advance();
 		}
-		let ch = 0;
-		const line = 
-			(this.source.split('\n')
-				.map((l, i) => {
-					ch += l.length
-					return {
-						start: ch - l.length,
-						len: l.length,
-						i,
-						l,
-					}
-				})
-				.find((l) => l.start <= this.position
-					&& l.start + l.len >= this.position))
-		const positionInLine = this.position - (line ? (
-			line.start
-		) : 0);
-		// if (line)
-		// 	positionInLine - (line.l.length - line.l.replace(/^\s*/,'').length)
-		// console.error('trace: tokens', this.tokens, '\nIDX:', this.position);
-		const trace = this.source.split('\n')
-			.map(l => l.replace(/^\s*/, ''))
-			.map((t, l) => `${l+1} | ${t}`)
-			.map((t, l) => {
-				if (l != this.peek().line)
-					return t;
-				return `${t}\n${' '.repeat(l.toString().length)} |${' '.repeat(positionInLine)}^ ${errorMessage}`
-			})
-			.filter((_, l) => Math.abs(l - this.peek().line) < 4)
+		// let ch = 0;
+		// const line = 
+		// 	(this.source.split('\n')
+		// 		.map((l, i) => {
+		// 			ch += l.length
+		// 			return {
+		// 				start: ch - l.length,
+		// 				len: l.length,
+		// 				i,
+		// 				l,
+		// 			}
+		// 		})
+		// 		.find((l) => l.start <= this.position
+		// 			&& l.start + l.len >= this.position))
+		// const positionInLine = this.position - (line ? (
+		// 	line.start
+		// ) : 0);
+		// // if (line)
+		// // 	positionInLine - (line.l.length - line.l.replace(/^\s*/,'').length)
+		// // console.error('trace: tokens', this.tokens, '\nIDX:', this.position);
+		// const trace = this.source.split('\n')
+		// 	.map(l => l.replace(/^\s*/, ''))
+		// 	.map((t, l) => `${l+1} | ${t}`)
+		// 	.map((t, l) => {
+		// 		if (l != this.peek().line)
+		// 			return t;
+		// 		return `${t}\n${' '.repeat(l.toString().length)} |${' '.repeat(positionInLine)}^ ${errorMessage}`
+		// 	})
+		// 	.filter((_, l) => Math.abs(l - this.peek().line) < 4)
 
-		throw new Error('\n'+trace.join('\n'));
+		throw new Error(this.trace(errorMessage, this.peek().line));
 	}
 
 
@@ -454,6 +475,9 @@ export class Parser {
 			const node = this.peek(-1);
 			const type = node.value
 			const identifier = this.expect(TokenType.IDENTIFIER, "Expected variable name").value;
+			if (type == 'global')
+				this.globalVars.push(identifier);
+			else this.localVars.push(identifier);
 			this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
 			const value = this.parseAssignment();
 			return { type: "VariableDeclaration", identifier, value, vtype: type } as VariableDeclarationNode;
@@ -463,7 +487,7 @@ export class Parser {
 			const type = this.peek(-1).value
 			const identifier = this.expect(TokenType.IDENTIFIER, "Expected list name").value;
 			this.expect(TokenType.ASSIGN, "Expected '=' after list name");
-			const value = [];
+			const value: ASTNode[] = [];
 
 			this.expect(TokenType.LBRACE, "Expected {array} as list value")
 
@@ -732,16 +756,6 @@ export class Parser {
 			return { type: "BinaryExpression", operator, left, right } as BinaryExpressionNode;
 		}
 
-		const trace = this.source.split('\n')
-			.map(l => l.replace(/^\s*/, ''))
-			.map((t, l) => `${l+1} | ${t}`)
-			.map((t, l) => {
-				if (l != token.line)
-					return t;
-				return `${t}\n${' '.repeat(l.toString().length)} | ^ Unexpected token: ${token.type}`
-			})
-			.filter((_, l) => Math.abs(l - token.line) < 4)
-
-		throw new Error('\n'+trace.join('\n'));
+		throw new Error(this.trace(`Unexpected token: ${token.type}`, token.line));
 	}
 }
