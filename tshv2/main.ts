@@ -200,6 +200,10 @@ export class Lexer {
 				this.pushToken({ line, type: TokenType.BINOP, value: char });
 				this.advance();
 			}
+			else if (char === "|" && this.peek() === '|') {
+				this.pushToken({ line, type: TokenType.BINOP, value: char });
+				this.advance();
+			}
 			else if (char === "!" && this.peek() === '=') {
 				this.pushToken({ line, type: TokenType.BINOP, value: '!=' });
 				this.advance();
