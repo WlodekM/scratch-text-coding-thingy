@@ -149,6 +149,53 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 						type: 'FunctionCall'
 					} as FunctionCallNode
 				
+				case 'replace':
+					if (!node.args[1])
+						throw 'list::replace() requires an index and an item'
+					return {
+						identifier: 'data_replaceitemoflist',
+						args: [
+							node.args[0],
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode,
+							node.args[1],
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+				
+				case 'remove':
+					if (!node.args[0])
+						throw 'list::remove() requires an index'
+					return {
+						identifier: 'data_deleteoflist',
+						args: [
+							node.args[0],
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode,
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+				
+
+				case 'indexof':
+					if (!node.args[0])
+						throw 'list::indexof() requires an item'
+					return {
+						identifier: 'data_itemnumoflist',
+						args: [
+							node.args[0],
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode,
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+				
 				default:
 					throw `unknown property ${node.method} for ${vtype} vtype`
 			}
