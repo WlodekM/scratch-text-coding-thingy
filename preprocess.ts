@@ -60,6 +60,28 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 							(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
 							[0]
 					} as LiteralNode
+				
+				case 'last':
+					return {
+						identifier: 'data_itemoflist',
+						args: [
+							{
+								identifier: 'data_lengthoflist',
+								args: [
+									{
+										type: 'Literal',
+										value: identifier.name
+									} as LiteralNode
+								],
+								type: 'FunctionCall'
+							} as FunctionCallNode,
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
 			
 				default:
 					throw `unknown property ${node.property} for ${vtype} vtype`
@@ -70,8 +92,24 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 	['ObjectMethodCall', function(node: ObjectMethodCallNode, env: Environment): ASTNode {
 		let vtype: null | 'v' | 'l' = null;
 		const object: IdentifierNode | ASTNode = node.object;
-		if ((object as ASTNode).type !== 'Identifier' as NodeType)
-			throw `can only access properties of identifiers for now (got ${object.type})`;
+		if ((object as ASTNode).type !== 'Identifier' as NodeType) {
+			switch (node.method) {
+				case 'letter':
+					if (!node.args[0])
+						throw 'list::push() requires an element to push'
+					return {
+						identifier: 'operator_letter_of',
+						args: [
+							node.args[0],
+							object
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+				
+				default:
+					throw `unknown property ${node.method} for GLOBAL vtype`
+			}
+		}
 		const identifier = object as IdentifierNode;
 		if (env.variables.has(identifier.name) ||
 			env.globalVariables.has(identifier.name))
@@ -88,6 +126,21 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 						throw 'list::push() requires an element to push'
 					return {
 						identifier: 'data_addtolist',
+						args: [
+							node.args[0],
+							{
+								type: 'Literal',
+								value: identifier.name
+							} as LiteralNode
+						],
+						type: 'FunctionCall'
+					} as FunctionCallNode
+				
+				case 'at':
+					if (!node.args[0])
+						throw 'list::at() requires an index'
+					return {
+						identifier: 'data_itemoflist',
 						args: [
 							node.args[0],
 							{

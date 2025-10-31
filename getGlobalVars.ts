@@ -16,7 +16,7 @@ import type {
   VariableDeclarationNode
 } from "./tshv2/main.ts";
 
-function getNodeChildren(node: ASTNode): ASTNode[] {
+export function getNodeChildren(node: ASTNode): ASTNode[] {
 	const children: ASTNode[] = [];
 
 	let n;
@@ -47,7 +47,6 @@ function getNodeChildren(node: ASTNode): ASTNode[] {
 			return p;
 		}, []))
 	}
-	//FIXME - i dont think this was ever actually implemented in asttoblocks :sob:
 	n = node as StartBlockNode;
 	if (n.type == 'StartBlock') {
 		children.push(...n.body)
@@ -56,7 +55,7 @@ function getNodeChildren(node: ASTNode): ASTNode[] {
 	if (n.type == 'If') {
 		children.push(...n.thenBranch, ...(n.elseBranch??[]),n.condition)
 	}
-	//FIXME - or this,, this sounds useful i really shoul implement it
+	//FIXME - implement this
 	n = node as ForNode;
 	if (n.type == 'For') {
 		children.push(...n.branch, n.times, n.varname)

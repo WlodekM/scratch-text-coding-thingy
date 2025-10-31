@@ -8,4 +8,6 @@ list test = { 1 2 }
 start {
     test::push("meow") // same as data_addtolist("meow", "test")
     looks_say(test::json) // same as skyhigh173JSON_json_vm_getlist("test")
+    looks_say(test::at(2)) // 2
+    looks_say(test::last::letter(1))
 }
