@@ -92,24 +92,22 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 	['ObjectMethodCall', function(node: ObjectMethodCallNode, env: Environment): ASTNode {
 		let vtype: null | 'v' | 'l' = null;
 		const object: IdentifierNode | ASTNode = node.object;
-		if ((object as ASTNode).type !== 'Identifier' as NodeType) {
-			switch (node.method) {
-				case 'letter':
-					if (!node.args[0])
-						throw 'list::push() requires an element to push'
-					return {
-						identifier: 'operator_letter_of',
-						args: [
-							node.args[0],
-							object
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
-				
-				default:
-					throw `unknown property ${node.method} for GLOBAL vtype`
-			}
+		switch (node.method) {
+			case 'letter':
+				if (!node.args[0])
+					throw 'string::letter() requires an element to push'
+				return {
+					identifier: 'operator_letter_of',
+					args: [
+						node.args[0],
+						object
+					],
+					type: 'FunctionCall'
+				} as FunctionCallNode
 		}
+		if ((object as ASTNode).type !== 'Identifier' as NodeType) 
+			throw `unknown property ${node.method} for GLOBAL vtype`
+		
 		const identifier = object as IdentifierNode;
 		if (env.variables.has(identifier.name) ||
 			env.globalVariables.has(identifier.name))
