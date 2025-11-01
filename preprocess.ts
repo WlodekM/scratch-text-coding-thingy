@@ -107,14 +107,6 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 						literal_helper(identifier.name)
 					)
 				
-				case 'at':
-					if (!node.args[0])
-						throw 'list::at() requires an index'
-					return fnc_helper('data_itemoflist',
-						node.args[0],
-						literal_helper(identifier.name)
-					)
-				
 				case 'replace':
 					if (!node.args[1])
 						throw 'list::replace() requires an index and an item'
@@ -131,17 +123,34 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 						node.args[0],
 						literal_helper(identifier.name)
 					)
+				
+				case 'insert':
+					if (!node.args[1])
+						throw 'list::insert() requires an index and an item'
+					return fnc_helper('data_insertatlist',
+						node.args[1],
+						node.args[0],
+						literal_helper(identifier.name),
+					)
+				
+				case 'clear':
+					return fnc_helper('data_deletealloflist',
+						literal_helper(identifier.name)
+					)
+				
+				case 'at':
+					if (!node.args[0])
+						throw 'list::at() requires an index'
+					return fnc_helper('data_itemoflist',
+						node.args[0],
+						literal_helper(identifier.name)
+					)
 
 				case 'indexof':
 					if (!node.args[0])
 						throw 'list::indexof() requires an item'
 					return fnc_helper('data_itemnumoflist',
 						node.args[0],
-						literal_helper(identifier.name)
-					)
-				
-				case 'clear':
-					return fnc_helper('data_deletealloflist',
 						literal_helper(identifier.name)
 					)
 
