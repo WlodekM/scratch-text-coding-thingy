@@ -2,6 +2,21 @@ import type { Environment } from "./asttoblocks.ts";
 import type { ASTNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode } from "./tshv2/main.ts";
 import { ObjectMethodCallNode } from "./tshv2/main.ts";
 
+function fnc_helper(opcode: string, ...args: ASTNode[]) {
+	return {
+		identifier: opcode,
+		args: args,
+		type: 'FunctionCall'
+	} as FunctionCallNode
+}
+
+function literal_helper(value: string | number) {
+	return  {
+			type: 'Literal',
+			value: value
+		} as LiteralNode
+}
+
 // deno-lint-ignore no-explicit-any
 const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 	['ObjectAccess', function(node: ObjectAccessNode, env: Environment): ASTNode {
@@ -21,67 +36,32 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 		if (vtype == 'l') {
 			switch (node.property) {
 				case 'length':
-					return {
-						identifier: 'data_lengthoflist',
-						args: [
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_lengthoflist',
+						literal_helper(identifier.name)
+					)
 				
 				case 'json':
-					return {
-						identifier: 'skyhigh173JSON_json_vm_getlist',
-						args: [
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('skyhigh173JSON_json_vm_getlist',
+						literal_helper(identifier.name)
+					)
 
 				case 'initial_json':
-					return {
-						type: 'Literal',
-						value: JSON.stringify(
-							(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
-							[1]
-						)
-					} as LiteralNode
+					return literal_helper(JSON.stringify(
+						(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
+						[1]
+					))
 
 				case 'id':
-					return {
-						type: 'Literal',
-						value:
-							(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
-							[0]
-					} as LiteralNode
+					return literal_helper(
+						(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
+						[0]
+					)
 				
 				case 'last':
-					return {
-						identifier: 'data_itemoflist',
-						args: [
-							{
-								identifier: 'data_lengthoflist',
-								args: [
-									{
-										type: 'Literal',
-										value: identifier.name
-									} as LiteralNode
-								],
-								type: 'FunctionCall'
-							} as FunctionCallNode,
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_itemoflist',
+						fnc_helper('data_lengthoflist', literal_helper(identifier.name)),
+						literal_helper(identifier.name)
+					)
 			
 				default:
 					throw `unknown property ${node.property} for ${vtype} vtype`
@@ -122,105 +102,56 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 				case 'push':
 					if (!node.args[0])
 						throw 'list::push() requires an element to push'
-					return {
-						identifier: 'data_addtolist',
-						args: [
-							node.args[0],
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_addtolist',
+						node.args[0],
+						literal_helper(identifier.name)
+					)
 				
 				case 'at':
 					if (!node.args[0])
 						throw 'list::at() requires an index'
-					return {
-						identifier: 'data_itemoflist',
-						args: [
-							node.args[0],
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_itemoflist',
+						node.args[0],
+						literal_helper(identifier.name)
+					)
 				
 				case 'replace':
 					if (!node.args[1])
 						throw 'list::replace() requires an index and an item'
-					return {
-						identifier: 'data_replaceitemoflist',
-						args: [
-							node.args[0],
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode,
-							node.args[1],
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_itemoflist',
+						node.args[0],
+						literal_helper(identifier.name),
+						node.args[1]
+					)
 				
 				case 'remove':
 					if (!node.args[0])
 						throw 'list::remove() requires an index'
-					return {
-						identifier: 'data_deleteoflist',
-						args: [
-							node.args[0],
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode,
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_deleteoflist',
+						node.args[0],
+						literal_helper(identifier.name)
+					)
 
 				case 'indexof':
 					if (!node.args[0])
 						throw 'list::indexof() requires an item'
-					return {
-						identifier: 'data_itemnumoflist',
-						args: [
-							node.args[0],
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode,
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_itemnumoflist',
+						node.args[0],
+						literal_helper(identifier.name)
+					)
 				
 				case 'clear':
-					return {
-						identifier: 'data_deletealloflist',
-						args: [
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode,
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_deletealloflist',
+						literal_helper(identifier.name)
+					)
 
 				case 'contains':
 					if (!node.args[0])
 						throw 'list::contains() requires an item'
-					return {
-						identifier: 'data_listcontainsitem',
-						args: [
-							node.args[0],
-							{
-								type: 'Literal',
-								value: identifier.name
-							} as LiteralNode,
-						],
-						type: 'FunctionCall'
-					} as FunctionCallNode
+					return fnc_helper('data_listcontainsitem',
+						node.args[0],
+						literal_helper(identifier.name)
+					)
 				
 				default:
 					throw `unknown property ${node.method} for ${vtype} vtype`
