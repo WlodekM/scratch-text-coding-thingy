@@ -642,25 +642,6 @@ export class Parser {
 				operator: uh.value[0]
 			} as BinaryExpressionNode} as AssignmentNode;
 		}
-		while (this.matchTk([TokenType.COLON_THINGY])) {
-			this.advance();
-			const identifier = this.expect(TokenType.IDENTIFIER, "Expected identifier after OOP dereferencer");
-			if (this.matchTk([TokenType.LPAREN])) {
-				const fnCallNode = this.finishCall(expr, false);
-				expr = {
-					object: expr,
-					type: 'ObjectMethodCall',
-					args: fnCallNode.args,
-					method: identifier.value
-				} as ObjectMethodCallNode
-				continue;
-			}
-			expr = {
-				object: expr,
-				property: identifier.value,
-				type: 'ObjectAccess'
-			} as ObjectAccessNode
-		}
 		return expr;
 	}
 
@@ -680,6 +661,25 @@ export class Parser {
 
 		while (this.peek().type === TokenType.LPAREN) {
 			expr = this.finishCall(expr);
+		}
+		while (this.matchTk([TokenType.COLON_THINGY])) {
+			this.advance();
+			const identifier = this.expect(TokenType.IDENTIFIER, "Expected identifier after OOP dereferencer");
+			if (this.matchTk([TokenType.LPAREN])) {
+				const fnCallNode = this.finishCall(expr, false);
+				expr = {
+					object: expr,
+					type: 'ObjectMethodCall',
+					args: fnCallNode.args,
+					method: identifier.value
+				} as ObjectMethodCallNode
+				continue;
+			}
+			expr = {
+				object: expr,
+				property: identifier.value,
+				type: 'ObjectAccess'
+			} as ObjectAccessNode
 		}
 		return expr;
 	}
