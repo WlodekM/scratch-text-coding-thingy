@@ -924,13 +924,11 @@ export default async function ASTtoBlocks(
 				// 	...blk,
 				// 	id: beNodeId,
 				// };
-				log('aushsifuijso', beNodeId)
 				beInputs = {
 					...Object.fromEntries([
 						(await arg2input(level, beDefinition[0][0], beNode.left, beChildren, scope, beNodeId)).inputs,
 					])
 				}
-				log('fduwonsnm')
 				beInputs = {
 					...beInputs,
 					...Object.fromEntries([
@@ -938,7 +936,6 @@ export default async function ASTtoBlocks(
 					])
 				}
 				lastBlock = _lastLastBlock;
-				log(beNodeId, _lastLastBlock)
 				const beBlock: jsonBlock = {
 					opcode: operations[beNode.operator] ?? 'undefined',
 					...blk,
