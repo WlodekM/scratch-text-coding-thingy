@@ -788,7 +788,7 @@ export default async function ASTtoBlocks(
 					...blk,
 					id: thisBlockID.toString(),
 				};
-				for (let i = 0; i < Math.min(definition.length, fnNode.args.length); i++) {
+				for (let i = 0; i < Math.min(definition[0].length, fnNode.args.length); i++) {
 					const inp = definition[0][i];
 					// console.log(definition, 'ssjfksjfksjkfssj<--', i, inp, fnNode.identifier)
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode.args[i], child, scope)
@@ -1025,7 +1025,7 @@ export default async function ASTtoBlocks(
 				lastBlock = {
 					id: thisBlockID.toString()
 				} as blockBlock
-				for (let i = 0; i < Math.min(bDefinition.length, branchNode.args.length); i++) {
+				for (let i = 0; i < Math.min(bDefinition[0].length, branchNode.args.length); i++) {
 					const inp = bDefinition[0][i];
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, branchNode.args[i], branchChildren, scope)
 					// binputs.push(().inputs)

@@ -110,7 +110,7 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 				case 'replace':
 					if (!node.args[1])
 						throw 'list::replace() requires an index and an item'
-					return fnc_helper('data_itemoflist',
+					return fnc_helper('data_replaceitemoflist',
 						node.args[0],
 						literal_helper(identifier.name),
 						node.args[1]
