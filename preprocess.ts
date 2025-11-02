@@ -76,14 +76,23 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 			case 'letter':
 				if (!node.args[0])
 					throw 'string::letter() requires an element to push'
-				return {
-					identifier: 'operator_letter_of',
-					args: [
-						node.args[0],
-						object
-					],
-					type: 'FunctionCall'
-				} as FunctionCallNode
+				return fnc_helper('operator_letter_of',
+					node.args[0],
+					object
+				)
+
+			case 'str_length':
+				return fnc_helper('operator_length',
+					object
+				)
+
+			case 'join':
+				if (!node.args[0])
+					throw 'string::join() requires a second string'
+				return fnc_helper('operator_join',
+					object,
+					node.args[0]
+				)
 		}
 		if ((object as ASTNode).type !== 'Identifier' as NodeType) 
 			throw `unknown property ${node.method} for GLOBAL vtype`
