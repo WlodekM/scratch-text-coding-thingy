@@ -10,6 +10,10 @@ import {Buffer} from 'node:buffer'
 import transformAST from "./preprocess.ts";
 
 let blockDefinitions = bd
+const args = 
+	typeof Deno !== 'undefined' ? Deno.args :
+	//@ts-ignore:
+	typeof process !== 'undefined' ? process.argv : []
 
 interface Input {
 	name: string,
@@ -390,7 +394,7 @@ export default async function ASTtoBlocks(
 			process.stdout.write(' '.repeat(level*2))
 			console.log(...args)
 		}
-		if (Deno.args.includes('-v'))
+		if (args.includes('-v'))
 			log('procesing node', thisBlockID, node.type,'\n'+' '.repeat(level*2-1+(+(level==0))), {topLevel, noLast, noNext}, lastBlock.id);
 		let blk = {
 			next: null,
