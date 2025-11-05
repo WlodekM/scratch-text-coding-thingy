@@ -625,7 +625,7 @@ export class Parser {
 				body: this.parseAssignment(),
 			} as NotNode
 		}
-		let expr = this.parseBinaryExpression();
+		const expr = this.parseBinaryExpression();
 		if (this.match(TokenType.ASSIGN)) {
 			if (expr.type !== "Identifier")
 				throw new Error("Invalid assignment target; expected an identifier");
