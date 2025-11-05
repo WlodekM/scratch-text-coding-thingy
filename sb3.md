@@ -61,7 +61,7 @@ there is a rable for how this format works over on [scratch wiki](https://www.en
 now onto the object format
 
 ```jsonc
-{
+"c": {
 	"opcode": "data_addtolist", // the opcode (aka id) of the block
 	"next": "d", // the block on the bottom of this one (if it's a reporter) (set to null if nothing)
 	"parent": "b", // the parent of this block (set to null if top-level)
