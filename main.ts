@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-import { parse } from "jsr:@std/yaml";
+import { parse, stringify } from "jsr:@std/yaml";
 import * as json from './jsontypes.ts'
 import { Lexer, Parser } from "./tshv2/main.ts";
 import ASTtoBlocks, { Environment, jsonBlock } from "./asttoblocks.ts";
@@ -25,10 +25,12 @@ type TSprite = {
     costumes: Record<string, TCostume>
     sounds: Record<string, TSound>
     code: null | string
+    path_root?: string
 }
 type TProject = {
     sprites: Record<string, TSprite>
     preprocess?: string
+    search_dir?: string
 }
 
 const dir: string = path.resolve(Deno.args[0] || Deno.cwd() || '.');
@@ -42,6 +44,35 @@ const rawProjectConfig: string = decoder.decode(
     )
 )
 const project: TProject = parse(rawProjectConfig) as TProject
+
+function search_dir(_path: string) {
+    const dir = Deno.readDirSync(_path)
+    for (const element of dir) {
+        if (element.isDirectory) {
+            search_dir(path.join(_path, element.name))
+            continue;
+        }
+        if (!element.name.endsWith('.spr.yaml'))
+            continue;
+        const raw_sprite: string = decoder.decode(
+            Deno.readFileSync(
+                path.join(_path, element.name)
+            )
+        )//.replaceAll(`src/${element.name.replace('.spr.yaml','')}/`, '')
+        // console.log(`src/${element.name}/`)
+        const sprite: TSprite = parse(raw_sprite) as TSprite
+        if (!sprite.path_root)
+            sprite.path_root = _path
+        // Deno.writeTextFileSync(
+        //     path.join(_path, element.name),
+        //     stringify(sprite)
+        // )
+        project.sprites[element.name] = sprite;
+    }
+}
+if (project.search_dir) {
+    search_dir(path.resolve(dir, project.search_dir))
+}
 
 // console.debug(project)
 
@@ -121,7 +152,7 @@ for (const spriteName of Object.keys(project.sprites)
     if (sprite.code) {
         // console.debug('has code!')
         try {
-            const sourceCode = await getCode(path.join(dir, sprite.code));
+            const sourceCode = await getCode(path.resolve(sprite.path_root??dir, sprite.code));
             const lexer = new Lexer(sourceCode);
             const tokens = lexer.tokenize();
             const parser = new Parser(tokens, sourceCode);
@@ -166,7 +197,7 @@ for (const spriteName of Object.keys(project.sprites)
         try {
             const basedir = path.dirname(path.join(dir, sprite.code))
             const sourceCode = parseIncludes(
-                await getCode(path.join(dir, sprite.code)),
+                await getCode(path.resolve(sprite.path_root??dir, sprite.code)),
                 basedir
             );
             if (Deno.args.includes('-da'))
@@ -292,25 +323,26 @@ for (const spriteName of Object.keys(project.sprites)
     } else throw new Error()
 
     for (const [name, asset] of Object.entries(sprite.costumes)) {
+        const asset_path = path.resolve(sprite.path_root??dir, asset.path)
         let [rotationCenterX, rotationCenterY] = [0, 0]
-        if (!assets.has(asset.path)) {
-            const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, asset.path)));
+        if (!assets.has(asset_path)) {
+            const assetData = new TextDecoder().decode(Deno.readFileSync(asset_path));
             const match = [...assetData.matchAll(/<!--rotationCenter:(.*?):(.*?)-->/g)][0];
             // console.log(match ? match[1] : 'a')
             if(match && match[1] && match[2]) {
                 [rotationCenterX, rotationCenterY] = [Number(match[1]), Number(match[2])]
             }
             const hash = CryptoJS.MD5(assetData).toString();
-            assets.set(asset.path, hash);
+            assets.set(asset_path, hash);
         }
         if (asset.rotationCenter)
             [rotationCenterX, rotationCenterY] = asset.rotationCenter;
-        const ext = asset.path.match(/\.(.*?)$/g)?.[0]
+        const ext = asset_path.match(/\.([^\.]*?)$/)?.[0]
         jsonSprite.costumes.push({
-            assetId: assets.get(asset.path) ?? '',
+            assetId: assets.get(asset_path) ?? '',
             dataFormat: asset.format, // TODO - figure out bitmap format
             bitmapResolution: 1,
-            md5ext: assets.get(asset.path) as string + ext,
+            md5ext: assets.get(asset_path) as string + ext,
             name,
             rotationCenterX,
             rotationCenterY,
@@ -318,17 +350,18 @@ for (const spriteName of Object.keys(project.sprites)
     }
 
     for (const [name, sound] of Object.entries(sprite.sounds ?? {})) {
-        const metadata = await mus.parseFile(path.join(dir, sound.path));
+        const sound_path = path.resolve(sprite.path_root??dir, sound.path)
+        const metadata = await mus.parseFile(sound_path);
         if (!metadata.format.sampleRate)
             throw 'couldnt get sample rate'
         if (!metadata.format.numberOfSamples)
             throw 'couldnt get sample rate';
-        if (!assets.has(sound.path)) {
-            const assetData = new TextDecoder().decode(Deno.readFileSync(path.join(dir, sound.path)));
+        if (!assets.has(sound_path)) {
+            const assetData = new TextDecoder().decode(Deno.readFileSync(sound_path));
             const hash = CryptoJS.MD5(assetData).toString();
-            assets.set(sound.path, hash);
+            assets.set(sound_path, hash);
         }
-        const ext = sound.path.match(/\.(.*?)$/g)?.[0];
+        const ext = sound_path.match(/\.([^\.]*?)$/g)?.[0];
         (jsonSprite.sounds as {
             assetId: string
             dataFormat: "wav" | "wave" | "mp3"
@@ -338,9 +371,9 @@ for (const spriteName of Object.keys(project.sprites)
             sampleCount?: number
             [k: string]: unknown
         }[]).push({
-            assetId: assets.get(sound.path) ?? '',
+            assetId: assets.get(sound_path) ?? '',
             dataFormat: sound.format as "wav" | "wave" | "mp3",
-            md5ext: assets.get(sound.path) as string + ext,
+            md5ext: assets.get(sound_path) as string + ext,
             name,
             rate: metadata.format.sampleRate,
             sampleCount: metadata.format.numberOfSamples
@@ -380,7 +413,7 @@ await zipWriter.add("project.json", new zip.TextReader(JSON.stringify(completepr
 // await zipWriter.add('assets/')
 const uuids: string[] = []
 for (const [asset, uuid] of [...assets.entries()]) {
-    const file = Deno.readFileSync(path.join(dir, asset))
+    const file = Deno.readFileSync(asset)
     if (uuids.includes(uuid))
         continue;
     await zipWriter.add(`${uuid}.svg`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader

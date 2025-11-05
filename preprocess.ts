@@ -17,8 +17,11 @@ function literal_helper(value: string | number) {
 		} as LiteralNode
 }
 
+const identifier_defintions: Map<string, ASTNode | undefined> = new Map();
+const function_defintions: Map<string, ASTNode | undefined> = new Map();
+
 // deno-lint-ignore no-explicit-any
-const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
+const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefined][] = [
 	['ObjectAccess', function(node: ObjectAccessNode, env: Environment): ASTNode {
 		let vtype: null | 'v' | 'l' = null;
 		const object: IdentifierNode | ASTNode = node.object;
@@ -176,11 +179,48 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode][] = [
 			}
 		}
 		throw 'unhandled'
+	}],
+	['FunctionCall', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {
+		if (function_defintions.has(node.identifier))
+			return function_defintions.get(node.identifier);
+		if (node.identifier === 'evaljs') {
+			if (!node.args[0] || node.args[0].type !== 'Literal')
+				throw 'arg 1 must be literal'
+			return eval((node.args[0] as LiteralNode).value.toString())
+		}
+		if (node.identifier === 'identifier_redefine') {
+			if (!node.args[0] || node.args[0].type !== 'Identifier')
+				throw 'arg 1 must be identifier'
+			if (!node.args[1] || node.args[1].type !== 'Literal')
+				throw 'arg 2 must be literal'
+			identifier_defintions.set(
+				(node.args[1] as IdentifierNode).name,
+				eval((node.args[1] as LiteralNode).value.toString())
+			)
+			return
+		}
+		if (node.identifier === 'func_redefine') {
+			if (!node.args[0] || node.args[0].type !== 'Identifier')
+				throw 'arg 1 must be identifier'
+			if (!node.args[1] || node.args[1].type !== 'Literal')
+				throw 'arg 2 must be literal'
+			function_defintions.set(
+				(node.args[1] as IdentifierNode).name,
+				eval((node.args[1] as LiteralNode).value.toString())
+			)
+			return
+		}
+		return node
+	}],
+	['Identifier', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {
+		if (!identifier_defintions.has(node.identifier))
+			return node;
+		return identifier_defintions.get(node.identifier)!
 	}]
 ]
 
 // convert nodes that aren't necessarily blocks to block nodes
-export default function transformAST(node: ASTNode, env: Environment): ASTNode {
+export default function transformAST(node: ASTNode, env: Environment): ASTNode | undefined {
 	const [,transformer] = TRANSFORMERS.find(([t]) => t == node.type as NodeType)??[];
 	if (!transformer)
 		return node;

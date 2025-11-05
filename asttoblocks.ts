@@ -380,6 +380,8 @@ export default async function ASTtoBlocks(
 		preprocessFnDecl: boolean = false
 	): Promise<BlockCollection> {
 		const node = transformAST(raw_node, sprite)
+		if (!node)
+			return new PartialBlockCollection([]) as BlockCollection;
 		blockID++;
 		const thisBlockID = genId(blockID);
 		function log(...args: any[]) {

@@ -402,6 +402,8 @@ export class Parser {
 	position: number = 0;
 	localVars: string[] = [];
 	globalVars: string[] = [];
+	localLists: string[] = [];
+	globalLists: string[] = [];
 	traces: boolean = true;
 
 	constructor(tokens: Token[], source: string) {
@@ -508,6 +510,9 @@ export class Parser {
 		if (this.match(TokenType.LIST)) {
 			const type = this.peek(-1).value
 			const identifier = this.expect(TokenType.IDENTIFIER, "Expected list name").value;
+			if (type == 'global')
+				this.globalLists.push(identifier);
+			else this.localLists.push(identifier);
 			this.expect(TokenType.ASSIGN, "Expected '=' after list name");
 			const value: ASTNode[] = [];
 
