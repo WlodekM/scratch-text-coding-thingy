@@ -28,7 +28,8 @@ export enum TokenType {
 	ASSIGNBINOP	= "ASSIGNBINOP",
 	LBRACKET	= "LBRAKET",
 	RBRACKET	= "RBRAKET",
-	COLON_THINGY= "COLON_THINGY"
+	COLON_THINGY= "COLON_THINGY",
+	ON			= "ON"
 }
 
 export interface Token {
@@ -132,6 +133,7 @@ export class Lexer {
 				else if	(identifier === "gf")		this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
 				else if	(identifier === "start")	this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
 				else if	(identifier === "else")		this.pushToken({ line, type: TokenType.ELSE, value: identifier });
+				else if	(identifier === "on")		this.pushToken({ line, type: TokenType.ON, value: identifier });
 				else 								this.pushToken({ line, type: TokenType.IDENTIFIER, value: identifier });
 			} else if (this.isDigit(char)) {
 				let number = char;
@@ -251,7 +253,8 @@ export type NodeType = "VariableDeclaration" |
 	"ListDeclaration" |
 	"Return" |
 	"ObjectAccess" |
-	"ObjectMethodCall"
+	"ObjectMethodCall" |
+	"OnEvent"
 
 export interface ASTNode {
 	type: string;
@@ -374,6 +377,12 @@ export interface ObjectMethodCallNode extends ASTNode {
 	args: ASTNode[];
 }
 
+export interface OnEventNode extends ASTNode {
+	type: "OnEvent";
+	branch: ASTNode[];
+	event: string;
+}
+
 export type Node = VariableDeclarationNode |
 	FunctionDeclarationNode |
 	AssignmentNode |
@@ -392,7 +401,8 @@ export type Node = VariableDeclarationNode |
 	ListDeclarationNode |
 	ReturnNode |
 	ObjectAccessNode |
-	ObjectMethodCallNode
+	ObjectMethodCallNode |
+	OnEventNode
 
 
 // Parser
@@ -561,6 +571,12 @@ export class Parser {
 			return doFn.call(this, false)
 		}
 
+		if (this.match(TokenType.ON)) {
+			const event = this.expect(TokenType.IDENTIFIER, "Expected '(' after 'if'");
+			this.expect(TokenType.LBRACE, "Expected '{' after on event statement");
+			const branch = this.parseBlock();
+			return { type: "OnEvent", branch, event: event.value } as OnEventNode;
+		}
 
 		if (this.match(TokenType.IF)) {
 			this.expect(TokenType.LPAREN, "Expected '(' after 'if'");
