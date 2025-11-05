@@ -738,7 +738,7 @@ export default async function ASTtoBlocks(
 							})
 						)
 					}
-				}
+				} else throw `unknown include type "${includeNode.type}"`
 				return new PartialBlockCollection([]) as BlockCollection
 
 			// deno-lint-ignore no-fallthrough
