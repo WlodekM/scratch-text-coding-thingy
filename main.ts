@@ -193,11 +193,16 @@ for (const spriteName of Object.keys(project.sprites)
     jsonSprite.broadcasts = {}
     jsonSprite.costumes = []
 
+    // deno-lint-ignore no-inner-declarations
+    function get_path(_path: string) {
+        return path.resolve(sprite.path_root??dir, sprite.code?.replace(/^\$/,dir))
+    }
+
     if (sprite.code) {
         try {
-            const basedir = path.dirname(path.join(dir, sprite.code))
+            const basedir = path.dirname(get_path(sprite.code))
             const sourceCode = parseIncludes(
-                await getCode(path.resolve(sprite.path_root??dir, sprite.code)),
+                await getCode(get_path(sprite.code)),
                 basedir
             );
             if (Deno.args.includes('-da'))
@@ -323,7 +328,7 @@ for (const spriteName of Object.keys(project.sprites)
     } else throw new Error()
 
     for (const [name, asset] of Object.entries(sprite.costumes)) {
-        const asset_path = path.resolve(sprite.path_root??dir, asset.path)
+        const asset_path = get_path(asset.path)
         let [rotationCenterX, rotationCenterY] = [0, 0]
         if (!assets.has(asset_path)) {
             const assetData = new TextDecoder().decode(Deno.readFileSync(asset_path));
@@ -350,7 +355,7 @@ for (const spriteName of Object.keys(project.sprites)
     }
 
     for (const [name, sound] of Object.entries(sprite.sounds ?? {})) {
-        const sound_path = path.resolve(sprite.path_root??dir, sound.path)
+        const sound_path = get_path(sound.path)
         const metadata = await mus.parseFile(sound_path);
         if (!metadata.format.sampleRate)
             throw 'couldnt get sample rate'
