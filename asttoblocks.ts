@@ -1049,15 +1049,15 @@ export default async function ASTtoBlocks(
 					fields: Object.fromEntries(bfields)
 				};
 				branchBlock.inputs = Object.fromEntries([...await Promise.all(bDefinition[0]
-						.filter(a => a)
-						.filter(a => Array.isArray(a) && a[0])
-						.map(
-							async (inp, i) => {
-								lastBlock = branchBlock;
-								return (await arg2input(level, inp, branchNode.args[i], branchChildren, scope)).inputs
-							}
-						)
-					), ...binputs]);
+					.filter(a => a)
+					.filter(a => Array.isArray(a) && a[0])
+					.map(
+						async (inp, i) => {
+							lastBlock = branchBlock;
+							return (await arg2input(level, inp, branchNode.args[i], branchChildren, scope)).inputs
+						}
+					)
+				), ...binputs]);
 				if (bDefinition[1] == 'hat') {
 					if (!topLevel)
 						throw 'Hat is allowed in top-level';
