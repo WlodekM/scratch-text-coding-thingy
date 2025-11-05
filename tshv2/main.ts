@@ -98,6 +98,7 @@ export class Lexer {
 		let inComment = false;
 		let global = 0;
 		let line = 0;
+		// deno-lint-ignore no-unused-vars
 		let start = 0;
 
 		while (this.position < this.source.length) {
@@ -624,7 +625,7 @@ export class Parser {
 				body: this.parseAssignment(),
 			} as NotNode
 		}
-		let expr = this.parseBinaryExpression();
+		const expr = this.parseBinaryExpression();
 		if (this.match(TokenType.ASSIGN)) {
 			if (expr.type !== "Identifier")
 				throw new Error("Invalid assignment target; expected an identifier");
