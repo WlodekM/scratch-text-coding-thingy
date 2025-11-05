@@ -98,6 +98,7 @@ export class Lexer {
 		let inComment = false;
 		let global = 0;
 		let line = 0;
+		// deno-lint-ignore no-unused-vars
 		let start = 0;
 
 		while (this.position < this.source.length) {

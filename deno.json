@@ -6,5 +6,15 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "options": {
+      "useTabs": true
+    }
   }
 }

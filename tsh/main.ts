@@ -1,10 +1,11 @@
 import Parser from "./frontend/parser.ts";
-import Environment, { createGlobalEnv } from "./runtime/environment.ts";
+import { createGlobalEnv } from "./runtime/environment.ts";
 import { evaluate } from "./runtime/interpreter.ts";
 
 repl();
 // run("./test.txt");
 
+// deno-lint-ignore no-unused-vars
 async function run(filename: string) {
     const parser = new Parser();
     const env = createGlobalEnv();

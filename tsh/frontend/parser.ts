@@ -68,7 +68,7 @@ export default class Parser {
 
         // Parse until end of file
         while (this.notEOF()) {
-            let a = this.parseStatement()
+            const a = this.parseStatement()
             console.log(a)
             program.body.push(a);
         }

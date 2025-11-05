@@ -184,7 +184,7 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                 }) ?? [], 'branch',
                     args.filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
                         .reduce<any[]>((p: any, c: any) => {
-                            p.push(...c.filter(k => k.type == 'input_statement'));
+                            p.push(...c.filter((k: any) => k.type == 'input_statement'));
                             return p;
                         }, []).map(i => i.name)]]
             }

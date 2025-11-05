@@ -8,6 +8,7 @@ import { ForNode } from "./tshv2/main.ts";
 import path from "node:path";
 import {Buffer} from 'node:buffer'
 import transformAST from "./preprocess.ts";
+import process from "node:process";
 
 let blockDefinitions = bd
 const args = 
@@ -389,8 +390,6 @@ export default async function ASTtoBlocks(
 		blockID++;
 		const thisBlockID = genId(blockID);
 		function log(...args: any[]) {
-			//@ts-ignore: i am too tired and hungry for this
-			// deno-lint-ignore no-process-globals
 			process.stdout.write(' '.repeat(level*2))
 			console.log(...args)
 		}

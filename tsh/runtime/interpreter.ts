@@ -1,5 +1,5 @@
-import { ValueTypes, RuntimeValue, NumberValue, NullValue } from './values.ts'
-import { AssignmentExpr, BinaryExpr, Identifier, NodeType, NumericLiteral, Program, Stmt, VariableDeclaraion } from "../frontend/ast.ts";
+import { RuntimeValue, NumberValue, NullValue } from './values.ts'
+import { AssignmentExpr, BinaryExpr, Identifier, NumericLiteral, Program, Stmt, VariableDeclaraion } from "../frontend/ast.ts";
 import Environment from "./environment.ts";
 
 function evaluateProgram (program: Program, env: Environment): RuntimeValue {
