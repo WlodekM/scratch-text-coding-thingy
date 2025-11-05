@@ -91,5 +91,7 @@ uh types for stuffs in sb3 r in `jsontypes.ts`
 
 ye
 
+note: do `git submodule update --init --recursive` to add `tw-blocks` and `tw-vm` also do `deno install` ig
+
 #### p.s.
 this is barney86. i am sorry, i sadly could not stop wlodekm from making this unreadable
