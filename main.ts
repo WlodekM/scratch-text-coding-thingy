@@ -131,7 +131,8 @@ export type blockBlock = ({ id: string } & json.Block)
 export type varBlock = { id: string, data:  [12, string, string] }
 // export type jsonBlock = blockBlock | varBlock
 
-const assets: Map<string, string> = new Map();
+// path, [id, type]
+const assets: Map<string, [string, string]> = new Map();
 const extensions: Set<[string, string]> = new Set();
 let lastGlobalVariables: Record<string, string> = {};
 let lastGlobalLists: Record<string, [string, string[]]> = {};
@@ -194,7 +195,7 @@ for (const spriteName of Object.keys(project.sprites)
     jsonSprite.costumes = []
 
     // deno-lint-ignore no-inner-declarations
-    function get_path(_path: string) {
+    function get_path(_path: string): string {
         return path.resolve(sprite.path_root??dir, _path)
     }
 
@@ -330,6 +331,7 @@ for (const spriteName of Object.keys(project.sprites)
     for (const [name, asset] of Object.entries(sprite.costumes)) {
         const asset_path = get_path(asset.path)
         let [rotationCenterX, rotationCenterY] = [0, 0]
+        const ext = asset_path.match(/\.([^\.]*?)$/)![1]
         if (!assets.has(asset_path)) {
             const assetData = new TextDecoder().decode(Deno.readFileSync(asset_path));
             const match = [...assetData.matchAll(/<!--rotationCenter:(.*?):(.*?)-->/g)][0];
@@ -338,16 +340,15 @@ for (const spriteName of Object.keys(project.sprites)
                 [rotationCenterX, rotationCenterY] = [Number(match[1]), Number(match[2])]
             }
             const hash = CryptoJS.MD5(assetData).toString();
-            assets.set(asset_path, hash);
+            assets.set(asset_path, [hash, ext]);
         }
         if (asset.rotationCenter)
             [rotationCenterX, rotationCenterY] = asset.rotationCenter;
-        const ext = asset_path.match(/\.([^\.]*?)$/)?.[0]
         jsonSprite.costumes.push({
-            assetId: assets.get(asset_path) ?? '',
+            assetId: (assets.get(asset_path) ?? [''])[0],
             dataFormat: asset.format, // TODO - figure out bitmap format
             bitmapResolution: 1,
-            md5ext: assets.get(asset_path) as string + ext,
+            md5ext: assets.get(asset_path)!.join('.'),
             name,
             rotationCenterX,
             rotationCenterY,
@@ -367,12 +368,12 @@ for (const spriteName of Object.keys(project.sprites)
             throw 'couldnt get sample rate'
         if (!metadata.format.numberOfSamples)
             throw 'couldnt get sample rate';
+        const ext = sound_path.match(/\.([^\.]*?)$/)![1]
         if (!assets.has(sound_path)) {
             const assetData = new TextDecoder().decode(Deno.readFileSync(sound_path));
             const hash = CryptoJS.MD5(assetData).toString();
-            assets.set(sound_path, hash);
+            assets.set(sound_path, [hash, ext]);
         }
-        const ext = sound_path.match(/\.([^\.]*?)$/g)?.[0];
         (jsonSprite.sounds as {
             assetId: string
             dataFormat: "wav" | "wave" | "mp3"
@@ -382,9 +383,9 @@ for (const spriteName of Object.keys(project.sprites)
             sampleCount?: number
             [k: string]: unknown
         }[]).push({
-            assetId: assets.get(sound_path) ?? '',
+            assetId: (assets.get(sound_path) ?? [''])[0],
             dataFormat: sound.format as "wav" | "wave" | "mp3",
-            md5ext: assets.get(sound_path) as string + ext,
+            md5ext: assets.get(sound_path)!.join('.'),
             name,
             rate: metadata.format.sampleRate,
             sampleCount: metadata.format.numberOfSamples
@@ -423,11 +424,11 @@ const zipWriter = new zip.ZipWriter(zipFileWriter);
 await zipWriter.add("project.json", new zip.TextReader(JSON.stringify(completeproject)));
 // await zipWriter.add('assets/')
 const uuids: string[] = []
-for (const [asset, uuid] of [...assets.entries()]) {
+for (const [asset, [uuid, ext]] of [...assets.entries()]) {
     const file = Deno.readFileSync(asset)
     if (uuids.includes(uuid))
         continue;
-    await zipWriter.add(`${uuid}.svg`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
+    await zipWriter.add(`${uuid}.${ext}`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
     uuids.push(uuid)
 }
 await zipWriter.close();
