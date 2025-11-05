@@ -195,7 +195,7 @@ for (const spriteName of Object.keys(project.sprites)
 
     // deno-lint-ignore no-inner-declarations
     function get_path(_path: string) {
-        return path.resolve(sprite.path_root??dir, sprite.code?.replace(/^\$/,dir))
+        return path.resolve(sprite.path_root??dir, _path)
     }
 
     if (sprite.code) {
@@ -356,7 +356,13 @@ for (const spriteName of Object.keys(project.sprites)
 
     for (const [name, sound] of Object.entries(sprite.sounds ?? {})) {
         const sound_path = get_path(sound.path)
-        const metadata = await mus.parseFile(sound_path);
+        let metadata;
+        try {
+            metadata = await mus.parseFile(sound_path);
+        } catch (error) {
+            console.error('error with parsing sound file at', sound_path);
+            throw error
+        }
         if (!metadata.format.sampleRate)
             throw 'couldnt get sample rate'
         if (!metadata.format.numberOfSamples)
