@@ -83,7 +83,7 @@ now onto the object format
 		"LIST": [
 			"a-test", // the id
 			"test", // the name
-			"list" // the type
+			"list" // the type, only needed in SOME cases for some fucking reason
 		]
 	},
 	"shadow": false, // shadow blocks are ones that can't be taken out of their parent block, such as inputs or arguments on custom block definitions (those ones have custom logic allowing you to duplicate them)

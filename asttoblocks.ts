@@ -64,7 +64,17 @@ function genVarId(name: string): string {
 export class Environment {
 	variables: Map<string, string> = new Map();
 	globalVariables: Map<string, string> = new Map();
+	getVarId(variable: string): string | undefined {
+		return this.variables.get(variable) ?? this.globalVariables.get(variable);
+	}
 	lists: Map<string, [string, string[]]> = new Map();
+	getListId(list: string): string | undefined {
+		const l = this.lists.get(list) ?? this.globalLists.get(list);
+		return l ? l[0] : undefined;
+	}
+	getVarOrListId(name: string): string | undefined {
+		return this.getVarId(name) ?? this.getListId(name)
+	}
 	globalLists: Map<string, [string, string[]]> = new Map();
 	extensions: [string, string][] = [];
 	customBlocks: Record<string, CustomBlock> = {};
@@ -353,6 +363,11 @@ export default async function ASTtoBlocks(
 			}
 		}
 		lastBlock = thisLast
+		// if (sprite.getVarOrListId((arg as LiteralNode | any)?.value?.toString()) ||
+		// 	(inp.variableTypes ?? [])[0])
+		// console.log((arg as LiteralNode | any)?.value?.toString(),
+		// 	sprite.getVarOrListId((arg as LiteralNode | any)?.value?.toString()),
+		// 	(inp.variableTypes ?? [])[0], inp)
 		return {
 			inputs:
 				[inp.name, [inp.type,
@@ -373,7 +388,7 @@ export default async function ASTtoBlocks(
 				[inp.name,
 					[
 						(arg as LiteralNode | any)?.value?.toString(),
-						(arg as LiteralNode | any)?.value?.toString(),
+						sprite.getVarOrListId((arg as LiteralNode | any)?.value?.toString()),
 						(inp.variableTypes ?? [])[0]
 					].filter(k=>k)
 				] : []) as [string, any] | []
