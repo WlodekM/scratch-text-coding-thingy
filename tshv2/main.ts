@@ -739,9 +739,9 @@ export class Parser {
 			} as BranchFunctionCallNode;
 		}
 
-
+		console.log(callee)
 		if (callee.type !== "Identifier" && callee.type !== 'ObjectAccess' && callee.type !== 'ObjectMethodCall')
-			throw new Error("Function call expects an identifier, objectaccess or objectmethodcall");
+			throw new Error(`Function call expects an identifier, objectaccess or objectmethodcall. got ${callee.type}`);
 		return {
 			type: "FunctionCall",
 			identifier: (callee as IdentifierNode).name,
