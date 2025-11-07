@@ -167,7 +167,7 @@ export class Lexer {
 			else if (char === "]")   this.pushToken({ line, type: TokenType.RBRACKET, value: char });
 			else if (char === ",")   this.pushToken({ line, type: TokenType.COMMA,  value: char });
 			else if (char === ":" && this.peek() === ':') {
-				this.pushToken({ line, type: TokenType.COLON_THINGY, value: '+=' });
+				this.pushToken({ line, type: TokenType.COLON_THINGY, value: '::' });
 				this.advance();
 			}
 			else if (char === "+" && this.peek() === '=') {
@@ -685,10 +685,14 @@ export class Parser {
 			expr = this.finishCall(expr);
 		}
 		while (this.matchTk([TokenType.COLON_THINGY])) {
+			console.log('oy!')
 			this.advance();
 			const identifier = this.expect(TokenType.IDENTIFIER, "Expected identifier after OOP dereferencer");
 			if (this.matchTk([TokenType.LPAREN])) {
-				const fnCallNode = this.finishCall(expr, false);
+				const fnCallNode = this.finishCall({
+					name: identifier.value,
+					type: 'Identifier'
+				} as IdentifierNode, false);
 				expr = {
 					object: expr,
 					type: 'ObjectMethodCall',
@@ -739,9 +743,8 @@ export class Parser {
 			} as BranchFunctionCallNode;
 		}
 
-		console.log(callee)
-		if (callee.type !== "Identifier" && callee.type !== 'ObjectAccess' && callee.type !== 'ObjectMethodCall')
-			throw new Error(`Function call expects an identifier, objectaccess or objectmethodcall. got ${callee.type}`);
+		if (callee.type !== "Identifier")
+			throw new Error(`Function call expects an identifier. got ${callee.type}`);
 		return {
 			type: "FunctionCall",
 			identifier: (callee as IdentifierNode).name,

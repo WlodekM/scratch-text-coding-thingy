@@ -1,3 +1,4 @@
+import { Environment } from "../asttoblocks.ts";
 import { getNodeChildren } from "../getGlobalVars.ts";
 import transformAST from "../preprocess.ts";
 import { ASTNode, Lexer, Parser } from "./main.ts";
@@ -16,14 +17,7 @@ Deno.writeFileSync('ast.json', encoder.encode(JSON.stringify(ast, null, 2)))
 
 console.log(ast);
 
-const env = {
-	customBlocks: {},
-	extensions: [],
-	globalLists: new Map(),
-	globalVariables: new Map(),
-	lists: new Map(),
-	variables: new Map(),
-}
+const env: Environment = new Environment();
 
 function doThingToNode(node: ASTNode) {
 	transformAST(node, env)
