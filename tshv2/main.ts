@@ -685,7 +685,6 @@ export class Parser {
 			expr = this.finishCall(expr);
 		}
 		while (this.matchTk([TokenType.COLON_THINGY])) {
-			console.log('oy!')
 			this.advance();
 			const identifier = this.expect(TokenType.IDENTIFIER, "Expected identifier after OOP dereferencer");
 			if (this.matchTk([TokenType.LPAREN])) {
