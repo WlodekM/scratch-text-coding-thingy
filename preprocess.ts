@@ -1,5 +1,5 @@
 import type { Environment } from "./asttoblocks.ts";
-import type { ASTNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode } from "./tshv2/main.ts";
+import type { ASTNode, BranchFunctionCallNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode } from "./tshv2/main.ts";
 import { ObjectMethodCallNode } from "./tshv2/main.ts";
 
 function fnc_helper(opcode: string, ...args: ASTNode[]) {
@@ -8,6 +8,14 @@ function fnc_helper(opcode: string, ...args: ASTNode[]) {
 		args: args,
 		type: 'FunctionCall'
 	} as FunctionCallNode
+}
+function bfnc_helper(opcode: string, branches: ASTNode[][], ...args: ASTNode[]) {
+	return {
+		type: 'BranchFunctionCall',
+		identifier: opcode,
+		args: args,
+		branches
+	} as BranchFunctionCallNode
 }
 
 function literal_helper(value: string | number) {
@@ -216,6 +224,14 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 		if (!identifier_defintions.has(node.identifier))
 			return node;
 		return identifier_defintions.get(node.identifier)!
+	}],
+	['OnEvent', function(node: OnEventNode, env: Environment): ASTNode {
+		return bfnc_helper('event_whenbroadcastreceived',
+			[
+				node.branch
+			],
+			literal_helper(node.event),
+		)
 	}]
 ]
 
