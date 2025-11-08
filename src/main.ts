@@ -26,6 +26,7 @@ type TSprite = {
     sounds: Record<string, TSound>
     code: null | string
     path_root?: string
+    hidden?: boolean
 }
 type TProject = {
     sprites: Record<string, TSprite>
@@ -186,7 +187,7 @@ for (const spriteName of Object.keys(project.sprites)
     layer++;
     const sprite: TSprite = project.sprites[spriteName];
     console.log('processing', sprite.name)
-    const jsonSprite: Partial<json.Sprite> = {};
+    let jsonSprite: Partial<json.Sprite> = {};
     jsonSprite.name = sprite.name
     jsonSprite.isStage = sprite.stage ?? false
     jsonSprite.lists = {}
@@ -313,13 +314,16 @@ for (const spriteName of Object.keys(project.sprites)
         jsonSprite.videoTransparency = 50
         jsonSprite.videoState = 'on'
     } else if (jsonSprite.isStage == false) {
-        jsonSprite.visible = true
-        jsonSprite.x = 0;
-        jsonSprite.y = 0;
-        jsonSprite.size = 100;
-        jsonSprite.direction = 90;
-        jsonSprite.draggable = false;
-        jsonSprite.rotationStyle = 'all around'
+        jsonSprite = {
+            ...jsonSprite,
+            visible: !(sprite.hidden??false),
+            x: 0,
+            y: 0,
+            size: 100,
+            direction: 90,
+            draggable: false,
+            rotationStyle: 'all around',
+        }
     }
     let completesprite: json.Sprite;
     if (jsonSprite.isStage) {
@@ -344,7 +348,7 @@ for (const spriteName of Object.keys(project.sprites)
         }
         if (asset.rotationCenter)
             [rotationCenterX, rotationCenterY] = asset.rotationCenter;
-        jsonSprite.costumes.push({
+        jsonSprite.costumes!.push({
             assetId: (assets.get(asset_path) ?? [''])[0],
             dataFormat: asset.format, // TODO - figure out bitmap format
             bitmapResolution: 1,
