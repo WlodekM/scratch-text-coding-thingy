@@ -1,5 +1,5 @@
 // base blocks, for including in ur projects
-const blocksRoot = globalThis.blocksRoot ?? 'tw-blocks'
+const blocksRoot = globalThis.blocksRoot ?? '../tw-blocks'
 await import(`${blocksRoot}/blocks_vertical/control.js`);
 await import(`${blocksRoot}/blocks_vertical/event.js`);
 await import(`${blocksRoot}/blocks_vertical/looks.js`);

@@ -41,7 +41,7 @@ const Blockly = globalThis.Blockly = {
     Categories: {},
     FieldDropdown: class FieldDropdown {}
 };
-let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `pm-blocks`)) ? path.resolve(import.meta.dirname, `pm-blocks`) : path.join(import.meta.dirname, `tw-blocks`)
+let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `pm-blocks`)) ? path.resolve(import.meta.dirname, `pm-blocks`) : path.join(import.meta.dirname, `../tw-blocks`)
 if (!blocksRoot.startsWith('/') && !blocksRoot.match(/^[A-Z]:/))
     blocksRoot = './' + blocksRoot;
 //@ts-ignore:
