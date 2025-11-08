@@ -235,7 +235,7 @@ function findVarDecls(env: Environment, node: ASTNode): void {
 }
 
 const vmPath = fs.existsSync('pm-vm') ?
-	'./pm-vm' : './tw-vm'
+	'../pm-vm' : '../tw-vm'
 
 export default async function ASTtoBlocks(
 	ast: ASTNode[],
