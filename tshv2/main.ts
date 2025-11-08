@@ -635,12 +635,6 @@ export class Parser {
 	}
 
 	private parseAssignment(): ASTNode {
-		if (this.match(TokenType.NOT)) {
-			return {
-				type: 'Not',
-				body: this.parseAssignment(),
-			} as NotNode
-		}
 		const expr = this.parseBinaryExpression();
 		if (this.match(TokenType.ASSIGN)) {
 			if (expr.type !== "Identifier")
@@ -679,6 +673,12 @@ export class Parser {
 	}
 
 	private parseCall(): ASTNode {
+		if (this.match(TokenType.NOT)) {
+			return {
+				type: 'Not',
+				body: this.parseCall(),
+			} as NotNode
+		}
 		let expr = this.parsePrimary();
 
 		while (this.peek().type === TokenType.LPAREN) {
