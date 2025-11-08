@@ -4,10 +4,13 @@
 // var _colliding = 0
 // var y = 0
 // var FLOOR = 0
-list test = { 1 2 }
+// list test = { 1 2 }
+// var _test = 4
 start {
-    test::push("meow") // same as data_addtolist("meow", "test")
-    looks_say(test::json) // same as skyhigh173JSON_json_vm_getlist("test")
-    looks_say(test::at(2)) // 2
-    looks_say(test::last::letter(1))
+//     test::push("meow") // same as data_addtolist("meow", "test")
+//     looks_say(test::json) // same as skyhigh173JSON_json_vm_getlist("test")
+//     looks_say(test::at(2)) // 2
+//     looks_say(test::last::letter(1))
+//     _test = 6
+    fn1()::join("/")
 }
