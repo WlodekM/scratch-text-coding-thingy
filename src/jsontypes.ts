@@ -1,3 +1,29 @@
+export enum InputType {
+	locked = 1,
+    unlocked2 = 2, // this one is used for blocks in substacks methinks
+    unlocked3 = 3, // this one is used for vars n stuff 
+}
+
+export enum InputDataType {
+	math_number = 4,
+	math_positive_number = 5,
+	math_whole_number = 6,
+	math_integer = 7,
+	math_angle = 8,
+	colour_picker = 9,
+	text = 10,
+	event_broadcast_menu = 11,
+	data_variable = 12,
+	data_listcontents = 13
+}
+
+export type BasicInputs =
+	| InputDataType.math_number
+	| InputDataType.math_positive_number
+	| InputDataType.math_whole_number
+	| InputDataType.math_integer
+	| InputDataType.math_angle
+
 export type blockBlock = ({ id?: string } & Block)
 export type varBlock = [12, string, string]
 export type jsonBlock = blockBlock | varBlock
@@ -68,7 +94,29 @@ export interface Block {
 
 export type Inputs = Record<string, Input>
 
-export type Input = [number, ...any]
+export type Input = [
+    InputType.locked | InputType.unlocked2 | InputType.unlocked3,
+    ...(
+        | (string | null)
+        | (
+            | [] // empty, no type
+            | [BasicInputs] // empty, has type
+            | [BasicInputs, string | number] // basic inputs
+            | [] // empty again??
+            | [InputDataType.colour_picker]
+            | [InputDataType.colour_picker, string]
+            | []
+            | [InputDataType.text]
+            | [InputDataType.text, string | number]
+            | []
+            | [InputDataType.event_broadcast_menu]
+            | [InputDataType.event_broadcast_menu, string]
+            | [InputDataType.event_broadcast_menu, string, string]
+            | [InputDataType.data_variable, string, string, ...[number, number]]
+            | [InputDataType.data_listcontents, string, string, ...[number, number]]
+        )
+    )[]
+]
 
 export interface Inputs3 {
     STEPS: [number, [number, string]]
@@ -167,7 +215,7 @@ export interface Project {
                 }
                 | (
                     | [12, string, string, ...number[]]
-                    | [13, string, string, ...number[]]
+                    | [13, string, string, ...number[]] //NOTE - technically can be any Input block
                 )
             }
             variables: {
