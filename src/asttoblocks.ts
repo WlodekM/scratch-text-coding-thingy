@@ -992,10 +992,13 @@ export default async function ASTtoBlocks(
 				const firstThenChild: BlockCollection<blockBlock> | undefined =
 					thenBlocks.children[0] as BlockCollection<blockBlock> | undefined
 				ifChildren.push(thenBlocks)
-				ifBlock.inputs.SUBSTACK = [
-					2,
-					firstThenChild?.block?.id
-				]
+				if (firstThenChild?.block)
+					ifBlock.inputs.SUBSTACK = [
+						2,
+						firstThenChild.block.id
+					]
+				else 
+					ifBlock.inputs.SUBSTACK = [2]
 				if (!noLast) lastBlock = ifBlock;
 				const condition = (await arg2input(level, {
 					name: 'CONDITION',
@@ -1016,10 +1019,10 @@ export default async function ASTtoBlocks(
 					const firstElseChild: BlockCollection<blockBlock> | undefined =
 						elseBlocks.children[0] as BlockCollection<blockBlock> | undefined
 					ifChildren.push(elseBlocks)
-					ifBlock.inputs.SUBSTACK2 = [
+					ifBlock.inputs.SUBSTACK2 = firstElseChild?.block ? [
 						2,
 						firstElseChild?.block?.id
-					]
+					] : [2]
 				}
 				if (!noLast) lastBlock = ifBlock;
 				return new BlockCollection(ifBlock, ifChildren);
@@ -1108,10 +1111,10 @@ export default async function ASTtoBlocks(
 					)
 					branchChildren.push(branchBlocks)
 					const firstBranchChild = branchBlocks.children[0] as BlockCollection<blockBlock> | undefined
-					branchBlock.inputs['SUBSTACK' + (branchN == 1 ? '' : branchN)] = [
+					branchBlock.inputs['SUBSTACK' + (branchN == 1 ? '' : branchN)] = firstBranchChild?.block ? [
 						2,
-						firstBranchChild?.block?.id
-					]
+						firstBranchChild.block.id
+					] : [2]
 				}
 				lastBlock = branchBlock;
 				return new BlockCollection(branchBlock, branchChildren);
