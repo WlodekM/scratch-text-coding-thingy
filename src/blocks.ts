@@ -1,10 +1,28 @@
 import fs from "node:fs"
 import path from "node:path";
 // deno-lint-ignore-file no-explicit-any
-interface Input {
+interface BaseInput {
     name: string,
     type: number
 }
+
+interface FieldInputA extends BaseInput {
+    options: [string, string][],
+    variableTypes: string[],
+    blocklyType: string
+}
+
+interface FieldInputB extends FieldInputA {
+    field: string
+}
+
+
+interface DropdownInput extends BaseInput {
+    variableTypes: string[],
+    blocklyType: string
+}
+
+type Input = BaseInput
 
 //@ts-ignore: goog...
 globalThis.goog = {
@@ -261,4 +279,4 @@ export const processedBlocks: Record<string, any[]> = jsBlocksToJSON()
 export default {
     ...processedBlocks,
     // blocks not in tw here
-} as Record<string, [Input[], string]>
+} as Record<string, [Input[], string] | [Input[], 'branch', string[]]>

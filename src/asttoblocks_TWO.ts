@@ -34,7 +34,7 @@ class List extends SpritePropertyWithIdAndIntialValue {
 }
 
 class Broadcast extends SpritePropertyWithId {
-	constructor (id: string, name: string, intial_value: (string | number)[]=[]) {
+	constructor (id: string, name: string) {
 		super(id, name)
 	}
 }
@@ -46,6 +46,7 @@ class Scope {
 
 class StageScope extends Scope {
 	broadcasts: Map<string, Broadcast> = new Map()
+	stage: StageScope = this;
 	// it is here because why not
 	definitions = Object.assign({}, base_definitions)
 }
@@ -132,32 +133,50 @@ class ScratchBlockInput {
 
 class ScratchBlock {
 	opcode: string = 'undefined'
+	scope: SpriteScope | StageScope
 	get definition() {
-		throw 'unimplemented'
+		if (this.scope.stage.definitions[this.opcode] === undefined)
+			throw `definition not found for ${this.opcode}, have you included blocks.js?`
+		return this.scope.stage.definitions[this.opcode]
+	}
+	loadInputs() {
+		const definition = this.definition;
+		const inputs = definition[0];
+		const branch = definition[1] == 'branch'
+		for (const input of inputs) {
+			const sb_input = new ScratchBlockInput()
+			if (branch && definition[2]!.includes(input.name))
+				sb_input.type = BlockInputDataType.block
+			this.inputs.set(input.name, sb_input)
+		}
 	}
 	inputs: Map<string, ScratchBlockInput> = new Map()
+	constructor(scope: SpriteScope | StageScope) {
+		this.scope = scope;
+	}
 }
 
 class Block {
 	static _id = 0
-	scope: Scope
+	scope: SpriteScope | StageScope
 	parent: Block | undefined;
 	next: Block | undefined;
 	id: string;
-	scratch_block = new ScratchBlock();
+	scratch_block: ScratchBlock;
 	get opcode(): string {
 		if (this.scratch_block.opcode === 'undefined')
 			throw 'opcode uninitialized';
 		return this.scratch_block.opcode;
 	}
 	set opcode(opcode: string) {
-		//TODO - check if definition exists
 		this.scratch_block.opcode = opcode;
+		this.scratch_block.definition;
 	}
 	topLevel: boolean = false;
-	constructor(scope: Scope, parent: Block | undefined) {
+	constructor(scope: SpriteScope | StageScope, parent: Block | undefined) {
 		this.id = (Block._id++).toString()
 		this.scope = scope;
+		this.scratch_block = new ScratchBlock(scope);
 		if (!parent)
 			this.topLevel = true;
 		else {
