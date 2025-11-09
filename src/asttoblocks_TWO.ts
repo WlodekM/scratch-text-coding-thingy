@@ -1,4 +1,4 @@
-import { InputType } from "./jsontypes.ts";
+import { blockBlock, InputType } from "./jsontypes.ts";
 import { Input, InputDataType } from './jsontypes.ts'
 import base_definitions from './blocks.ts'
 
@@ -174,6 +174,7 @@ class Block {
 	}
 	topLevel: boolean = false;
 	constructor(scope: SpriteScope | StageScope, parent: Block | undefined) {
+		//FIXME - non-numerical IDs
 		this.id = (Block._id++).toString()
 		this.scope = scope;
 		this.scratch_block = new ScratchBlock(scope);
@@ -182,6 +183,20 @@ class Block {
 		else {
 			this.parent = parent;
 			parent.next = this;
+		}
+	}
+	get_JSON(): blockBlock {
+		return {
+			opcode: this.opcode,
+			next: this.next ? this.next.id : null,
+			parent: this.parent ? this.parent.id : null,
+			fields: {}, //TODO - fields
+			inputs: Object.fromEntries(
+				[...this.scratch_block.inputs.entries()]
+					.map(([id, input]) => [id, input.get_JSON()])
+			),
+			shadow: false,
+			topLevel: this.topLevel,
 		}
 	}
 }
