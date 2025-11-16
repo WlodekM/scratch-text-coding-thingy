@@ -1,5 +1,7 @@
 import fs from "node:fs"
 import path from "node:path";
+const Blockly = (await import('./get_blockly_shit.js')).default;
+// console.log(ScratchBlocksBlock)
 // deno-lint-ignore-file no-explicit-any
 interface BaseInput {
     name: string,
@@ -24,41 +26,7 @@ interface DropdownInput extends BaseInput {
 
 type Input = BaseInput
 
-//@ts-ignore: goog...
-globalThis.goog = {
-    require: () => {},
-    provide: () => {},
-};
 //@ts-ignore:
-const Blockly = globalThis.Blockly = {
-    //@ts-ignore:
-    Blocks: {},
-    Constants: {
-        //@ts-ignore:
-        Data: {}
-    },
-    Extensions: {
-        registerMixin: () => {}
-    },
-    ScratchBlocks: {
-        //@ts-ignore:
-        ProcedureUtils: {
-            //@ts-ignore:
-            parseReturnMutation: () => {}
-        }
-    },
-    //@ts-ignore:
-    Msg: {},
-    mainWorkspace: {
-        options: {
-            pathToMedia: ''
-        },
-        enableProcedureReturns() {}
-    },
-    //@ts-ignore:
-    Categories: {},
-    FieldDropdown: class FieldDropdown {}
-};
 let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `pm-blocks`)) ? path.resolve(import.meta.dirname, `pm-blocks`) : path.join(import.meta.dirname, `../tw-blocks`)
 if (!blocksRoot.startsWith('/') && !blocksRoot.match(/^[A-Z]:/))
     blocksRoot = './' + blocksRoot;
@@ -93,6 +61,7 @@ if (globalThis.aditionalImports && typeof globalThis.aditionalImports == 'functi
 // this is used for custom blocks
 // await import('./tw-blocks/blocks_vertical/procedures.js');
 
+//@ts-expect-error: wut
 export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
     const blocks: Record<string, any> = {};
     for (const [opcode, data] of Object.entries(jsblocks)) {
