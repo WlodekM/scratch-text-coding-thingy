@@ -143,19 +143,20 @@ export class Lexer {
 					number += this.advance();
 				}
 				this.pushToken({ line, type: TokenType.NUMBER, value: number });
-			} else if (char === '"') {
+			} else if (char === '"' || char === "'") {
+				const quote = char;
 				start = this.position;
 				let string = "";
 				while (
 					!(
-						(this.peek() == '"' && this.peek(-1) !== '\\')
+						(this.peek() == quote && this.peek(-1) !== '\\')
 						|| this.peek() == ""
 					)
 				) {
 					// console.log(this.position, this.peek(), this.peek(-1))
 					string += this.advance();
 				}
-				if (!this.match('"')) {
+				if (!this.match(quote)) {
 					throw new Error("Unterminated string");
 				}
 				this.pushToken({ line, type: TokenType.STRING, value: string });
