@@ -64,6 +64,7 @@ function genVarId(name: string): string {
 export class Environment {
 	variables: Map<string, string> = new Map();
 	globalVariables: Map<string, string> = new Map();
+	broadcasts: Map<string, string> = new Map();
 	getVarId(variable: string): string | undefined {
 		return this.variables.get(variable) ?? this.globalVariables.get(variable);
 	}
@@ -72,8 +73,8 @@ export class Environment {
 		const l = this.lists.get(list) ?? this.globalLists.get(list);
 		return l ? l[0] : undefined;
 	}
-	getVarOrListId(name: string): string | undefined {
-		return this.getVarId(name) ?? this.getListId(name)
+	getVarOrListOrEventId(name: string): string | undefined {
+		return this.getVarId(name) ?? this.getListId(name) ?? this.broadcasts.get(name)
 	}
 	globalLists: Map<string, [string, string[]]> = new Map();
 	extensions: [string, string][] = [];
@@ -368,6 +369,10 @@ export default async function ASTtoBlocks(
 		// console.log((arg as LiteralNode | any)?.value?.toString(),
 		// 	sprite.getVarOrListId((arg as LiteralNode | any)?.value?.toString()),
 		// 	(inp.variableTypes ?? [])[0], inp)
+		if ((inp.variableTypes ?? [])[0] == 'broadcast_msg') {
+			const id = genVarId((arg as LiteralNode | any)?.value?.toString())
+			sprite.broadcasts.set((arg as LiteralNode | any)?.value?.toString(), id)
+		}
 		return {
 			inputs:
 				[inp.name, [inp.type,
@@ -388,7 +393,7 @@ export default async function ASTtoBlocks(
 				[inp.name,
 					[
 						(arg as LiteralNode | any)?.value?.toString(),
-						sprite.getVarOrListId((arg as LiteralNode | any)?.value?.toString()),
+						sprite.getVarOrListOrEventId((arg as LiteralNode | any)?.value?.toString()),
 						(inp.variableTypes ?? [])[0]
 					].filter(k=>k)
 				] : []) as [string, any] | []
