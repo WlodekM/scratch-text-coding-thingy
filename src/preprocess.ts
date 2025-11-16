@@ -194,7 +194,8 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 		if (node.identifier === 'evaljs') {
 			if (!node.args[0] || node.args[0].type !== 'Literal')
 				throw 'arg 1 must be literal'
-			return eval((node.args[0] as LiteralNode).value.toString())
+			const code = (node.args[0] as LiteralNode).value.toString();
+			return eval(code)
 		}
 		if (node.identifier === 'identifier_redefine') {
 			if (!node.args[0] || node.args[0].type !== 'Identifier')
