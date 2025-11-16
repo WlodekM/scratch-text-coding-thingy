@@ -1,6 +1,7 @@
-import { blockBlock, InputType } from "./jsontypes.ts";
+import { blockBlock, InputType, jsonBlock } from "./jsontypes.ts";
 import { Input, InputDataType } from './jsontypes.ts'
-import base_definitions from './blocks.ts'
+import base_definitions, { jsBlocksToJSON } from './blocks.ts'
+import { ASTNode, FunctionCallNode } from "./tshv2/main.ts";
 
 abstract class SpritePropertyWithId {
 	id: string
@@ -136,7 +137,7 @@ class ScratchBlock {
 	scope: SpriteScope | StageScope
 	get definition() {
 		if (this.scope.stage.definitions[this.opcode] === undefined)
-			throw `definition not found for ${this.opcode}, have you included blocks.js?`
+			throw `definition not found for ${this.opcode}, have you included base.js?`
 		return this.scope.stage.definitions[this.opcode]
 	}
 	loadInputs() {
@@ -200,3 +201,186 @@ class Block {
 		}
 	}
 }
+
+const stage = new StageScope();
+const sprite = new SpriteScope(stage);
+
+//@ts-ignore: goog...
+globalThis.goog = {
+	require: () => { },
+	provide: () => { },
+};
+//@ts-ignore: blockly...
+const Blockly = globalThis.Blockly = {
+    //@ts-ignore:
+    Blocks: {},
+    Constants: {
+        //@ts-ignore:
+        Data: {}
+    },
+    Extensions: {
+        registerMixin: () => {}
+    },
+    ScratchBlocks: {
+        //@ts-ignore:
+        ProcedureUtils: {
+            //@ts-ignore:
+            parseReturnMutation: () => {}
+        }
+    },
+    //@ts-ignore:
+    Msg: {},
+    mainWorkspace: {
+        options: {
+            pathToMedia: ''
+        },
+        enableProcedureReturns() {}
+    },
+    //@ts-ignore:
+    Categories: {},
+    FieldDropdown: class FieldDropdown {}
+};
+await import(`../tw-blocks/core/constants.js`);
+Blockly.Colours = {
+  // SVG colours: these must be specificed in #RRGGBB style
+  // To add an opacity, this must be specified as a separate property (for SVG fill-opacity)
+  "motion": {
+    "primary": "#4C97FF",
+    "secondary": "#4280D7",
+    "tertiary": "#3373CC",
+    "quaternary": "#3373CC"
+  },
+  "looks": {
+    "primary": "#9966FF",
+    "secondary": "#855CD6",
+    "tertiary": "#774DCB",
+    "quaternary": "#774DCB"
+  },
+  "sounds": {
+    "primary": "#CF63CF",
+    "secondary": "#C94FC9",
+    "tertiary": "#BD42BD",
+    "quaternary": "#BD42BD"
+  },
+  "control": {
+    "primary": "#FFAB19",
+    "secondary": "#EC9C13",
+    "tertiary": "#CF8B17",
+    "quaternary": "#CF8B17"
+  },
+  "event": {
+    "primary": "#FFBF00",
+    "secondary": "#E6AC00",
+    "tertiary": "#CC9900",
+    "quaternary": "#CC9900"
+  },
+  "sensing": {
+    "primary": "#5CB1D6",
+    "secondary": "#47A8D1",
+    "tertiary": "#2E8EB8",
+    "quaternary": "#2E8EB8"
+  },
+  "pen": {
+    "primary": "#0fBD8C",
+    "secondary": "#0DA57A",
+    "tertiary": "#0B8E69",
+    "quaternary": "#0B8E69"
+  },
+  "operators": {
+    "primary": "#59C059",
+    "secondary": "#46B946",
+    "tertiary": "#389438",
+    "quaternary": "#389438"
+  },
+  "data": {
+    "primary": "#FF8C1A",
+    "secondary": "#FF8000",
+    "tertiary": "#DB6E00",
+    "quaternary": "#DB6E00"
+  },
+  // This is not a new category, but rather for differentiation
+  // between lists and scalar variables.
+  "data_lists": {
+    "primary": "#FF661A",
+    "secondary": "#FF5500",
+    "tertiary": "#E64D00",
+    "quaternary": "#E64D00"
+  },
+  "more": {
+    "primary": "#FF6680",
+    "secondary": "#FF4D6A",
+    "tertiary": "#FF3355",
+    "quaternary": "#FF3355"
+  },
+  "text": "#FFFFFF",
+  "workspace": "#F9F9F9",
+  "toolboxHover": "#4C97FF",
+  "toolboxSelected": "#e9eef2",
+  "toolboxText": "#575E75",
+  "blackText": "#575E75",
+  "toolbox": "#FFFFFF",
+  "flyout": "#F9F9F9",
+  "scrollbar": "#CECDCE",
+  "scrollbarHover": '#CECDCE',
+  "textField": "#FFFFFF",
+  "textFieldText": "#575E75",
+  "insertionMarker": "#000000",
+  "insertionMarkerOpacity": 0.2,
+  "dragShadowOpacity": 0.3,
+  "stackGlow": "#FFF200",
+  "stackGlowSize": 4,
+  "stackGlowOpacity": 1,
+  "replacementGlow": "#FFFFFF",
+  "replacementGlowSize": 2,
+  "replacementGlowOpacity": 1,
+  "colourPickerStroke": "#FFFFFF",
+  // CSS colours: support RGBA
+  "fieldShadow": "rgba(0,0,0,0.1)",
+  "dropDownShadow": "rgba(0, 0, 0, .3)",
+  "numPadBackground": "#547AB2",
+  "numPadBorder": "#435F91",
+  "numPadActiveBackground": "#435F91",
+  "numPadText": "white", // Do not use hex here, it cannot be inlined with data-uri SVG
+  "valueReportBackground": "#FFFFFF",
+  "valueReportBorder": "#AAAAAA",
+  "valueReportForeground": "#000000",
+  "menuHover": "rgba(0, 0, 0, 0.2)",
+  "contextMenuBackground": "#ffffff",
+  "contextMenuBorder": "#cccccc",
+  "contextMenuForeground": "#000000",
+  "contextMenuActiveBackground": "#d6e9f8",
+  "contextMenuDisabledForeground": "#cccccc",
+  "flyoutLabelColor": "#575E75",
+  "checkboxInactiveBackground": "#ffffff",
+  "checkboxInactiveBorder": "#c8c8c8",
+  "checkboxActiveBackground": "#4C97FF",
+  "checkboxActiveBorder": "#3373CC",
+  "checkboxCheck": "#ffffff",
+  "buttonActiveBackground": "#ffffff",
+  "buttonForeground": "#575E75",
+  "buttonBorder": "#c6c6c6",
+  "zoomIconFilter": "none"
+};
+// actually import the blocks
+await import(`../tw-blocks/blocks_vertical/control.js`);
+await import(`../tw-blocks/blocks_vertical/event.js`);
+await import(`../tw-blocks/blocks_vertical/looks.js`);
+await import(`../tw-blocks/blocks_vertical/motion.js`);
+await import(`../tw-blocks/blocks_vertical/operators.js`);
+await import(`../tw-blocks/blocks_vertical/sound.js`);
+await import(`../tw-blocks/blocks_vertical/sensing.js`);
+const bl = jsBlocksToJSON();
+stage.definitions = {
+	...bl,
+	...stage.definitions
+}
+
+console.log(stage.definitions)
+
+const blocks: Record<string, jsonBlock> = {}
+
+const blockA = new Block(sprite, undefined);
+
+blockA.opcode = 'looks_say';
+blockA.scratch_block.loadInputs()
+console.log(blockA.scratch_block.inputs, blockA)
