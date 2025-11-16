@@ -25,7 +25,23 @@ export type BasicInputs =
 	| InputDataType.math_angle
 
 export type blockBlock = ({ id?: string } & Block)
-export type varBlock = [12, string, string]
+export type varBlock = (
+    | [] // empty, no type
+    | [BasicInputs] // empty, has type
+    | [BasicInputs, string | number] // basic inputs
+    | [] // empty again??
+    | [InputDataType.colour_picker]
+    | [InputDataType.colour_picker, string]
+    | []
+    | [InputDataType.text]
+    | [InputDataType.text, string | number]
+    | []
+    | [InputDataType.event_broadcast_menu]
+    | [InputDataType.event_broadcast_menu, string]
+    | [InputDataType.event_broadcast_menu, string, string]
+    | [InputDataType.data_variable, string, string, ...[number, number]]
+    | [InputDataType.data_listcontents, string, string, ...[number, number]]
+)
 export type jsonBlock = blockBlock | varBlock
 
 export interface Stage {
@@ -77,7 +93,7 @@ export type Variables = Record<string, Variable>
 
 export interface Lists { }
 
-export interface Broadcasts { }
+export type Broadcasts = Record<string, string>
 
 export interface Block {
     opcode: string
@@ -98,23 +114,7 @@ export type Input = [
     InputType.locked | InputType.unlocked2 | InputType.unlocked3,
     ...(
         | (string | null)
-        | (
-            | [] // empty, no type
-            | [BasicInputs] // empty, has type
-            | [BasicInputs, string | number] // basic inputs
-            | [] // empty again??
-            | [InputDataType.colour_picker]
-            | [InputDataType.colour_picker, string]
-            | []
-            | [InputDataType.text]
-            | [InputDataType.text, string | number]
-            | []
-            | [InputDataType.event_broadcast_menu]
-            | [InputDataType.event_broadcast_menu, string]
-            | [InputDataType.event_broadcast_menu, string, string]
-            | [InputDataType.data_variable, string, string, ...[number, number]]
-            | [InputDataType.data_listcontents, string, string, ...[number, number]]
-        )
+        | varBlock
     )[]
 ]
 
