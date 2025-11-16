@@ -6,3 +6,5 @@ deno.lock
 ast.json
 pm-blocks
 pm-vm
+.pm-blocks
+.pm-vm
