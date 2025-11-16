@@ -27,6 +27,10 @@ type TSprite = {
     code: null | string
     path_root?: string
     hidden?: boolean
+    current_costume?: number,
+    x?: number,
+    y?: number,
+    layer?: number
 }
 type TProject = {
     sprites: Record<string, TSprite>
@@ -151,6 +155,10 @@ for (const spriteName of Object.keys(project.sprites)
     jsonSprite.broadcasts = {}
     jsonSprite.costumes = []
 
+    //@ts-expect-error:
+    globalThis.base_path = sprite.path_root??dir
+    //@ts-expect-error:
+    globalThis.project_path = dir
     if (sprite.code) {
         // console.debug('has code!')
         try {
@@ -292,6 +300,14 @@ for (const spriteName of Object.keys(project.sprites)
             //     env.globalVariables
             // )
             env.extensions.forEach(ext => extensions.add(ext))
+            if (stage)
+                stage.broadcasts = {
+                    ...stage.broadcasts,
+                    ...Object.fromEntries(
+                        [...env.broadcasts.entries()]
+                        .map(([a, b]) => [b, a])
+                    )
+                }
             //FIXME - fix either the type or this idfk
             //@ts-ignore: im just so tired atp
             jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
@@ -307,7 +323,7 @@ for (const spriteName of Object.keys(project.sprites)
     jsonSprite.sounds = [] // TODO: fix this
 
     jsonSprite.volume = 100;
-    jsonSprite.layerOrder = layer
+    jsonSprite.layerOrder = sprite.layer ?? layer
     jsonSprite.isStage = sprite.stage ?? false
     if (jsonSprite.isStage) {
         jsonSprite.tempo = 60
@@ -317,14 +333,16 @@ for (const spriteName of Object.keys(project.sprites)
         jsonSprite = {
             ...jsonSprite,
             visible: !(sprite.hidden??false),
-            x: 0,
-            y: 0,
+            x: sprite.x ?? 0,
+            y: sprite.y ?? 0,
             size: 100,
             direction: 90,
             draggable: false,
             rotationStyle: 'all around',
         }
     }
+    if (sprite.current_costume)
+        jsonSprite.currentCostume = sprite.current_costume
     let completesprite: json.Sprite;
     if (jsonSprite.isStage) {
         completesprite = jsonSprite as json.Stage
