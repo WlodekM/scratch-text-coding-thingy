@@ -26,7 +26,7 @@ interface DropdownInput extends BaseInput {
 
 type Input = BaseInput
 
-console.log(import.meta.dirname, 'askjfsikjs', path.resolve(import.meta.dirname, `../pm-blocks`))
+// console.log(import.meta.dirname, 'askjfsikjs', path.resolve(import.meta.dirname, `../pm-blocks`))
 //@ts-ignore:
 let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `../pm-blocks`)) ? path.resolve(import.meta.dirname, `../pm-blocks`) : path.join(import.meta.dirname, `../tw-blocks`)
 if (!blocksRoot.startsWith('/') && !blocksRoot.match(/^[A-Z]:/))

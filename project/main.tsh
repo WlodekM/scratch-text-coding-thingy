@@ -2,6 +2,10 @@
 
 LIST 'this has spaces' = { 1 2 }
 
+FN uh(test test2) {
+
+}
+
 GF {
     'this has spaces'::push("meow") // same as data_addtolist("meow", "test")
     // looks_say('this has spaces'::json) // same as skyhigh173JSON_json_vm_getlist("test")
@@ -10,4 +14,5 @@ GF {
     for var i in 'this has spaces'::length {
         looks_say(i)
     }
+    motion_goto(1 2)
 }

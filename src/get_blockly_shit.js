@@ -4,7 +4,7 @@ _global.Blockly = {}
 _global.goog = {
 	require(){},
 	provide(p){
-		console.debug('\t\b', `${p} = {};`)
+		// console.debug('\t\b', `${p} = {};`)
 		eval(`${p} = {};`)
 	},
 	math: {},
@@ -44,7 +44,7 @@ _global.goog = {
 }
 
 function thing(name, i) {
-	console.log(name)
+	// console.log(name)
 }
 
 thing('constants',		await import('../tw-blocks/core/constants.js'))
@@ -60,7 +60,7 @@ thing('field_dropdown',	await import('../tw-blocks/core/field.js'))
 // Blockly.FieldDropdown.superClass_.costructor = ()=>{}//Blockly.FieldDropdown
 Blockly.FieldDropdown = class {}
 
-console.log('done')
+// console.log('done')
 
 _global.Blockly.ScratchBlocks = _global.Blockly
 const fakeWorkspace = {

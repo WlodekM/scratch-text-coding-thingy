@@ -575,6 +575,7 @@ export class Parser {
 			if (!this.match(TokenType.RPAREN)) {
 				do {
 					params.push(this.expect(TokenType.IDENTIFIER, "Expected parameter name").value);
+					if (this.matchTk([TokenType.COMMA])) this.advance()
 				} while (!this.match(TokenType.RPAREN));
 				if (this.match(TokenType.EOF))
 					throw "Expected ')' after parameters";
@@ -740,7 +741,8 @@ export class Parser {
 		if (this.peek().type !== TokenType.RPAREN) {
 			do {
 				args.push(this.parseAssignment());
-			} while (this.match(TokenType.COMMA));
+				if (this.matchTk([TokenType.COMMA])) this.advance()
+			} while (!this.matchTk([TokenType.RPAREN,TokenType.EOF]));
 		}
 		this.expect(TokenType.RPAREN, "Expected ')' after arguments");
 

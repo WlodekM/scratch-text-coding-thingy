@@ -7,7 +7,7 @@ GF {
     looks_say('this has spaces'::json) // same as skyhigh173JSON_json_vm_getlist("test")
     looks_say('this has spaces'::at(2)) // 2
     looks_say('this has spaces'::last::letter(2)) // e
-    for i in 'this has spaces'::length {
+    for var i in 'this has spaces'::length {
         looks_say(i)
     }
 }
