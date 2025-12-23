@@ -1,5 +1,5 @@
 import type { Environment } from "./asttoblocks.ts";
-import type { ASTNode, BranchFunctionCallNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode } from "./tshv2/main.ts";
+import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import { ObjectMethodCallNode } from "./tshv2/main.ts";
 
 function fnc_helper(opcode: string, ...args: ASTNode[]) {
@@ -233,6 +233,24 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 			],
 			literal_helper(node.event),
 		)
+	}],
+	['For', function(node: ForNode, env: Environment): ASTNode {
+		const loop = bfnc_helper("control_for_each", [
+			node.branch
+		], literal_helper((node.varname as IdentifierNode).name), node.times);
+		if (!node.define)
+			return loop;
+		return bfnc_helper("control_repeat", [
+			[
+				{
+					identifier: node.varname.name,
+					type: "VariableDeclaration",
+					value: literal_helper(1),
+					vtype: 'var'
+				} as VariableDeclarationNode,
+				loop
+			]
+		], literal_helper(1));
 	}]
 ]
 

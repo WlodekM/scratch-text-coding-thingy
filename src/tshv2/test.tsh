@@ -1,10 +1,13 @@
 #include <"blocks/js" "tw-blocks/blocks_vertical/control.js">
 
-list test = { 1 2 }
+LIST 'this has spaces' = { 1 2 }
 
-gf {
-    test::push("meow") // same as data_addtolist("meow", "test")
-    looks_say(test::json) // same as skyhigh173JSON_json_vm_getlist("test")
-    looks_say(test::at(2)) // 2
-    looks_say(test::last::letter(2)) // e
+GF {
+    'this has spaces'::push("meow") // same as data_addtolist("meow", "test")
+    looks_say('this has spaces'::json) // same as skyhigh173JSON_json_vm_getlist("test")
+    looks_say('this has spaces'::at(2)) // 2
+    looks_say('this has spaces'::last::letter(2)) // e
+    for i in 'this has spaces'::length {
+        looks_say(i)
+    }
 }

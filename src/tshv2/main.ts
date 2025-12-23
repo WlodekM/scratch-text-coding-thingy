@@ -19,7 +19,6 @@ export enum TokenType {
 	FOR			= "FOR",
 	ELSE		= "ELSE",
 	EOF			= "EOF",
-	GREATER		= "GREATER",
 	GREENFLAG	= "GREENFLAG",
 	INCLUDE		= "INCLUDE",
 	LIST		= "LIST",
@@ -29,7 +28,8 @@ export enum TokenType {
 	LBRACKET	= "LBRAKET",
 	RBRACKET	= "RBRAKET",
 	COLON_THINGY= "COLON_THINGY",
-	ON			= "ON"
+	ON			= "ON",
+	IN			= "IN"
 }
 
 export interface Token {
@@ -122,19 +122,20 @@ export class Lexer {
 					identifier += this.advance();
 				}
 
-				if 		(identifier.toLowerCase() === "#include")	this.pushToken({ line, type: TokenType.INCLUDE, value: identifier })
-				else if	(identifier === 'return')	this.pushToken({ line, type: TokenType.RETURN, value: identifier })
-				else if	(identifier === "var")		this.pushToken({ line, type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
-				else if	(identifier === "list")		this.pushToken({ line, type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
-				else if	(identifier === "global")	global = 3;
-				else if	(identifier === "fn")		this.pushToken({ line, type: TokenType.FN, value: identifier });
-				else if	(identifier === "warp")		this.pushToken({ line, type: TokenType.WARP_FN, value: identifier })
-				else if	(identifier === "if")		this.pushToken({ line, type: TokenType.IF, value: identifier });
-				else if	(identifier === "for")		this.pushToken({ line, type: TokenType.FOR, value: identifier });
-				else if	(identifier === "gf")		this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
-				else if	(identifier === "start")	this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
-				else if	(identifier === "else")		this.pushToken({ line, type: TokenType.ELSE, value: identifier });
-				else if	(identifier === "on")		this.pushToken({ line, type: TokenType.ON, value: identifier });
+				if 		(identifier.toLowerCase()	=== "#include")	this.pushToken({ line, type: TokenType.INCLUDE, value: identifier })
+				else if	(identifier.toLowerCase()	=== 'return')	this.pushToken({ line, type: TokenType.RETURN, value: identifier })
+				else if	(identifier.toLowerCase()	=== "var")		this.pushToken({ line, type: TokenType.VAR, value: global > 0 ? 'global' : identifier });
+				else if	(identifier.toLowerCase()	=== "list")		this.pushToken({ line, type: TokenType.LIST, value: global > 0 ? 'global' : identifier });
+				else if	(identifier.toLowerCase()	=== "global")	global = 3;
+				else if	(identifier.toLowerCase()	=== "fn")		this.pushToken({ line, type: TokenType.FN, value: identifier });
+				else if	(identifier.toLowerCase()	=== "warp")		this.pushToken({ line, type: TokenType.WARP_FN, value: identifier })
+				else if	(identifier.toLowerCase()	=== "if")		this.pushToken({ line, type: TokenType.IF, value: identifier });
+				else if	(identifier.toLowerCase()	=== "for")		this.pushToken({ line, type: TokenType.FOR, value: identifier });
+				else if	(identifier.toLowerCase()	=== "gf")		this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
+				else if	(identifier.toLowerCase()	=== "start")	this.pushToken({ line, type: TokenType.GREENFLAG, value: identifier });
+				else if	(identifier.toLowerCase()	=== "else")		this.pushToken({ line, type: TokenType.ELSE, value: identifier });
+				else if	(identifier.toLowerCase()	=== "on")		this.pushToken({ line, type: TokenType.ON, value: identifier });
+				else if	(identifier.toLowerCase()	=== "in")		this.pushToken({ line, type: TokenType.IN, value: identifier });
 				else 								this.pushToken({ line, type: TokenType.IDENTIFIER, value: identifier });
 			} else if (this.isDigit(char)) {
 				let number = char;
@@ -143,7 +144,24 @@ export class Lexer {
 					number += this.advance();
 				}
 				this.pushToken({ line, type: TokenType.NUMBER, value: number });
-			} else if (char === '"' || char === "'") {
+			} else if ( char === "'") {
+				const quote = char;
+				start = this.position;
+				let identifier = "";
+				while (
+					!(
+						(this.peek() == quote && this.peek(-1) !== '\\')
+						|| this.peek() == ""
+					)
+				) {
+					// console.log(this.position, this.peek(), this.peek(-1))
+					identifier += this.advance();
+				}
+				if (!this.match(quote)) {
+					throw new Error("Unterminated identifier");
+				}
+				this.pushToken({ line, type: TokenType.IDENTIFIER, value: identifier });
+			} else if (char === '"') {
 				const quote = char;
 				start = this.position;
 				let string = "";
@@ -334,8 +352,9 @@ export interface IfNode extends ASTNode {
 export interface ForNode extends ASTNode {
 	type: "For";
 	times: ASTNode;
-	varname: ASTNode;
+	varname: IdentifierNode;
 	branch: ASTNode[];
+	define: boolean
 }
 
 export interface GreenFlagNode extends ASTNode {
@@ -597,16 +616,17 @@ export class Parser {
 
 
 		if (this.match(TokenType.FOR)) {
-			this.expect(TokenType.LPAREN, "Expected '(' after 'for'");
+			// this.expect(TokenType.LPAREN, "Expected '(' after 'for'");
+			let define = false;
+			if (this.match(TokenType.VAR)) define = true;
 			const varname = this.parseAssignment();
-			const of = this.expect(TokenType.IDENTIFIER, 'expected of');
-			if (of.value !== 'of') throw new Error('expected of');
+			this.expect(TokenType.IN, 'expected of');
 			const times = this.parseAssignment();
-			this.expect(TokenType.RPAREN, "Expected ')' after for");
+			// this.expect(TokenType.RPAREN, "Expected ')' after for");
 			this.expect(TokenType.LBRACE, "Expected '{' after for");
 			const branch = this.parseBlock();
 
-			return { type: "For", varname, times, branch } as ForNode;
+			return { type: "For", varname, times, branch, define } as ForNode;
 		}
 
 		if (this.match(TokenType.GREENFLAG)) {
@@ -666,7 +686,7 @@ export class Parser {
 	private parseBinaryExpression(): ASTNode {
 		let left = this.parseCall();
 
-		while (this.peek().type === TokenType.BINOP || this.peek().type === TokenType.GREATER) {
+		while (this.peek().type === TokenType.BINOP) {
 			const operator = this.advance().value;
 			const right = this.parseCall();
 			left = { type: "BinaryExpression", operator, left, right } as BinaryExpressionNode;
