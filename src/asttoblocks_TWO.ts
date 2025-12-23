@@ -1,7 +1,6 @@
-import { blockBlock, InputType, jsonBlock } from "./jsontypes.ts";
+import { blockBlock, InputType } from "./jsontypes.ts";
 import { Input, InputDataType } from './jsontypes.ts'
 import base_definitions, { jsBlocksToJSON } from './blocks.ts'
-import { ASTNode, FunctionCallNode } from "./tshv2/main.ts";
 
 abstract class SpritePropertyWithId {
 	id: string
@@ -43,6 +42,14 @@ class Broadcast extends SpritePropertyWithId {
 class Scope {
 	variables: Map<string, Variable> = new Map()
 	list: Map<string, List> = new Map()
+	block_dict: Map<string, Block> = new Map()
+	get_blocks_json(): Record<string, blockBlock> {
+		const blocks: Record<string, blockBlock> = {}
+		for (const [id, block] of this.block_dict.entries()) {
+			blocks[id] = block.get_JSON()
+		}
+		return blocks;
+	}
 }
 
 class StageScope extends Scope {
@@ -140,7 +147,7 @@ class ScratchBlock {
 			throw `definition not found for ${this.opcode}, have you included base.js?`
 		return this.scope.stage.definitions[this.opcode]
 	}
-	loadInputs() {
+	load_inputs() {
 		const definition = this.definition;
 		const inputs = definition[0];
 		const branch = definition[1] == 'branch'
@@ -174,7 +181,7 @@ class Block {
 		this.scratch_block.definition;
 	}
 	topLevel: boolean = false;
-	constructor(scope: SpriteScope | StageScope, parent: Block | undefined) {
+	constructor(scope: SpriteScope | StageScope, parent?: Block) {
 		//FIXME - non-numerical IDs
 		this.id = (Block._id++).toString()
 		this.scope = scope;
@@ -185,6 +192,7 @@ class Block {
 			this.parent = parent;
 			parent.next = this;
 		}
+		scope.block_dict.set(this.id, this)
 	}
 	get_JSON(): blockBlock {
 		return {
@@ -202,11 +210,53 @@ class Block {
 	}
 }
 
-const stage = new StageScope();
-const sprite = new SpriteScope(stage);
+class BlockBuilder {
+	block: Block;
+	parent?: BlockBuilder;
+	constructor(scope: SpriteScope | StageScope, parent?: BlockBuilder) {
+		this.parent = parent;
+		this.block = new Block(scope, parent?.block);
+	}
+	set_opcode(opcode: string) {
+		this.block.opcode = opcode
+		this.block.scratch_block.load_inputs()
+		return this;
+	}
+	next() {
+		return new BlockBuilder(this.block.scope, this);
+	}
+	up() {
+		return this.parent
+	}
+	get_input(id: string): InputWrapper {
+		if (!this.block.scratch_block.inputs.has(id))
+			throw 'unknown input';
+		return new InputWrapper(
+			this.block.scratch_block.inputs.get(id)!,
+			this
+		)
+	}
+}
+
+class InputWrapper {
+	input: ScratchBlockInput
+	block: BlockBuilder
+	constructor(input: ScratchBlockInput, block: BlockBuilder) {
+		this.input = input;
+		this.block = block;
+	}
+	up(): BlockBuilder {
+		return this.block
+	}
+	set_value(value: Broadcast | Block | List | Variable | string | number): InputWrapper {
+		this.input.value = value;
+		return this;
+	}
+}
 
 //@ts-ignore: goog...
 globalThis.goog = {
+    //@ts-ignore:
 	require: () => { },
 	provide: () => { },
 };
@@ -218,6 +268,7 @@ const Blockly = globalThis.Blockly = {
         //@ts-ignore:
         Data: {}
     },
+    //@ts-ignore:
     Extensions: {
         registerMixin: () => {}
     },
@@ -241,6 +292,7 @@ const Blockly = globalThis.Blockly = {
     FieldDropdown: class FieldDropdown {}
 };
 await import(`../tw-blocks/core/constants.js`);
+//@ts-ignore:
 Blockly.Colours = {
   // SVG colours: these must be specificed in #RRGGBB style
   // To add an opacity, this must be specified as a separate property (for SVG fill-opacity)
@@ -362,25 +414,30 @@ Blockly.Colours = {
   "zoomIconFilter": "none"
 };
 // actually import the blocks
-await import(`../tw-blocks/blocks_vertical/control.js`);
-await import(`../tw-blocks/blocks_vertical/event.js`);
-await import(`../tw-blocks/blocks_vertical/looks.js`);
-await import(`../tw-blocks/blocks_vertical/motion.js`);
-await import(`../tw-blocks/blocks_vertical/operators.js`);
-await import(`../tw-blocks/blocks_vertical/sound.js`);
-await import(`../tw-blocks/blocks_vertical/sensing.js`);
-const bl = jsBlocksToJSON();
+//@ts-ignore: 
+globalThis.blocksRoot = '../tw-blocks'; //pm requires a bit more stuff in blockly
+await import(`./base.js`);
+const bl = jsBlocksToJSON(Blockly.Blocks);
+
+const stage = new StageScope();
+const sprite = new SpriteScope(stage);
+
 stage.definitions = {
 	...bl,
 	...stage.definitions
 }
 
-console.log(stage.definitions)
 
-const blocks: Record<string, jsonBlock> = {}
+new BlockBuilder(sprite)
+	.set_opcode('event_whenflagclicked')
+	.next()
+		.set_opcode('looks_say')
+		.next()
+			.set_opcode('looks_hide')
+			.up()!
+		.get_input('MESSAGE')
+			.set_value('meow')
+			.up()!
+		.up()!;
 
-const blockA = new Block(sprite, undefined);
-
-blockA.opcode = 'looks_say';
-blockA.scratch_block.loadInputs()
-console.log(blockA.scratch_block.inputs, blockA)
+console.log(sprite.get_blocks_json())
