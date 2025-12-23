@@ -16,6 +16,7 @@ _global.goog = {
 		// return Object(val) === val also works, but is slower, especially if val is
 		// not an object.
 	},
+	isArray: a=>Array.isArray(a),
 	inherits(a, b) {return a.prototype instanceof b},
 	string: {
 		// Copyright 2006 The Closure Library Authors. All Rights Reserved.
@@ -54,7 +55,10 @@ thing('blocks',			await import('../tw-blocks/core/blocks.js'))
 thing('extensions',		await import('../tw-blocks/core/extensions.js'))
 thing('msg',			await import('../tw-blocks/core/msg.js'))
 thing('field_dropdown',	await import('../tw-blocks/core/field.js'))
-thing('field_dropdown',	await import('../tw-blocks/core/field_dropdown.js'))
+// thing('field_dropdown',	await import('../tw-blocks/core/field_dropdown.js'))
+// Blockly.FieldDropdown.superClass_ = {}
+// Blockly.FieldDropdown.superClass_.costructor = ()=>{}//Blockly.FieldDropdown
+Blockly.FieldDropdown = class {}
 
 console.log('done')
 

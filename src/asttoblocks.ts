@@ -235,7 +235,7 @@ function findVarDecls(env: Environment, node: ASTNode): void {
 	}
 }
 
-const vmPath = fs.existsSync('pm-vm') ?
+const vmPath = fs.existsSync(path.resolve(import.meta.dirname,'../pm-vm')) ?
 	'../pm-vm' : '../tw-vm'
 
 export default async function ASTtoBlocks(
@@ -463,11 +463,6 @@ export default async function ASTtoBlocks(
 				const includeNode = node as IncludeNode;
 				blockID--
 				if (includeNode.itype == 'blocks/js') {
-					//@ts-ignore: goog...
-					globalThis.goog = {
-						require: () => { },
-						provide: () => { },
-					};
 					//@ts-ignore: blockly...
 					globalThis.Blockly = blockly
 					// actually import the blocks
@@ -476,6 +471,15 @@ export default async function ASTtoBlocks(
 					blockDefinitions = {
 						...bl,
 						...blockDefinitions
+					}
+
+					if (blockDefinitions.control_expandableIf && blockDefinitions.control_expandableIf[1] != 'branch') {
+						blockDefinitions.control_expandableIf[0].unshift({
+							name: 'BOOL1',
+							type: 1,
+							// variableTypes: arg.variableTypes
+						})
+						blockDefinitions.control_expandableIf[1] = 'branch'
 					}
 				} else if (includeNode.itype.startsWith('extension/builtin')) {
 					const nop = () => { };
@@ -506,7 +510,8 @@ export default async function ASTtoBlocks(
 								},
 								registerCompiledExtensionBlocks: nop,
 								setRuntimeOptions: nop
-							}
+							},
+							exports: {JSGenerator: class{}}
 						},
 						BlockType: {
 							BOOLEAN: "Boolean",
@@ -672,7 +677,9 @@ export default async function ASTtoBlocks(
 								frameLoop: {
 									framerate: 0
 								},
-								exports: {},
+								exports: {
+									JSGenerator: class {}
+								},
 								setRuntimeOptions: nop
 							},
 							renderer: {
@@ -686,7 +693,8 @@ export default async function ASTtoBlocks(
 								RenderedTarget: class RenderedTarget {
 									constructor() {}
 									blocks = {}
-								}
+								},
+								JSGenerator: class {}
 							},
 						},
 						BlockType: {

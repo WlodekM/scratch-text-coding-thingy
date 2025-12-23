@@ -460,8 +460,8 @@ export class Parser {
 		return false;
 	}
 
-	private expect(type: TokenType, errorMessage: string): Token {
-		if (this.peek().type === type) {
+	private expect(type: TokenType, errorMessage: string, not=false): Token {
+		if (not ? this.peek().type !== type : this.peek().type === type) {
 			return this.advance();
 		}
 		// let ch = 0;
@@ -556,8 +556,9 @@ export class Parser {
 			if (!this.match(TokenType.RPAREN)) {
 				do {
 					params.push(this.expect(TokenType.IDENTIFIER, "Expected parameter name").value);
-				} while (this.match(TokenType.COMMA));
-				this.expect(TokenType.RPAREN, "Expected ')' after parameters");
+				} while (!this.match(TokenType.RPAREN));
+				if (this.match(TokenType.EOF))
+					throw "Expected ')' after parameters";
 			}
 			this.expect(TokenType.LBRACE, "Expected '{' before function body");
 			const body = this.parseBlock();

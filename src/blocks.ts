@@ -26,8 +26,9 @@ interface DropdownInput extends BaseInput {
 
 type Input = BaseInput
 
+console.log(import.meta.dirname, 'askjfsikjs', path.resolve(import.meta.dirname, `../pm-blocks`))
 //@ts-ignore:
-let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `pm-blocks`)) ? path.resolve(import.meta.dirname, `pm-blocks`) : path.join(import.meta.dirname, `../tw-blocks`)
+let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `../pm-blocks`)) ? path.resolve(import.meta.dirname, `../pm-blocks`) : path.join(import.meta.dirname, `../tw-blocks`)
 if (!blocksRoot.startsWith('/') && !blocksRoot.match(/^[A-Z]:/))
     blocksRoot = './' + blocksRoot;
 //@ts-ignore:
@@ -42,6 +43,9 @@ await import(`${blocksRoot}/core/constants.js`);
 await import(`${blocksRoot}/core/colours.js`);
 
 export const blockly = Blockly
+
+//@ts-ignore:
+Blockly.scratchBlocksUtils = {generateMutatorShadow(){}}
 
 // await import('./tw-blocks/blocks_vertical/control.js');
 await import(`${blocksRoot}/blocks_vertical/event.js`);
@@ -89,6 +93,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
             setCategory() {},
             setColour() {},
             setPreviousStatement() {},
+            addArgType() {},
+            setNextStatement(){},
             //@ts-ignore:
             workspace: Blockly.mainWorkspace,
         };
@@ -99,9 +105,8 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
     }
     
     // console.debug(Object.keys(blocks))
-    
-    const processedBlocks = Object.fromEntries(
-        Object.entries(blocks).map(([opcode, block]) => {
+
+    function process_block([opcode, block]: [string, any]) {
             // console.log(opcode, block)
             try {
                 Object.keys(block)
@@ -228,6 +233,23 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                     }
                 } else if (arg.type == 'input_statement') {
                     return {}
+                } else if (arg.type == 'field_expandable_remove') {
+                    // console.log(arg)
+                    return {
+                        name: arg.name,
+                        type: 1,
+                        field: arg.name,
+                    }
+                } else if (arg.type == 'field_expandable_add') {
+                    // console.log(arg)
+                    return {
+                        name: arg.name,
+                        type: 1,
+                        field: arg.name,
+                    }
+                } else if (arg.type == 'field_checkbox_original') {
+                    // console.log(arg)
+                    return {}
                 }
                 return {
                     name: arg.name,
@@ -239,7 +261,10 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
                     blocklyType: arg.type
                 }
             }) ?? []), (block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']].filter(a => a != null)
-        })
+        }
+    
+    const processedBlocks = Object.fromEntries(
+        Object.entries(blocks).map(process_block)
     )
     return processedBlocks
 }
