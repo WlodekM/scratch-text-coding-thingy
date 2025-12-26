@@ -1,7 +1,7 @@
-import { Lexer, Parser } from "./tshv2/main.ts";
+import { Lexer, Parser } from "../tshv2/main.ts";
 import { process_node } from './asttoblocks2.ts'
 import { StageScope } from "./oop_block.ts";
-import { jsBlocksToJSON } from './blocks.ts'
+import { jsBlocksToJSON } from '../blocks.ts'
 //@ts-ignore: goog...
 globalThis.goog = {
 	//@ts-ignore:
@@ -39,12 +39,12 @@ const Blockly = globalThis.Blockly = {
 	Categories: {},
 	FieldDropdown: class FieldDropdown {}
 };
-await import(`../tw-blocks/core/constants.js`);
-await import(`../tw-blocks/core/colours.js`);
+await import(`../../tw-blocks/core/constants.js`);
+await import(`../../tw-blocks/core/colours.js`);
 // actually import the blocks
 //@ts-ignore: 
 globalThis.blocksRoot = '../tw-blocks'; //pm requires a bit more stuff in blockly
-await import(`./base.js`);
+await import(`../base.js`);
 const bl = jsBlocksToJSON(Blockly.Blocks);
 
 const sourceCode = new TextDecoder().decode(Deno.readFileSync('test.bsl'));

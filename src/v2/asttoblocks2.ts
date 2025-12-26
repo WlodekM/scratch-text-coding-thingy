@@ -1,7 +1,7 @@
 // import { Project } from "./jsontypes.ts";
-import { Variable } from "./jsontypes.ts";
+import { Variable } from "../jsontypes.ts";
 import { Block, ScratchBlockValue, Stack, type SpriteOrStageScope, } from './oop_block.ts'
-import { ASTNode, FunctionCallNode, GreenFlagNode, LiteralNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import { ASTNode, FunctionCallNode, GreenFlagNode, LiteralNode, VariableDeclarationNode } from "../tshv2/main.ts";
 
 export function process_node(
 	{node, stack, sprite}:

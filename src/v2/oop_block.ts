@@ -1,6 +1,6 @@
-import { blockBlock, InputType } from "./jsontypes.ts";
-import { Input, InputDataType } from './jsontypes.ts'
-import base_definitions, { Definition, FieldInputB } from './blocks.ts'
+import { blockBlock, InputType } from "../jsontypes.ts";
+import { Input, InputDataType } from '../jsontypes.ts'
+import base_definitions, { Definition, FieldInputB } from '../blocks.ts'
 import { type BlockBuilder } from "./block_builder.ts";
 
 const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
