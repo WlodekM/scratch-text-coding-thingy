@@ -1,0 +1,12 @@
+insert_blocks:
+  Sprite1:
+    code: sprite1.bsl
+
+insert_costumes:
+  Sprite1:
+    folder: assets/sprite1
+
+insert_sprites:
+  folder: sprites
+
+base: base.sb3

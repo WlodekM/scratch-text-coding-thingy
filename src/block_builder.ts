@@ -6,7 +6,7 @@ import {
 	type SpriteScope,
 	type StageScope,
 	type Variable
-} from "./asttoblocks_TWO.ts";
+} from "./oop_block.ts";
 
 
 export class BlockBuilder {
@@ -34,6 +34,12 @@ export class BlockBuilder {
 			this.block.scratch_block.inputs.get(id)!,
 			this
 		)
+	}
+	set_field(id: string, value: Broadcast | List | Variable) {
+		if (!this.block.scratch_block.fields.has(id))
+			throw 'unknown field';
+		this.block.scratch_block.fields.get(id)!.value = value;
+		return this
 	}
 }
 

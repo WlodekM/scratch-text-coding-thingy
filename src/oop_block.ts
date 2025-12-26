@@ -1,12 +1,26 @@
 import { blockBlock, InputType } from "./jsontypes.ts";
 import { Input, InputDataType } from './jsontypes.ts'
-import base_definitions from './blocks.ts'
+import base_definitions, { Definition, FieldInputB } from './blocks.ts'
+import { type BlockBuilder } from "./block_builder.ts";
+
+const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
+	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+// gen weed
+function genUid() {
+	const length = 20;
+	const soupLength = soup.length;
+	const id: string[] = [];
+	for (let i = 0; i < length; i++) {
+		id[i] = soup.charAt(Math.random() * soupLength);
+	}
+	return id.join('');
+};
 
 export abstract class SpritePropertyWithId {
 	id: string
 	name: string
 	constructor (id: string, name: string) {
-		this.id = id;
+		this.id = id+'-'+name;
 		this.name = name;
 	}
 }
@@ -39,9 +53,35 @@ export class Broadcast extends SpritePropertyWithId {
 	}
 }
 
+export class Project {
+	sprites: Map<string, StageScope | SpriteScope> = new Map()
+	definitions: Record<string, Definition> = Object.assign({}, base_definitions)
+}
+
+type definition_type = 'var' | 'list' | 'broadcast'
 export class Scope {
+	project: Project
+	define(type: 'broadcast', name: string): Broadcast
+	define(type: 'list', name: string): List
+	define(type: 'var', name: string): Variable
+	define(type: definition_type, name: string): Variable | List | Broadcast {
+		if (type == 'var') {
+			const variable = new Variable(genUid(), name);
+			this.variables.set(name, variable);
+			return variable;
+		}
+		else if (type == 'list') {
+			const list = new List(genUid(), name);
+			this.lists.set(name, list);
+			return list;
+		}
+		const broadcast = new Broadcast(genUid(), name);
+		this.stage.broadcasts.set(name, broadcast);
+		return broadcast;
+	}
+	stage: StageScope = undefined as unknown as StageScope;
 	variables: Map<string, Variable> = new Map()
-	list: Map<string, List> = new Map()
+	lists: Map<string, List> = new Map()
 	block_dict: Map<string, Block> = new Map()
 	get_blocks_json(): Record<string, blockBlock> {
 		const blocks: Record<string, blockBlock> = {}
@@ -50,22 +90,39 @@ export class Scope {
 		}
 		return blocks;
 	}
+	add_stack(stack: Stack) {
+		for (const block of stack.blocks) {
+			this.block_dict.set(block.id, block)
+		}
+	}
+	constructor(project: Project) {
+		this.project = project
+	}
 }
 
 export class StageScope extends Scope {
 	broadcasts: Map<string, Broadcast> = new Map()
-	stage: StageScope = this;
-	// it is here because why not
-	definitions = Object.assign({}, base_definitions)
+	
+	constructor(id: string, project?: Project) {
+		if (!project)
+			project = new Project()
+		super(project)
+		this.stage = this;
+		this.project.sprites.set(id, this);
+		this.definitions = project.definitions;
+	}
+	definitions: Record<string, Definition>;
 }
 
 export class SpriteScope extends Scope {
-	stage: StageScope
-	constructor(stage: StageScope) {
-		super();
+	constructor(id: string, stage: StageScope) {
+		super(stage.project);
 		this.stage = stage;
+		this.project.sprites.set(id, this)
 	}
 }
+
+export type SpriteOrStageScope = StageScope | SpriteScope
 
 export enum BlockInputDataType {
 	math_number = 4,
@@ -82,9 +139,20 @@ export enum BlockInputDataType {
 	block = Infinity,
 }
 
+export class ScratchBlockField {
+	value: Broadcast | Variable | List | null = null;
+	get_JSON(): [string, string] | [] {
+		if (!this.value)
+			return []
+		return [this.value.name, this.value.id]
+	}
+}
+
+export type ScratchBlockValue = Broadcast | Block | List | Variable | string | number;
+
 export class ScratchBlockInput {
 	shadow: boolean = false
-	value: Broadcast | Block | List | Variable | string | number = 0
+	value: ScratchBlockValue = 0
 	type: BlockInputDataType | InputDataType = InputDataType.math_number
 	get_JSON(): Input {
 		if (this.type < InputDataType.colour_picker
@@ -152,6 +220,10 @@ export class ScratchBlock {
 		const inputs = definition[0];
 		const branch = definition[1] == 'branch'
 		for (const input of inputs) {
+			if ((input as FieldInputB)?.field) {
+				this.fields.set(input.name, new ScratchBlockField())
+				continue;
+			}
 			const sb_input = new ScratchBlockInput()
 			if (branch && definition[2]!.includes(input.name))
 				sb_input.type = BlockInputDataType.block
@@ -159,6 +231,7 @@ export class ScratchBlock {
 		}
 	}
 	inputs: Map<string, ScratchBlockInput> = new Map()
+	fields: Map<string, ScratchBlockField> = new Map()
 	constructor(scope: SpriteScope | StageScope) {
 		this.scope = scope;
 	}
@@ -199,13 +272,38 @@ export class Block {
 			opcode: this.opcode,
 			next: this.next ? this.next.id : null,
 			parent: this.parent ? this.parent.id : null,
-			fields: {}, //TODO - fields
+			fields: Object.fromEntries(
+				this.scratch_block.fields
+				.entries()
+				.map(([id, field]) => [id, field.get_JSON()])),
 			inputs: Object.fromEntries(
 				[...this.scratch_block.inputs.entries()]
 					.map(([id, input]) => [id, input.get_JSON()])
 			),
 			shadow: false,
 			topLevel: this.topLevel,
+		}
+	}
+}
+
+export class Stack {
+	blocks: Block[] = [];
+	scope: StageScope | SpriteScope;
+	constructor(scope: StageScope | SpriteScope) {
+		this.scope = scope;
+	}
+	add(block: Block) {
+		block.scope = this.scope;
+		block.parent = this.blocks.at(-1)
+		if (this.blocks.length != 0)
+			this.blocks.at(-1)!.next = block
+		block.topLevel = this.blocks.length == 0
+		this.blocks.push(block)
+		return block
+	}
+	addb(...block_builder_list: BlockBuilder[]) {
+		for (const block_builder of block_builder_list) {
+			this.add(block_builder.block)
 		}
 	}
 }

@@ -1,18 +1,18 @@
 #include <"blocks/js" "base.js">
 
 LIST 'this has spaces' = { 1 2 }
+VaR 'return value' = 0
 
 FN uh(test test2) {
-
+    'return value' = test + test2
 }
 
 GF {
     'this has spaces'::push("meow") // same as data_addtolist("meow", "test")
     // looks_say('this has spaces'::json) // same as skyhigh173JSON_json_vm_getlist("test")
-    looks_say('this has spaces'::at(2)) // 2
+    looks_say('this has spaces'::at(2))
     looks_say('this has spaces'::last::letter(2)) // e
     for var i in 'this has spaces'::length {
         looks_say(i)
-    }
-    motion_goto(1 2)
+    }motion_gotoxy(1 2)
 }

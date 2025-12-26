@@ -3,28 +3,28 @@ import path from "node:path";
 const Blockly = (await import('./get_blockly_shit.js')).default;
 // console.log(ScratchBlocksBlock)
 // deno-lint-ignore-file no-explicit-any
-interface BaseInput {
+export interface BaseInput {
     name: string,
     type: number
 }
 
-interface FieldInputA extends BaseInput {
+export interface FieldInputA extends BaseInput {
     options: [string, string][],
     variableTypes: string[],
     blocklyType: string
 }
 
-interface FieldInputB extends FieldInputA {
+export interface FieldInputB extends FieldInputA {
     field: string
 }
 
 
-interface DropdownInput extends BaseInput {
+export interface DropdownInput extends BaseInput {
     variableTypes: string[],
     blocklyType: string
 }
 
-type Input = BaseInput
+type Input = BaseInput | FieldInputA | FieldInputB | DropdownInput
 
 // console.log(import.meta.dirname, 'askjfsikjs', path.resolve(import.meta.dirname, `../pm-blocks`))
 //@ts-ignore:
@@ -270,7 +270,9 @@ export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
 }
 export const processedBlocks: Record<string, any[]> = jsBlocksToJSON()
 
+export type Definition = [Input[], string] | [Input[], 'branch', string[]];
+
 export default {
     ...processedBlocks,
     // blocks not in tw here
-} as Record<string, [Input[], string] | [Input[], 'branch', string[]]>
+} as Record<string, Definition>

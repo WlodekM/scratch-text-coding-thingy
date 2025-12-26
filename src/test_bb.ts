@@ -1,4 +1,4 @@
-import { SpriteScope, StageScope } from "./asttoblocks_TWO.ts";
+import { Block, SpriteScope, Stack, StageScope } from "./oop_block.ts";
 import { BlockBuilder } from "./block_builder.ts";
 import { jsBlocksToJSON } from './blocks.ts'
 //@ts-ignore: goog...
@@ -46,8 +46,8 @@ globalThis.blocksRoot = '../tw-blocks'; //pm requires a bit more stuff in blockl
 await import(`./base.js`);
 const bl = jsBlocksToJSON(Blockly.Blocks);
 
-const stage = new StageScope();
-const sprite = new SpriteScope(stage);
+const stage = new StageScope('stage');
+const sprite = new SpriteScope('sprite', stage);
 
 stage.definitions = {
 	...bl,
@@ -55,16 +55,32 @@ stage.definitions = {
 }
 
 
-new BlockBuilder(sprite)
-	.set_opcode('event_whenflagclicked')
-	.next()
-		.set_opcode('looks_say')
-		.next()
-			.set_opcode('looks_hide')
-			.up()!
-		.get_input('MESSAGE')
-			.set_value('meow')
-			.up()!
-		.up()!;
+// new BlockBuilder(sprite)
+// 	.set_opcode('event_whenflagclicked')
+// 	.next()
+// 		.set_opcode('looks_say')
+// 		.next()
+// 			.set_opcode('looks_hide')
+// 			.up()!
+// 		.get_input('MESSAGE')
+// 			.set_value('meow')
+// 			.up()!
+// 		.up()!;
 
+const stack = new Stack(sprite)
+stack.addb(
+    new BlockBuilder(stack.scope)
+        .set_opcode('looks_say')
+        .get_input('MESSAGE')
+            .set_value('meow')
+            .up()!,
+    new BlockBuilder(stack.scope)
+        .set_opcode('looks_hide')
+)
+const meow = sprite.define('var', 'meow')
+const b = new BlockBuilder(stack.scope)
+    .set_opcode('data_setvariableto')
+    .set_field('VARIABLE', meow)
+    .get_input('VALUE').set_value('estrogen').up()!
+stack.addb(b)
 console.log(sprite.get_blocks_json())
