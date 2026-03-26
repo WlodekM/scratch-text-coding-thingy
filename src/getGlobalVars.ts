@@ -1,3 +1,4 @@
+//#nobrowser
 import type {
 	AssignmentNode,
 	ASTNode,
@@ -15,6 +16,7 @@ import type {
   LiteralNode,
   VariableDeclarationNode
 } from "./tshv2/main.ts";
+//#endnobrowser
 
 export function getNodeChildren(node: ASTNode): ASTNode[] {
 	const children: ASTNode[] = [];

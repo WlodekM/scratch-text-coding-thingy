@@ -1,7 +1,7 @@
 export enum InputType {
 	locked = 1,
-    unlocked2 = 2, // this one is used for blocks in substacks methinks
-    unlocked3 = 3, // this one is used for vars n stuff 
+	unlocked2 = 2, // this one is used for blocks in substacks methinks
+	unlocked3 = 3, // this one is used for vars n stuff 
 }
 
 export enum InputDataType {
@@ -26,63 +26,64 @@ export type BasicInputs =
 
 export type blockBlock = ({ id?: string } & Block)
 export type varBlock = (
-    | [] // empty, no type
-    | [BasicInputs] // empty, has type
-    | [BasicInputs, string | number] // basic inputs
-    | [] // empty again??
-    | [InputDataType.colour_picker]
-    | [InputDataType.colour_picker, string]
-    | []
-    | [InputDataType.text]
-    | [InputDataType.text, string | number]
-    | []
-    | [InputDataType.event_broadcast_menu]
-    | [InputDataType.event_broadcast_menu, string]
-    | [InputDataType.event_broadcast_menu, string, string]
-    | [InputDataType.data_variable, string, string, ...[number, number]]
-    | [InputDataType.data_listcontents, string, string, ...[number, number]]
+	| [] // empty, no type
+	| [BasicInputs] // empty, has type
+	| [BasicInputs, string | number] // basic inputs
+	| [] // empty again??
+	| [InputDataType.colour_picker]
+	| [InputDataType.colour_picker, string]
+	| []
+	| [InputDataType.text]
+	| [InputDataType.text, string | number]
+	| []
+	| [InputDataType.event_broadcast_menu]
+	| [InputDataType.event_broadcast_menu, string]
+	| [InputDataType.event_broadcast_menu, string, string]
+	| [InputDataType.data_variable, string, string, ...number[]]
+	| [InputDataType.data_listcontents, string, string, ...number[]]
 )
 export type jsonBlock = blockBlock | varBlock
+export type jsonBlockNoId = Block | varBlock
 
 export interface Stage {
-    isStage: true
-    name: "Stage"
-    variables: Variables
-    lists: Lists
-    broadcasts: Broadcasts
-    blocks: Record<string, Block>
-    comments: Comments
-    currentCostume: number
-    costumes: Costume[]
-    sounds: any[]
-    volume: number
-    layerOrder: number
-    tempo: number
-    videoTransparency: number
-    videoState: string
-    textToSpeechLanguage: any
+	isStage: true
+	name: "Stage"
+	variables: Variables
+	lists: Lists
+	broadcasts: Broadcasts
+	blocks: Record<string, Block>
+	comments: Comments
+	currentCostume: number
+	costumes: Costume[]
+	sounds: any[]
+	volume: number
+	layerOrder: number
+	tempo: number
+	videoTransparency: number
+	videoState: string
+	textToSpeechLanguage: any
 }
 
 export interface RealSprite {
-    isStage: false
-    name: string
-    variables: Variables
-    lists: Lists
-    broadcasts: Broadcasts
-    blocks: Record<string, jsonBlock>
-    comments: Comments
-    currentCostume: number
-    costumes: Costume[]
-    sounds: any[]
-    volume: number
-    layerOrder: number
-    visible: boolean
-    x: number
-    y: number
-    size: number
-    direction: number
-    draggable: boolean
-    rotationStyle: string
+	isStage: false
+	name: string
+	variables: Variables
+	lists: Lists
+	broadcasts: Broadcasts
+	blocks: Record<string, jsonBlock>
+	comments: Comments
+	currentCostume: number
+	costumes: Costume[]
+	sounds: any[]
+	volume: number
+	layerOrder: number
+	visible: boolean
+	x: number
+	y: number
+	size: number
+	direction: number
+	draggable: boolean
+	rotationStyle: string
 }
 
 export type Sprite = Stage | RealSprite
@@ -96,354 +97,354 @@ export interface Lists { }
 export type Broadcasts = Record<string, string>
 
 export interface Block {
-    opcode: string
-    next: string | null
-    parent: string | null
-    inputs: Inputs
-    fields: any
-    shadow: boolean
-    topLevel: boolean
-    mutation?: any
-    x?: number
-    y?: number
+	opcode: string
+	next: string | null
+	parent: string | null
+	inputs: Inputs
+	fields: any
+	shadow: boolean
+	topLevel: boolean
+	mutation?: any
+	x?: number
+	y?: number
 }
 
 export type Inputs = Record<string, Input>
 
 export type Input = [
-    InputType.locked | InputType.unlocked2 | InputType.unlocked3,
-    ...(
-        | (string | null)
-        | varBlock
-    )[]
+	InputType.locked | InputType.unlocked2 | InputType.unlocked3,
+	...(
+		| (string | null)
+		| varBlock
+	)[]
 ]
 
 export interface Inputs3 {
-    STEPS: [number, [number, string]]
+	STEPS: [number, [number, string]]
 }
 
 export interface Comments { }
 
 export interface Costume {
-    name: string
-    bitmapResolution: number
-    dataFormat: string
-    assetId: string
-    md5ext: string
-    rotationCenterX: number
-    rotationCenterY: number
+	name: string
+	bitmapResolution: number
+	dataFormat: string
+	assetId: string
+	md5ext: string
+	rotationCenterX: number
+	rotationCenterY: number
 }
 
 /**
  * Scratch 3.0 Project Schema
  */
 export interface Project {
-    meta: {
-        semver: string
-        vm?: string
-        agent?: string
-        origin?: string
-        [k: string]: unknown
-    }
-    targets:
-    | []
-    | [
-        {
-            name: "Stage"
-            isStage: true
-            tempo?: number
-            videoTransparency?: number
-            videoState?: "on" | "off" | "on-flipped"
-            /**
-             * The layer order of the stage should be 0, if specified.
-             */
-            layerOrder?: 0
-            [k: string]: unknown
-        } & {
-            currentCostume?: number
-            blocks: {
-                [k: string]:
-                | {
-                    opcode: string
-                    comment?: string
-                    inputs?: {
-                        [k: string]:
-                        | []
-                        | [
-                            1 | 2 | 3,
-                            ...(
-                                | (string | null)
-                                | (
-                                    | []
-                                    | [4 | 5 | 6 | 7 | 8]
-                                    | [4 | 5 | 6 | 7 | 8, string | number]
-                                    | []
-                                    | [9]
-                                    | [9, string]
-                                    | []
-                                    | [10]
-                                    | [10, string | number]
-                                    | []
-                                    | [11]
-                                    | [11, string]
-                                    | [11, string, string]
-                                    | [12, string, string, ...number[]]
-                                    | [13, string, string, ...number[]]
-                                )
-                            )[]
-                        ]
-                    }
-                    fields?: {
-                        [k: string]: unknown
-                    }
-                    next?: string | null
-                    topLevel?: boolean
-                    parent?: string | null
-                    shadow?: boolean
-                    x?: number
-                    y?: number
-                    mutation?: {
-                        tagName?: "mutation"
-                        children?: unknown[]
-                        proccode?: string
-                        argumentids?: string
-                        warp?: ("true" | "false" | "null") | boolean | null
-                        hasnext?: ("true" | "false" | "null") | boolean | null
-                        [k: string]: unknown
-                    }
-                    [k: string]: unknown
-                }
-                | (
-                    | [12, string, string, ...number[]]
-                    | [13, string, string, ...number[]] //NOTE - technically can be any Input block
-                )
-            }
-            variables: {
-                [k: string]:
-                | []
-                | [string]
-                | [string, (string | number) | boolean, ...true[]]
-            }
-            lists?: {
-                [k: string]:
-                | []
-                | [string]
-                | [string, ((string | number) | boolean)[]]
-            }
-            broadcasts?: {
-                /**
-                 * the message being broadcasted
-                 */
-                [k: string]: string
-            }
-            comments?: {
-                [k: string]: {
-                    blockId?: string | null
-                    text: string
-                    minimized?: boolean
-                    x?: number | null
-                    y?: number | null
-                    width?: number
-                    height?: number
-                    [k: string]: unknown
-                }
-            }
-            costumes: [
-                {
-                    assetId: string
-                    bitmapResolution?: number
-                    dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
-                    md5ext?: string
-                    name: string
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterX?: number
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterY?: number
-                    [k: string]: unknown
-                },
-                ...{
-                    assetId: string
-                    bitmapResolution?: number
-                    dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
-                    md5ext?: string
-                    name: string
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterX?: number
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterY?: number
-                    [k: string]: unknown
-                }[]
-            ]
-            sounds: {
-                assetId: string
-                dataFormat: "wav" | "wave" | "mp3"
-                md5ext?: string
-                name: string
-                rate?: number
-                sampleCount?: number
-                [k: string]: unknown
-            }[]
-            volume?: number
-            [k: string]: unknown
-        },
-        ...({
-            name: string
-            isStage: false
-            visible?: boolean
-            x?: number
-            y?: number
-            size?: number
-            direction?: number
-            draggable?: boolean
-            rotationStyle?: "all around" | "don't rotate" | "left-right"
-            /**
-             * The layer order of a sprite should be a positive number, if specified.
-             */
-            layerOrder?: number
-            [k: string]: unknown
-        } & {
-            currentCostume?: number
-            blocks: {
-                [k: string]:
-                | {
-                    opcode: string
-                    comment?: string
-                    inputs?: {
-                        [k: string]:
-                        | []
-                        | [
-                            1 | 2 | 3,
-                            ...(
-                                | (string | null)
-                                | (
-                                    | []
-                                    | [4 | 5 | 6 | 7 | 8]
-                                    | [4 | 5 | 6 | 7 | 8, string | number]
-                                    | []
-                                    | [9]
-                                    | [9, string]
-                                    | []
-                                    | [10]
-                                    | [10, string | number]
-                                    | []
-                                    | [11]
-                                    | [11, string]
-                                    | [11, string, string]
-                                    | [12, string, string, ...number[]]
-                                    | [13, string, string, ...number[]]
-                                )
-                            )[]
-                        ]
-                    }
-                    fields?: {
-                        [k: string]: unknown
-                    }
-                    next?: string | null
-                    topLevel?: boolean
-                    parent?: string | null
-                    shadow?: boolean
-                    x?: number
-                    y?: number
-                    mutation?: {
-                        tagName?: "mutation"
-                        children?: unknown[]
-                        proccode?: string
-                        argumentids?: string
-                        warp?: ("true" | "false" | "null") | boolean | null
-                        hasnext?: ("true" | "false" | "null") | boolean | null
-                        [k: string]: unknown
-                    }
-                    [k: string]: unknown
-                }
-                | (
-                    | [12, string, string, ...number[]]
-                    | [13, string, string, ...number[]]
-                )
-            }
-            variables: {
-                [k: string]:
-                | []
-                | [string]
-                | [string, (string | number) | boolean, ...true[]]
-            }
-            lists?: {
-                [k: string]:
-                | []
-                | [string]
-                | [string, ((string | number) | boolean)[]]
-            }
-            broadcasts?: {
-                /**
-                 * the message being broadcasted
-                 */
-                [k: string]: string
-            }
-            comments?: {
-                [k: string]: {
-                    blockId?: string | null
-                    text: string
-                    minimized?: boolean
-                    x?: number | null
-                    y?: number | null
-                    width?: number
-                    height?: number
-                    [k: string]: unknown
-                }
-            }
-            costumes: [
-                {
-                    assetId: string
-                    bitmapResolution?: number
-                    dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
-                    md5ext?: string
-                    name: string
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterX?: number
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterY?: number
-                    [k: string]: unknown
-                },
-                ...{
-                    assetId: string
-                    bitmapResolution?: number
-                    dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
-                    md5ext?: string
-                    name: string
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterX?: number
-                    /**
-                     * This property is not required, but is highly recommended.
-                     */
-                    rotationCenterY?: number
-                    [k: string]: unknown
-                }[]
-            ]
-            sounds: {
-                assetId: string
-                dataFormat: "wav" | "wave" | "mp3"
-                md5ext?: string
-                name: string
-                rate?: number
-                sampleCount?: number
-                [k: string]: unknown
-            }[]
-            volume?: number
-            [k: string]: unknown
-        })[]
-    ]
-    [k: string]: unknown
+	meta: {
+		semver: string
+		vm?: string
+		agent?: string
+		origin?: string
+		[k: string]: unknown
+	}
+	targets:
+	| []
+	| [
+		{
+			name: "Stage"
+			isStage: true
+			tempo?: number
+			videoTransparency?: number
+			videoState?: "on" | "off" | "on-flipped"
+			/**
+			 * The layer order of the stage should be 0, if specified.
+			 */
+			layerOrder?: 0
+			[k: string]: unknown
+		} & {
+			currentCostume?: number
+			blocks: {
+				[k: string]:
+				| {
+					opcode: string
+					comment?: string
+					inputs?: {
+						[k: string]:
+						| []
+						| [
+							1 | 2 | 3,
+							...(
+								| (string | null)
+								| (
+									| []
+									| [4 | 5 | 6 | 7 | 8]
+									| [4 | 5 | 6 | 7 | 8, string | number]
+									| []
+									| [9]
+									| [9, string]
+									| []
+									| [10]
+									| [10, string | number]
+									| []
+									| [11]
+									| [11, string]
+									| [11, string, string]
+									| [12, string, string, ...number[]]
+									| [13, string, string, ...number[]]
+								)
+							)[]
+						]
+					}
+					fields?: {
+						[k: string]: unknown
+					}
+					next?: string | null
+					topLevel?: boolean
+					parent?: string | null
+					shadow?: boolean
+					x?: number
+					y?: number
+					mutation?: {
+						tagName?: "mutation"
+						children?: unknown[]
+						proccode?: string
+						argumentids?: string
+						warp?: ("true" | "false" | "null") | boolean | null
+						hasnext?: ("true" | "false" | "null") | boolean | null
+						[k: string]: unknown
+					}
+					[k: string]: unknown
+				}
+				| (
+					| [12, string, string, ...number[]]
+					| [13, string, string, ...number[]] //NOTE - technically can be any Input block
+				)
+			}
+			variables: {
+				[k: string]:
+				| []
+				| [string]
+				| [string, (string | number) | boolean, ...true[]]
+			}
+			lists?: {
+				[k: string]:
+				| []
+				| [string]
+				| [string, ((string | number) | boolean)[]]
+			}
+			broadcasts?: {
+				/**
+				 * the message being broadcasted
+				 */
+				[k: string]: string
+			}
+			comments?: {
+				[k: string]: {
+					blockId?: string | null
+					text: string
+					minimized?: boolean
+					x?: number | null
+					y?: number | null
+					width?: number
+					height?: number
+					[k: string]: unknown
+				}
+			}
+			costumes: [
+				{
+					assetId: string
+					bitmapResolution?: number
+					dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
+					md5ext?: string
+					name: string
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterX?: number
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterY?: number
+					[k: string]: unknown
+				},
+				...{
+					assetId: string
+					bitmapResolution?: number
+					dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
+					md5ext?: string
+					name: string
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterX?: number
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterY?: number
+					[k: string]: unknown
+				}[]
+			]
+			sounds: {
+				assetId: string
+				dataFormat: "wav" | "wave" | "mp3"
+				md5ext?: string
+				name: string
+				rate?: number
+				sampleCount?: number
+				[k: string]: unknown
+			}[]
+			volume?: number
+			[k: string]: unknown
+		},
+		...({
+			name: string
+			isStage: false
+			visible?: boolean
+			x?: number
+			y?: number
+			size?: number
+			direction?: number
+			draggable?: boolean
+			rotationStyle?: "all around" | "don't rotate" | "left-right"
+			/**
+			 * The layer order of a sprite should be a positive number, if specified.
+			 */
+			layerOrder?: number
+			[k: string]: unknown
+		} & {
+			currentCostume?: number
+			blocks: {
+				[k: string]:
+				| {
+					opcode: string
+					comment?: string
+					inputs?: {
+						[k: string]:
+						| []
+						| [
+							1 | 2 | 3,
+							...(
+								| (string | null)
+								| (
+									| []
+									| [4 | 5 | 6 | 7 | 8]
+									| [4 | 5 | 6 | 7 | 8, string | number]
+									| []
+									| [9]
+									| [9, string]
+									| []
+									| [10]
+									| [10, string | number]
+									| []
+									| [11]
+									| [11, string]
+									| [11, string, string]
+									| [12, string, string, ...number[]]
+									| [13, string, string, ...number[]]
+								)
+							)[]
+						]
+					}
+					fields?: {
+						[k: string]: unknown
+					}
+					next?: string | null
+					topLevel?: boolean
+					parent?: string | null
+					shadow?: boolean
+					x?: number
+					y?: number
+					mutation?: {
+						tagName?: "mutation"
+						children?: unknown[]
+						proccode?: string
+						argumentids?: string
+						warp?: ("true" | "false" | "null") | boolean | null
+						hasnext?: ("true" | "false" | "null") | boolean | null
+						[k: string]: unknown
+					}
+					[k: string]: unknown
+				}
+				| (
+					| [12, string, string, ...number[]]
+					| [13, string, string, ...number[]]
+				)
+			}
+			variables: {
+				[k: string]:
+				| []
+				| [string]
+				| [string, (string | number) | boolean, ...true[]]
+			}
+			lists?: {
+				[k: string]:
+				| []
+				| [string]
+				| [string, ((string | number) | boolean)[]]
+			}
+			broadcasts?: {
+				/**
+				 * the message being broadcasted
+				 */
+				[k: string]: string
+			}
+			comments?: {
+				[k: string]: {
+					blockId?: string | null
+					text: string
+					minimized?: boolean
+					x?: number | null
+					y?: number | null
+					width?: number
+					height?: number
+					[k: string]: unknown
+				}
+			}
+			costumes: [
+				{
+					assetId: string
+					bitmapResolution?: number
+					dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
+					md5ext?: string
+					name: string
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterX?: number
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterY?: number
+					[k: string]: unknown
+				},
+				...{
+					assetId: string
+					bitmapResolution?: number
+					dataFormat: "png" | "svg" | "jpeg" | "jpg" | "bmp" | "gif"
+					md5ext?: string
+					name: string
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterX?: number
+					/**
+					 * This property is not required, but is highly recommended.
+					 */
+					rotationCenterY?: number
+					[k: string]: unknown
+				}[]
+			]
+			sounds: {
+				assetId: string
+				dataFormat: "wav" | "wave" | "mp3"
+				md5ext?: string
+				name: string
+				rate?: number
+				sampleCount?: number
+				[k: string]: unknown
+			}[]
+			volume?: number
+			[k: string]: unknown
+		})[]
+	]
+	[k: string]: unknown
 }

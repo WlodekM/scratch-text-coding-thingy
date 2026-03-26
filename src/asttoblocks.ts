@@ -3,12 +3,23 @@ import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, Branch
 import * as json from './jsontypes.ts';
 import bd from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
-import fs from "node:fs";
 import { ForNode } from "./tshv2/main.ts";
-import path from "node:path";
-import {Buffer} from 'node:buffer'
 import transformAST from "./preprocess.ts";
-import process from "node:process";
+//@ts-ignore:
+// deno-lint-ignore no-window
+
+const is_browser = typeof window.vm !== 'undefined';
+
+//#nobrowser
+const {Buffer} = is_browser ? {Buffer:undefined as unknown as any} :
+	await import('node:buffer');
+const path = is_browser ? undefined as unknown as any :
+	(await import("node:path")).default;
+const fs = is_browser ? undefined as unknown as any :
+	(await import("node:fs")).default;
+//#endnobrowser
+
+//import process from "node:process";
 
 let blockDefinitions = bd
 const args = 
@@ -235,8 +246,11 @@ function findVarDecls(env: Environment, node: ASTNode): void {
 	}
 }
 
-const vmPath = fs.existsSync(path.resolve(import.meta.dirname,'../pm-vm')) ?
+let vmPath = '';
+//#noweb
+vmPath = fs.existsSync(path.resolve(import.meta.dirname??'.','../pm-vm')) ?
 	'../pm-vm' : '../tw-vm'
+//#endnoweb
 
 export default async function ASTtoBlocks(
 	ast: ASTNode[],
@@ -460,6 +474,8 @@ export default async function ASTtoBlocks(
 				return new BlockCollection(gfBlock, [children])
 
 			case 'Include':
+				if (is_browser) throw 'no need to import in browser'
+				//#nobrowser
 				const includeNode = node as IncludeNode;
 				blockID--
 				if (includeNode.itype == 'blocks/js') {
@@ -680,14 +696,19 @@ export default async function ASTtoBlocks(
 								exports: {
 									JSGenerator: class {}
 								},
-								setRuntimeOptions: nop
+								setRuntimeOptions: nop,
+								setInterpolation: nop,
+								runtimeOptions:{},
+								ext_scratch3_looks:{},
 							},
 							renderer: {
 								on: nop,
 								exports: {
-									Skin: class {}
+									Skin: class {},
+									Drawable: {prototype:{}}
 								},
 								canvas: {},
+								_drawList: []
 							},
 							exports: {
 								RenderedTarget: class RenderedTarget {
@@ -742,7 +763,7 @@ export default async function ASTtoBlocks(
 					let extUrl = includeNode.path;
 					if (includeNode.itype == 'extensions/file') {
 						const file = fs.readFileSync(path.resolve(basedir, ipath));
-						const base64 = Buffer.from(file).toString('base64')
+						const base64 = (typeof file == 'string' ? Buffer.from(file) : file).toString('base64')
 						const url = encodeURIComponent(file.toString())
 						// console.log(base64, url)
 						if (base64.length < url.length)
@@ -771,6 +792,7 @@ export default async function ASTtoBlocks(
 					}
 				} else throw `unknown include type "${includeNode.type}"`
 				return new PartialBlockCollection([]) as BlockCollection
+				//#endnobrowser
 
 			// deno-lint-ignore no-fallthrough
 			case 'FunctionCall': // custom blocks

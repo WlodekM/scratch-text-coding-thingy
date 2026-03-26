@@ -1,6 +1,18 @@
-import fs from "node:fs"
+//@ts-ignore:
+// deno-lint-ignore no-window
+const is_browser = typeof window.vm !== 'undefined';
+let fs = is_browser ? {} as unknown as any : undefined;
+//#nobrowser
+fs = await import('node:fs');
 import path from "node:path";
-const Blockly = (await import('./get_blockly_shit.js')).default;
+//#endnobrowser
+
+//@ts-ignore:
+// deno-lint-ignore no-window
+let Blockly = is_browser ? window.ScratchBlocks : undefined;
+//#nobrowser
+Blockly = (await import('./get_blockly_shit.js')).default;
+//#endnobrowser
 // console.log(ScratchBlocksBlock)
 // deno-lint-ignore-file no-explicit-any
 export interface BaseInput {
@@ -26,6 +38,8 @@ export interface DropdownInput extends BaseInput {
 
 type Input = BaseInput | FieldInputA | FieldInputB | DropdownInput
 
+//#nobrowser
+if (!is_browser) {
 // console.log(import.meta.dirname, 'askjfsikjs', path.resolve(import.meta.dirname, `../pm-blocks`))
 //@ts-ignore:
 let blocksRoot = fs.existsSync(path.resolve(import.meta.dirname, `../pm-blocks`)) ? path.resolve(import.meta.dirname, `../pm-blocks`) : path.join(import.meta.dirname, `../tw-blocks`)
@@ -42,7 +56,6 @@ await import(`${blocksRoot}/msg/js/en.js`);
 await import(`${blocksRoot}/core/constants.js`);
 await import(`${blocksRoot}/core/colours.js`);
 
-export const blockly = Blockly
 
 //@ts-ignore:
 Blockly.scratchBlocksUtils = {generateMutatorShadow(){}}
@@ -55,18 +68,25 @@ await import(`${blocksRoot}/blocks_vertical/event.js`);
 // await import('./tw-blocks/blocks_vertical/sound.js');
 // await import('./tw-blocks/blocks_vertical/sensing.js');
 await import(`${blocksRoot}/blocks_vertical/data.js`);
+}
+//#endnobrowser
+export const blockly = Blockly
 declare global {
     function aditionalImports(): void | Promise<void>
 }
+//#nobrowser
 if (globalThis.aditionalImports && typeof globalThis.aditionalImports == 'function') {
     await globalThis.aditionalImports()
 }
+//#endnobrowser
+
 
 // this is used for custom blocks
 // await import('./tw-blocks/blocks_vertical/procedures.js');
 
-//@ts-expect-error: wut
-export function jsBlocksToJSON(jsblocks = Blockly.Blocks) {
+export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
+    Object.fromEntries(Object.entries(Blockly.Blocks).filter(([opcode]) => Blockly.Categories[opcode.split('_')[0]]))
+) {
     const blocks: Record<string, any> = {};
     for (const [opcode, data] of Object.entries(jsblocks)) {
         let blockdata: any = {};

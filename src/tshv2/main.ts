@@ -43,7 +43,7 @@ export interface Token {
 // Lexer
 export class Lexer {
 	private source: string;
-	private position: number = 0;
+	position: number = 0;
 
 	constructor(source: string) {
 		this.source = source;

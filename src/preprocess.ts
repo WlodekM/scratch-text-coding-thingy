@@ -191,6 +191,7 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 	['FunctionCall', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {
 		if (function_defintions.has(node.identifier))
 			return function_defintions.get(node.identifier);
+		//#nobrowser
 		if (node.identifier === 'evaljs') {
 			if (!node.args[0] || node.args[0].type !== 'Literal')
 				throw 'arg 1 must be literal'
@@ -219,6 +220,7 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 			)
 			return
 		}
+		//#endnobrowser
 		return node
 	}],
 	['Identifier', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {

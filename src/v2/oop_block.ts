@@ -83,7 +83,9 @@ export class Scope {
 	variables: Map<string, Variable> = new Map()
 	lists: Map<string, List> = new Map()
 	block_dict: Map<string, Block> = new Map()
+	block_json: any
 	get_blocks_json(): Record<string, blockBlock> {
+		if (this.block_json) return this.block_json;
 		const blocks: Record<string, blockBlock> = {}
 		for (const [id, block] of this.block_dict.entries()) {
 			blocks[id] = block.get_JSON()
