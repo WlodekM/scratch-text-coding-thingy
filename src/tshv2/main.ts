@@ -621,7 +621,7 @@ export class Parser {
 			let define = false;
 			if (this.match(TokenType.VAR)) define = true;
 			const varname = this.parseAssignment();
-			this.expect(TokenType.IN, 'expected of');
+			this.expect(TokenType.IN, 'expected in');
 			const times = this.parseAssignment();
 			// this.expect(TokenType.RPAREN, "Expected ')' after for");
 			this.expect(TokenType.LBRACE, "Expected '{' after for");
