@@ -78,7 +78,7 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 					throw `unknown property ${node.property} for ${vtype} vtype`
 			}
 		}
-		throw 'unhandled'
+		throw `unhandled object access alias ${JSON.stringify(node)}`
 	}],
 	['ObjectMethodCall', function(node: ObjectMethodCallNode, env: Environment): ASTNode {
 		let vtype: null | 'v' | 'l' = null;
@@ -186,7 +186,7 @@ const TRANSFORMERS: [NodeType, (node: any, env: Environment) => ASTNode | undefi
 					throw `unknown property ${node.method} for ${vtype} vtype`
 			}
 		}
-		throw 'unhandled'
+		throw `unhandled object method call alias ${JSON.stringify(node)}`
 	}],
 	['FunctionCall', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {
 		if (function_defintions.has(node.identifier))
