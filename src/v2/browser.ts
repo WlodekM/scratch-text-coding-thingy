@@ -7,6 +7,7 @@ import getSpriteGlobals from "../getGlobalVars.ts";
 import ASTtoBlocks, { Environment, jsonBlock } from "../asttoblocks.ts";
 import * as json from '../jsontypes.ts'
 import { blockBlock } from "../main.ts";
+import blocks from "../blocks.ts";
 //import { parseArgs } from "jsr:@std/cli/parse-args";
 //const flags = parseArgs(Deno.args, {
 //    boolean: ["r"],
@@ -48,7 +49,7 @@ declare global {
 	var bsl_globals: Map<string, [Record<string, string>, Record<string, [string, string[]]>]>;
 	function preprocess_globals(code: string, identifier: string): void
 	function compile_bsl(code: string, identifier: string): Promise<Record<string, json.jsonBlockNoId>>
-	var Backslash: BackslashInterface
+	var Backslash: BackslashInterface & Record<string, any>
 	var bsl_error_info: AstError | LexerError | undefined
 }
 
@@ -176,5 +177,7 @@ async function compile_bsl(code: string, identifier: string): Promise<Record<str
 globalThis.Backslash = {
 	bsl_globals,
 	compile_bsl,
-	preprocess_globals
+	preprocess_globals,
+	bsl_error_info: undefined,
+	blocks
 }
