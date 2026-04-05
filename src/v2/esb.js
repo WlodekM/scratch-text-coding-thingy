@@ -47,5 +47,6 @@ await esbuild.build({
 	minifyIdentifiers: true,
 	tsconfig: 'tsconfig.json',
 	minifyWhitespace: true,
+	sourcemap: true,
 	// minifySyntax: true
 })
