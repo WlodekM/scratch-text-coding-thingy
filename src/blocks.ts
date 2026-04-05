@@ -1,6 +1,6 @@
 //@ts-ignore:
 // deno-lint-ignore no-window
-const is_browser = typeof window.vm !== 'undefined';
+const is_browser = typeof globalThis.vm !== 'undefined';
 let fs = is_browser ? {} as unknown as any : undefined;
 //#nobrowser
 fs = await import('node:fs');
@@ -9,7 +9,7 @@ import path from "node:path";
 
 //@ts-ignore:
 // deno-lint-ignore no-window
-let Blockly = is_browser ? window.ScratchBlocks : undefined;
+let Blockly = is_browser ? globalThis.ScratchBlocks : undefined;
 //#nobrowser
 Blockly = (await import('./get_blockly_shit.js')).default;
 //#endnobrowser
@@ -36,7 +36,7 @@ export interface DropdownInput extends BaseInput {
     blocklyType: string
 }
 
-type Input = BaseInput | FieldInputA | FieldInputB | DropdownInput
+export type Input = BaseInput | FieldInputA | FieldInputB | DropdownInput
 
 //#nobrowser
 if (!is_browser) {
@@ -152,57 +152,77 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
                 check?: string // might be a pm thing
                 options: [string, string][]
             }
+
+			function argMap(arg:any) {
+				if (arg.type == 'field_dropdown') {
+					return { //TODO - in some way implement this
+						name: arg.name,
+						type: 1,
+						field: arg.name,
+						options: arg.options,
+						variableTypes: arg.variableTypes,
+						blocklyType: arg.type
+					}
+				} else if (arg.type == 'field_image') {
+					return null
+				} else if (arg.type == 'field_variable') {
+					//TODO - implement this in a better way
+					return {
+						name: arg.name,
+						type: 1,
+						options: arg.options,
+						field: arg.name,
+						variableTypes: arg.variableTypes,
+						blocklyType: arg.type
+					}
+				} else if (arg.type == 'field_variable_getter') {
+					//TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
+					return null
+				} else if (arg.type == 'field_numberdropdown') {
+					// this is the list index type, if you didn't know in 2.0 you could
+					// use last, random/all (depending on block) and 3.0
+					// has that too, just no dropdown in the visible block
+					return {
+						name: arg.name,
+						type: 1,
+						variableTypes: arg.variableTypes,
+						blocklyType: arg.type
+					}
+				} else if (arg.type == 'input_statement') {
+					return {}
+				} else if (arg.type == 'field_expandable_remove') {
+					// console.log(arg)
+					return {
+						name: arg.name,
+						type: 1,
+						field: arg.name,
+					}
+				} else if (arg.type == 'field_expandable_add') {
+					// console.log(arg)
+					return {
+						name: arg.name,
+						type: 1,
+						field: arg.name,
+					}
+				} else if (arg.type == 'field_checkbox_original') {
+					// console.log(arg)
+					return {}
+				}
+				return {
+					name: arg.name,
+					type: arg.type == 'input_value' ? 1 : (() => {
+						console.error(block, args)
+						throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
+					})(),
+					variableTypes: arg.variableTypes,
+					blocklyType: arg.type
+				}
+			}
             
             if(args.find(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))) {
                 // console.log('branch!!', (args[0] ?? []))
                 return [opcode, [
-                    (args[0] ?? []).map((arg: any) => {
-                        if (arg.type == 'field_dropdown') {
-                            return { //TODO - in some way implement this
-                                name: arg.name,
-                                type: 1,
-                                field: arg.name,
-                                options: arg.options,
-                                variableTypes: arg.variableTypes,
-                                blocklyType: arg.type
-                            }
-                        } else if (arg.type == 'field_image') {
-                            return null
-                        } else if (arg.type == 'field_variable') {
-                            //TODO - implement this in a better way
-                            return {
-                                name: arg.name,
-                                type: 1,
-                                options: arg.options,
-                                variableTypes: arg.variableTypes,
-                                blocklyType: arg.type
-                            }
-                        } else if (arg.type == 'field_variable_getter') {
-                            //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
-                            return null
-                        } else if (arg.type == 'field_numberdropdown') {
-                            // this is the list index type, if you didn't know in 2.0 you could
-                            // use last, random/all (depending on block) and 3.0
-                            // has that too, just no dropdown in the visible block
-                            return {
-                                name: arg.name,
-                                type: 1,
-                                variableTypes: arg.variableTypes,
-                                blocklyType: arg.type
-                            }
-                        } else if (arg.type == 'input_statement') {
-                            return {}
-                        }
-                        return {
-                            name: arg.name,
-                            type: arg.type == 'input_value' ? 1 : (() => {
-                                console.error(block, args)
-                                throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
-                            })(),
-                            variableTypes: arg.variableTypes,
-                            blocklyType: arg.type
-                        }
-                    }) ?? [], 'branch',
+                    (args[0] ?? []).map(argMap) ?? [], 'branch',
                     args
                         // find branches
                         .filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
@@ -218,69 +238,11 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
                         .map(i => i.name)
                 ]]
             }
-            return [opcode, [((args[0] ?? []).map((arg: any) => {
-                if (arg.type == 'field_dropdown') {
-                    return { //TODO - in some way implement this
-                        name: arg.name,
-                        type: 1,
-                        field: arg.name,
-                        options: arg.options,
-                        variableTypes: arg.variableTypes,
-                        blocklyType: arg.type
-                    }
-                } else if (arg.type == 'field_image') {
-                    return null
-                } else if (arg.type == 'field_variable') {
-                    //TODO - implement this in a better way
-                    return {
-                        name: arg.name,
-                        type: 1,
-                        field: arg.name,
-                        variableTypes: arg.variableTypes,
-                        blocklyType: arg.type
-                    }
-                } else if (arg.type == 'field_variable_getter') {
-                    //TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
-                    return null
-                } else if (arg.type == 'field_numberdropdown') {
-                    // this is the list index type, if you didn't know in 2.0 you could
-                    // use last, random/all (depending on block) and 3.0
-                    // has that too, just no dropdown in the visible block
-                    return {
-                        name: arg.name,
-                        type: 1,
-                        blocklyType: arg.type
-                    }
-                } else if (arg.type == 'input_statement') {
-                    return {}
-                } else if (arg.type == 'field_expandable_remove') {
-                    // console.log(arg)
-                    return {
-                        name: arg.name,
-                        type: 1,
-                        field: arg.name,
-                    }
-                } else if (arg.type == 'field_expandable_add') {
-                    // console.log(arg)
-                    return {
-                        name: arg.name,
-                        type: 1,
-                        field: arg.name,
-                    }
-                } else if (arg.type == 'field_checkbox_original') {
-                    // console.log(arg)
-                    return {}
-                }
-                return {
-                    name: arg.name,
-                    type: arg.type == 'input_value' ? 1 : (() => {
-                        console.error(block, args)
-                        throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
-                    })(),
-                    variableTypes: arg.variableTypes,
-                    blocklyType: arg.type
-                }
-            }) ?? []), (block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']].filter(a => a != null)
+            return [
+				opcode,
+				[((args[0] ?? []).map(argMap) ?? []),
+				(block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']
+			].filter(a => a != null)
         }
     
     const processedBlocks = Object.fromEntries(

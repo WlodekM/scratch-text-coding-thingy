@@ -1,14 +1,15 @@
 // deno-lint-ignore-file no-case-declarations no-explicit-any
 import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NodeType, NotNode, ReturnNode, StartBlockNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import * as json from './jsontypes.ts';
-import bd from "./blocks.ts";
+import bd, { DropdownInput, FieldInputA, FieldInputB } from "./blocks.ts";
+import { Input } from "./blocks.ts";
 import { jsBlocksToJSON, blockly } from "./blocks.ts";
 import { ForNode } from "./tshv2/main.ts";
 import transformAST from "./preprocess.ts";
 //@ts-ignore:
 // deno-lint-ignore no-window
 
-const is_browser = typeof window.vm !== 'undefined';
+const is_browser = typeof globalThis.vm !== 'undefined';
 
 //#nobrowser
 const {Buffer} = is_browser ? {Buffer:undefined as unknown as any} :
@@ -27,12 +28,13 @@ const args =
 	//@ts-ignore:
 	typeof process !== 'undefined' ? process.argv : []
 
-interface Input {
-	name: string,
-	type: number,
-	field?: string,
-	variableTypes?: string[]
-}
+// interface Input {
+// 	name: string,
+// 	type: number,
+// 	field?: string,
+// 	variableTypes?: string[]
+// 	blocklyType: string
+// }
 
 const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -312,6 +314,7 @@ export default async function ASTtoBlocks(
 		}
 		if (arg.type == 'Identifier') {
 			const childBlock = await processNode(level + 1, arg, false, true, true, scope);
+			// if the block is not a var block, reference it instead
 			if (!(childBlock.block as varBlock).data) {
 				const blbl = childBlock.block as blockBlock; // the blockaroo
 				child.push(childBlock);
@@ -383,7 +386,7 @@ export default async function ASTtoBlocks(
 		// console.log((arg as LiteralNode | any)?.value?.toString(),
 		// 	sprite.getVarOrListId((arg as LiteralNode | any)?.value?.toString()),
 		// 	(inp.variableTypes ?? [])[0], inp)
-		if ((inp.variableTypes ?? [])[0] == 'broadcast_msg') {
+		if (((inp as FieldInputA).variableTypes ?? [])[0] == 'broadcast_msg') {
 			const id = genVarId((arg as LiteralNode | any)?.value?.toString())
 			sprite.broadcasts.set((arg as LiteralNode | any)?.value?.toString(), id)
 		}
@@ -403,12 +406,12 @@ export default async function ASTtoBlocks(
 					)
 				]
 				]],
-			fields: (inp.field ?
+			fields: ((inp as FieldInputB).field || (inp as FieldInputA)?.blocklyType == 'field_variable' ?
 				[inp.name,
 					[
 						(arg as LiteralNode | any)?.value?.toString(),
 						sprite.getVarOrListOrEventId((arg as LiteralNode | any)?.value?.toString()),
-						(inp.variableTypes ?? [])[0]
+						((inp as DropdownInput).variableTypes ?? [])[0]
 					].filter(k=>k)
 				] : []) as [string, any] | []
 		}
@@ -808,7 +811,8 @@ export default async function ASTtoBlocks(
 						// console.log(inp)
 						const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode2.args[i], child, scope)
 						inputs.push(inps)
-						fields.push(flds)
+						if (flds)
+							fields.push(flds)
 					}
 					const block: jsonBlock = {
 						opcode: "procedures_call",
@@ -848,9 +852,11 @@ export default async function ASTtoBlocks(
 					// console.log(definition, 'ssjfksjfksjkfssj<--', i, inp, fnNode.identifier)
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode.args[i], child, scope)
 					inputs.push(inps)
-					fields.push(flds)
+					if (flds)
+						fields.push(flds)
 				}
 				lastBlock = _fncLastLastBlock
+				// console.log(fields)
 				const block: jsonBlock = {
 					opcode: fnNode.identifier,
 					...blk,
