@@ -1,5 +1,4 @@
 //@ts-ignore:
-// deno-lint-ignore no-window
 const is_browser = typeof globalThis.vm !== 'undefined';
 let fs = is_browser ? {} as unknown as any : undefined;
 //#nobrowser
@@ -8,7 +7,6 @@ import path from "node:path";
 //#endnobrowser
 
 //@ts-ignore:
-// deno-lint-ignore no-window
 let Blockly = is_browser ? globalThis.ScratchBlocks : undefined;
 //#nobrowser
 Blockly = (await import('./get_blockly_shit.js')).default;
