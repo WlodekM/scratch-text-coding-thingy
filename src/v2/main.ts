@@ -122,11 +122,11 @@ if (target_config.insert_blocks) {
 		const ast = parser.parse();
 
 		for (const node of ast) {
-			process_node({node, sprite});
 			console.log(node)
+			await process_node({node, sprite});
 		}
 
-		console.log(sprite.get_blocks_json())
+		// console.log(sprite.get_blocks_json())
 	}
 }
 
