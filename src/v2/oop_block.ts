@@ -58,13 +58,22 @@ export class Project {
 	definitions: Record<string, Definition> = Object.assign({}, base_definitions)
 }
 
-type definition_type = 'var' | 'list' | 'broadcast'
+export enum ResolveKind {
+	Variable,
+	List,
+	Var_or_list,
+	Broadcast,
+	Function
+}
+
+type definition_type = 'var' | 'list' | 'broadcast' | 'function'
 export class Scope {
 	project: Project
 	define(type: 'broadcast', name: string): Broadcast
 	define(type: 'list', name: string): List
 	define(type: 'var', name: string): Variable
 	define(type: definition_type, name: string): Variable | List | Broadcast {
+		if (type == 'function') throw 'TODO'
 		if (type == 'var') {
 			const variable = new Variable(genUid(), name);
 			this.variables.set(name, variable);
@@ -78,6 +87,12 @@ export class Scope {
 		const broadcast = new Broadcast(genUid(), name);
 		this.stage.broadcasts.set(name, broadcast);
 		return broadcast;
+	}
+	resolve(kind: ResolveKind): Variable | List | Broadcast {
+		if (kind == ResolveKind.Variable || ResolveKind.Var_or_list)
+			throw 'todo'
+			//TODO:
+			throw 'todo'
 	}
 	stage: StageScope = undefined as unknown as StageScope;
 	variables: Map<string, Variable> = new Map()

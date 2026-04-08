@@ -3,13 +3,15 @@
 import { jsBlocksToJSON } from "../blocks.ts";
 import { Block, ScratchBlockValue, Stack, type SpriteOrStageScope, } from './oop_block.ts'
 import { ASTNode, FunctionCallNode, GreenFlagNode, IncludeNode, LiteralNode, VariableDeclarationNode } from "../tshv2/main.ts";
+import transformAST from "./preprocess2.ts";
 
 const THROW_IF_NULL = true
 
+//@ts-expect-error:
 const is_browser = typeof globalThis.vm !== 'undefined';
 let blockly: typeof Blockly;
 if (is_browser)
-	//@ts-ignore
+	//@ts-ignore:
 	blockly = globalThis.ScratchBlocks ?? globalThis.Blockly
 else {
 	blockly = (await import('./fake_blockly.ts')).blockly
@@ -31,6 +33,7 @@ export async function process_node(
 	{node: ASTNode, stack?: Stack, sprite: SpriteOrStageScope},
 	throw_if_null = false,
 ): Promise<ScratchBlockValue | null> {
+	const _node = await transformAST(node, sprite)
 	const handlers: Record<string, (()=>ScratchBlockValue | null) | (()=>Promise<ScratchBlockValue | null>)> = ({
 		GreenFlag() {
 			const _node = node as GreenFlagNode;
@@ -131,10 +134,10 @@ export async function process_node(
 			return null
 		}
 	});
-	if (!handlers[node.type])
-		throw `cannot handle node of type ${node.type}
+	if (!handlers[_node.type])
+		throw `cannot handle node of type ${_node.type}
 try the old asttoblocks?`;
-	const return_value = await handlers[node.type]();
+	const return_value = await handlers[_node.type]();
 	if (throw_if_null && return_value === null)
 		throw 'cannot use null nodes in this context';
 	return return_value;

@@ -1,7 +1,7 @@
 // the new and improved tosh !
 // now using targets instead of projects !
 import path from 'node:path'
-import { parse, stringify } from "jsr:@std/yaml";
+import { parse } from "jsr:@std/yaml";
 import * as zip from "jsr:@zip-js/zip-js";
 import { Lexer, Parser } from "../tshv2/main.ts";
 import { Project, SpriteScope, StageScope } from "./oop_block.ts";
@@ -103,6 +103,7 @@ if (target_config.insert_blocks) {
 			// console.debug('new globals:', newGlobals);
 			[lastGlobalVariables, lastGlobalLists] = newGlobals;
 
+			/*dont care*/// deno-lint-ignore no-unused-vars
 			const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(
 				ast,
 				basedir,
@@ -134,10 +135,10 @@ const base_sb3 = Deno.readFileSync(path.resolve(dir, target_config.base));
 
 const file_reader = new zip.BlobReader(new Blob([base_sb3.buffer]));
 
-const zip_reader =  new zip.ZipReader(file_reader)
+const zip_reader = new zip.ZipReader(file_reader)
 
 const base_entries = await zip_reader.getEntries();
-const base_project_entry = base_entries.find(e => e.filename == 'project.json')
+const base_project_entry = base_entries.find((e:any) => e.filename == 'project.json')
 //@ts-ignoreL
 const base_project_json_data: ArrayBuffer = await base_project_entry!.arrayBuffer();
 const td = new TextDecoder();
