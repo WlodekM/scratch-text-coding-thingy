@@ -83,8 +83,10 @@ if (globalThis.aditionalImports && typeof globalThis.aditionalImports == 'functi
 // await import('./tw-blocks/blocks_vertical/procedures.js');
 
 export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
-    Object.fromEntries(Object.entries(Blockly.Blocks).filter(([opcode]) => Blockly.Categories[opcode.split('_')[0]]))
+    Object.fromEntries(Object.entries(Blockly.Blocks)
+	/*.filter(([opcode]) => Blockly.Categories[opcode.split('_')[0]])*/)
 ) {
+	// console.log(jsblocks)
     const blocks: Record<string, any> = {};
     for (const [opcode, data] of Object.entries(jsblocks)) {
         let blockdata: any = {};
@@ -125,126 +127,129 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
     // console.debug(Object.keys(blocks))
 
     function process_block([opcode, block]: [string, any]) {
-            // console.log(opcode, block)
-            try {
-                Object.keys(block)
-                .filter(a => a.startsWith('args'))
-                .map(n => block[n])
-                .filter(a => a[0]?.type != 'field_image');
-            } catch (error) {
-                console.error(block,
-                    Object.keys(block)
-                    .filter(a => a.startsWith('args'))
-                    .map(n => block[n]))
-                throw error
-            }
-            // might probably be [InputThing][]
-            const args: InputThing[][] = Object.keys(block)
-                .filter(a => a.startsWith('args'))
-                .map(n => block[n])
-                .filter(a => a[0]?.type != 'field_image');
-            type InputThing = {
-                type: "input_value" | "input_statement" | "field_variable" | string,
-                name: string
-                variableTypes?: string[]
-                check?: string // might be a pm thing
-                options: [string, string][]
-            }
+		try {
+			Object.keys(block)
+			.filter(a => a.startsWith('args'))
+			.map(n => block[n])
+			.filter(a => a[0]?.type != 'field_image');
+		} catch (error) {
+			console.error(block,
+				Object.keys(block)
+				.filter(a => a.startsWith('args'))
+				.map(n => block[n]))
+			throw error
+		}
+		// might probably be [InputThing][]
+		const args: InputThing[][] = Object.keys(block)
+			.filter(a => a.startsWith('args'))
+			.map(n => block[n])
+			.filter(a => a[0]?.type != 'field_image');
+		type InputThing = {
+			type: "input_value" | "input_statement" | "field_variable" | string,
+			name: string
+			variableTypes?: string[]
+			check?: string // might be a pm thing
+			options: [string, string][]
+		}
 
-			function argMap(arg:any) {
-				if (arg.type == 'field_dropdown') {
-					return { //TODO - in some way implement this
-						name: arg.name,
-						type: 1,
-						field: arg.name,
-						options: arg.options,
-						variableTypes: arg.variableTypes,
-						blocklyType: arg.type
-					}
-				} else if (arg.type == 'field_image') {
-					return null
-				} else if (arg.type == 'field_variable') {
-					//TODO - implement this in a better way
-					return {
-						name: arg.name,
-						type: 1,
-						options: arg.options,
-						field: arg.name,
-						variableTypes: arg.variableTypes,
-						blocklyType: arg.type
-					}
-				} else if (arg.type == 'field_variable_getter') {
-					//TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
-					return null
-				} else if (arg.type == 'field_numberdropdown') {
-					// this is the list index type, if you didn't know in 2.0 you could
-					// use last, random/all (depending on block) and 3.0
-					// has that too, just no dropdown in the visible block
-					return {
-						name: arg.name,
-						type: 1,
-						variableTypes: arg.variableTypes,
-						blocklyType: arg.type
-					}
-				} else if (arg.type == 'input_statement') {
-					return {}
-				} else if (arg.type == 'field_expandable_remove') {
-					// console.log(arg)
-					return {
-						name: arg.name,
-						type: 1,
-						field: arg.name,
-					}
-				} else if (arg.type == 'field_expandable_add') {
-					// console.log(arg)
-					return {
-						name: arg.name,
-						type: 1,
-						field: arg.name,
-					}
-				} else if (arg.type == 'field_checkbox_original') {
-					// console.log(arg)
-					return {}
-				}
-				return {
+		function argMap(arg:any) {
+			if (arg.type == 'field_dropdown') {
+				return { //TODO - in some way implement this
 					name: arg.name,
-					type: arg.type == 'input_value' ? 1 : (() => {
-						console.error(block, args)
-						throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
-					})(),
+					type: 1,
+					field: arg.name,
+					options: arg.options,
 					variableTypes: arg.variableTypes,
 					blocklyType: arg.type
 				}
+			} else if (arg.type == 'field_image') {
+				return null
+			} else if (arg.type == 'field_variable') {
+				//TODO - implement this in a better way
+				return {
+					name: arg.name,
+					type: 1,
+					options: arg.options,
+					field: arg.name,
+					variableTypes: arg.variableTypes,
+					blocklyType: arg.type
+				}
+			} else if (arg.type == 'field_variable_getter') {
+				//TODO - maybe implement this, i mean setting and stuff is done thru syntax but uh
+				return null
+			} else if (arg.type == 'field_numberdropdown') {
+				// this is the list index type, if you didn't know in 2.0 you could
+				// use last, random/all (depending on block) and 3.0
+				// has that too, just no dropdown in the visible block
+				return {
+					name: arg.name,
+					type: 1,
+					variableTypes: arg.variableTypes,
+					blocklyType: arg.type
+				}
+			} else if (arg.type == 'input_statement') {
+				return {}
+			} else if (arg.type == 'field_expandable_remove') {
+				// console.log(arg)
+				return {
+					name: arg.name,
+					type: 1,
+					field: arg.name,
+				}
+			} else if (arg.type == 'field_expandable_add') {
+				// console.log(arg)
+				return {
+					name: arg.name,
+					type: 1,
+					field: arg.name,
+				}
+			} else if (arg.type == 'field_checkbox_original') {
+				// console.log(arg)
+				return {}
 			}
-            
-            if(args.find(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))) {
-                // console.log('branch!!', (args[0] ?? []))
-                return [opcode, [
-                    (args[0] ?? []).map(argMap) ?? [], 'branch',
-                    args
-                        // find branches
-                        .filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
-                        // get the uh, branches
-                        .reduce((branches, input_collection) => {
-                            branches.push(
-                                ...input_collection
-                                .filter(input => input.type == 'input_statement')
-                            );
-                            return branches;
-                        }, [])
-                        // get their names
-                        .map(i => i.name)
-                ]]
-            }
-            return [
-				opcode,
-				[((args[0] ?? []).map(argMap) ?? []),
-				(block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']
-			].filter(a => a != null)
-        }
+			return {
+				name: arg.name,
+				type: arg.type == 'input_value' ? 1 : (() => {
+					console.error(block, args)
+					throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
+				})(),
+				variableTypes: arg.variableTypes,
+				blocklyType: arg.type
+			}
+		}
+		
+		if(args.find(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))) {
+			// console.log('branch!!', (args[0] ?? []))
+			return [opcode, [
+				(args[0] ?? []).map(argMap) ?? [], 'branch',
+				args
+					// find branches
+					.filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
+					// get the uh, branches
+					.reduce((branches, input_collection) => {
+						branches.push(
+							...input_collection
+							.filter(input => input.type == 'input_statement')
+						);
+						return branches;
+					}, [])
+					// get their names
+					.map(i => i.name)
+			]]
+		}
+		return [
+			opcode,
+			[((args[0] ?? []).map(argMap) ?? []),
+			(block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']
+		].filter(a => a != null)
+	}
+
+	console.log(Object.entries(blocks).map(([opcode, {category}]) => [opcode, category]), Object.values(Blockly.Categories))
     
     const processedBlocks = Object.fromEntries(
-        Object.entries(blocks).map(process_block)
+        Object.entries(blocks)
+			.filter(([_opcode, {category}]) => Object.values(Blockly.Categories).includes(category))
+			.map(process_block)
     )
     return processedBlocks
 }

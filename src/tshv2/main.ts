@@ -29,7 +29,10 @@ export enum TokenType {
 	RBRACKET	= "RBRAKET",
 	COLON_THINGY= "COLON_THINGY",
 	ON			= "ON",
-	IN			= "IN"
+	IN			= "IN",
+	CLASS		= "CLASS",
+	NEW			= "NEW",
+	BUFFER		= "BUFFER"
 }
 
 export interface Token {
@@ -136,6 +139,9 @@ export class Lexer {
 				else if	(identifier.toLowerCase()	=== "else")		this.pushToken({ line, type: TokenType.ELSE, value: identifier });
 				else if	(identifier.toLowerCase()	=== "on")		this.pushToken({ line, type: TokenType.ON, value: identifier });
 				else if	(identifier.toLowerCase()	=== "in")		this.pushToken({ line, type: TokenType.IN, value: identifier });
+				else if	(identifier.toLowerCase()	=== "class")	this.pushToken({ line, type: TokenType.CLASS, value: identifier });
+				else if	(identifier.toLowerCase()	=== "new")		this.pushToken({ line, type: TokenType.NEW, value: identifier });
+				else if	(identifier.toLowerCase()	=== "buffer")	this.pushToken({ line, type: TokenType.BUFFER, value: identifier });
 				else 								this.pushToken({ line, type: TokenType.IDENTIFIER, value: identifier });
 			} else if (this.isDigit(char)) {
 				let number = char;

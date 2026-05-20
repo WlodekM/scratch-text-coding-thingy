@@ -12,3 +12,4 @@ src/v2/backslash.js
 src/v2/backslash.min.js
 src/v2/browser.d.ts
 src/v2/backslash.js.map
+project.json

@@ -390,6 +390,15 @@ export default async function ASTtoBlocks(
 			const id = genVarId((arg as LiteralNode | any)?.value?.toString())
 			sprite.broadcasts.set((arg as LiteralNode | any)?.value?.toString(), id)
 		}
+		const fields = ((inp as FieldInputB).field || (inp as FieldInputA)?.blocklyType == 'field_variable' ?
+			[inp.name,
+				[
+					(arg as LiteralNode | any)?.value?.toString(),
+					sprite.getVarOrListOrEventId((arg as LiteralNode | any)?.value?.toString()),
+					((inp as DropdownInput).variableTypes ?? [])[0]
+				].filter(k=>k)
+			] : []) as [string, any] | [];
+		console.log(fields)
 		return {
 			inputs:
 				[inp.name, [inp.type,
@@ -406,14 +415,7 @@ export default async function ASTtoBlocks(
 					)
 				]
 				]],
-			fields: ((inp as FieldInputB).field || (inp as FieldInputA)?.blocklyType == 'field_variable' ?
-				[inp.name,
-					[
-						(arg as LiteralNode | any)?.value?.toString(),
-						sprite.getVarOrListOrEventId((arg as LiteralNode | any)?.value?.toString()),
-						((inp as DropdownInput).variableTypes ?? [])[0]
-					].filter(k=>k)
-				] : []) as [string, any] | []
+			fields
 		}
 	}
 
@@ -811,7 +813,7 @@ export default async function ASTtoBlocks(
 						// console.log(inp)
 						const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode2.args[i], child, scope)
 						inputs.push(inps)
-						if (flds)
+						if (flds && flds.length !== 0)
 							fields.push(flds)
 					}
 					const block: jsonBlock = {
@@ -852,11 +854,11 @@ export default async function ASTtoBlocks(
 					// console.log(definition, 'ssjfksjfksjkfssj<--', i, inp, fnNode.identifier)
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode.args[i], child, scope)
 					inputs.push(inps)
-					if (flds)
+					if (flds && flds.length != 0)
 						fields.push(flds)
 				}
 				lastBlock = _fncLastLastBlock
-				// console.log(fields)
+				console.log({fields}, 'meow')
 				const block: jsonBlock = {
 					opcode: fnNode.identifier,
 					...blk,
@@ -868,7 +870,7 @@ export default async function ASTtoBlocks(
 					parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
 					shadow: false,
 				}
-				// console.debug(block)
+				console.debug(block, 'uh')
 				if (!topLevel && !noNext) lastBlock.next = block.id.toString();
 				if (!noLast) lastBlock = block;
 				else lastBlock = _fncLastLastBlock;
@@ -1094,7 +1096,8 @@ export default async function ASTtoBlocks(
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, branchNode.args[i], branchChildren, scope)
 					// binputs.push(().inputs)
 					binputs.push(inps)
-					bfields.push(flds)
+					if (flds && flds.length != 0)
+						bfields.push(flds)
 				}
 				const branchBlock: jsonBlock = {
 					opcode: branchNode.identifier,

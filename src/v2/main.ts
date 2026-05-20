@@ -12,7 +12,7 @@ import * as json from '../jsontypes.ts'
 import { blockBlock } from "../main.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
 const flags = parseArgs(Deno.args, {
-	boolean: ["r"],
+	boolean: ["r", "d"],
 	// string: ["version"],
 	// default: { color: true },
 	// negatable: ["color"],
@@ -22,6 +22,7 @@ console.log(flags)
 
 const dir: string = path.resolve(flags._ ? String(flags._) : 0 || Deno.cwd() || '.');
 const retro = flags.r;
+const debug = flags.d;
 
 interface TInsertBlocks {
 	code: string
@@ -67,7 +68,8 @@ let lastGlobalLists: Record<string, [string, string[]]> = {};
 
 const project = new Project();
 if (target_config.insert_blocks) {
-	const stage = new StageScope('stage', project)
+	const stage = new StageScope('stage', project);
+	console.log(stage.definitions)
 	for (const sprite_name in target_config.insert_blocks) {
 		if (!Object.hasOwn(target_config.insert_blocks, sprite_name)) continue;
 		
@@ -127,7 +129,9 @@ if (target_config.insert_blocks) {
 			await process_node({node, sprite});
 		}
 
-		// console.log(sprite.get_blocks_json())
+		const json = sprite.get_blocks_json();
+		console.log('and i know just where youre going', sprite_name)
+		console.log(json)
 	}
 }
 
@@ -158,7 +162,10 @@ for (const [name, sprite] of project.sprites.entries()) {
 	target.blocks = sprite.get_blocks_json()
 }
 
-resulting_files['_project.json'] = JSON.stringify(base_project)
+resulting_files['_project.json'] = JSON.stringify(base_project);
+
+if (debug)
+	Deno.writeTextFileSync('project.json', resulting_files['_project.json'])
 
 // const zip_reader = new zip.ZipReader(file_reader, {
 	
@@ -181,6 +188,7 @@ for (let fpath in resulting_files) {
 		//@ts-ignore: fuck off typescript i know what im doing
 		data = data.buffer
 	
+	//@ts-ignore: fuck off typescript
 	const blob = new Blob([data])
 	console.log(fpath, data)
 	// if ()

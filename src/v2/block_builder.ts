@@ -27,6 +27,12 @@ export class BlockBuilder {
 	up() {
 		return this.parent
 	}
+	get_input_by_index(index: number): InputWrapper {
+		const inputs = this.block.scratch_block.definition[0];
+		if (!inputs[index])
+			throw 'input index out of bounds';
+		return this.get_input(inputs[index].name)
+	}
 	get_input(id: string): InputWrapper {
 		if (!this.block.scratch_block.inputs.has(id))
 			throw 'unknown input';

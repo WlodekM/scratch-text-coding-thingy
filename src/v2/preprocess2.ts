@@ -1,6 +1,7 @@
 import { Sprite } from "../jsontypes.ts";
-import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
 import { ObjectMethodCallNode } from "../tshv2/main.ts";
+import { ResolveKind, SpriteOrStageScope } from "./oop_block.ts";
 
 function fnc_helper(opcode: string, ...args: ASTNode[]) {
 	return {
@@ -29,22 +30,19 @@ const identifier_defintions: Map<string, ASTNode | undefined> = new Map();
 const function_defintions: Map<string, ASTNode | undefined> = new Map();
 
 // deno-lint-ignore no-explicit-any
-const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefined][] = [
-	['ObjectAccess', function(node: ObjectAccessNode, sprite: Sprite): ASTNode {
+const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNode | undefined][] = [
+	['ObjectAccess', function(node: ObjectAccessNode, sprite: SpriteOrStageScope): ASTNode {
 		let vtype: null | 'v' | 'l' = null;
 		const object: IdentifierNode | ASTNode = node.object;
 		if ((object as ASTNode).type !== 'Identifier' as NodeType)
 			throw `can only access properties of identifiers for now (got ${object.type})`;
 		const identifier = object as IdentifierNode;
-		if (env.variables.has(identifier.name) ||
-			env.globalVariables.has(identifier.name))
-			vtype = 'v';
-		if (env.lists.has(identifier.name) ||
-			env.globalLists.has(identifier.name))
-			vtype = 'l';
-		if (vtype == null)
-			throw `Could not find variable ${identifier.name}`;
-		if (vtype == 'l') {
+		const identifier_value = sprite.resolve(ResolveKind.Var_or_list, identifier.name)
+		if (!identifier_value) {
+			console.warn('PREPROCESSOR', 'could not find variable', identifier.name, 'in', node)
+			return object
+		}
+		if (identifier_value.kind == 'list') {
 			switch (node.property) {
 				case 'length':
 					return fnc_helper('data_lengthoflist',
@@ -58,14 +56,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 
 				case 'initial_json':
 					return literal_helper(JSON.stringify(
-						(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
-						[1]
+						identifier_value.intial_value
 					))
 
 				case 'id':
 					return literal_helper(
-						(env.lists.get(identifier.name) ?? env.globalLists.get(identifier.name))!
-						[0]
+						identifier_value.id
 					)
 				
 				case 'last':
@@ -80,8 +76,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 		}
 		throw `unhandled object access alias ${JSON.stringify(node)}`
 	}],
-	['ObjectMethodCall', function(node: ObjectMethodCallNode, env: Environment): ASTNode {
-		let vtype: null | 'v' | 'l' = null;
+	['ObjectMethodCall', function(node: ObjectMethodCallNode, sprite: SpriteOrStageScope): ASTNode {
 		const object: IdentifierNode | ASTNode = node.object;
 		switch (node.method) {
 			case 'letter':
@@ -109,15 +104,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 			throw `unknown property ${node.method} for GLOBAL vtype`
 		
 		const identifier = object as IdentifierNode;
-		if (env.variables.has(identifier.name) ||
-			env.globalVariables.has(identifier.name))
-			vtype = 'v';
-		if (env.lists.has(identifier.name) ||
-			env.globalLists.has(identifier.name))
-			vtype = 'l';
-		if (vtype == null)
-			throw `Could not find variable ${identifier.name}`;
-		if (vtype == 'l') {
+		const identifier_value = sprite.resolve(ResolveKind.Var_or_list, identifier.name)
+		if (!identifier_value) {
+			console.warn('PREPROCESSOR', 'could not find variable', identifier.name, 'in', node)
+			return object
+		}
+		if (identifier_value.kind == 'list') {
 			switch (node.method) {
 				case 'push':
 					if (!node.args[0])
@@ -183,12 +175,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 					)
 				
 				default:
-					throw `unknown property ${node.method} for ${vtype} vtype`
+					throw `unknown property ${node.method} for ${identifier_value.kind} identifier kind`
 			}
 		}
 		throw `unhandled object method call alias ${JSON.stringify(node)}`
 	}],
-	['FunctionCall', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {
+	['FunctionCall', function(node: FunctionCallNode): ASTNode | undefined {
 		if (function_defintions.has(node.identifier))
 			return function_defintions.get(node.identifier);
 		//#nobrowser
@@ -223,12 +215,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 		//#endnobrowser
 		return node
 	}],
-	['Identifier', function(node: FunctionCallNode, env: Environment): ASTNode | undefined {
+	['Identifier', function(node: FunctionCallNode): ASTNode | undefined {
 		if (!identifier_defintions.has(node.identifier))
 			return node;
 		return identifier_defintions.get(node.identifier)!
 	}],
-	['OnEvent', function(node: OnEventNode, env: Environment): ASTNode {
+	['OnEvent', function(node: OnEventNode): ASTNode {
 		return bfnc_helper('event_whenbroadcastreceived',
 			[
 				node.branch
@@ -236,7 +228,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 			literal_helper(node.event),
 		)
 	}],
-	['For', function(node: ForNode, env: Environment): ASTNode {
+	['For', function(node: ForNode): ASTNode {
 		const loop = bfnc_helper("control_for_each", [
 			node.branch
 		], literal_helper((node.varname as IdentifierNode).name), node.times);
@@ -257,9 +249,9 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: Sprite) => ASTNode | undefine
 ]
 
 // convert nodes that aren't necessarily blocks to block nodes
-export default function transformAST(node: ASTNode, env: Environment): ASTNode | undefined {
+export default function transformAST(node: ASTNode, sprite: SpriteOrStageScope): ASTNode | undefined {
 	const [,transformer] = TRANSFORMERS.find(([t]) => t == node.type as NodeType)??[];
 	if (!transformer)
 		return node;
-	return transformer(node, env);
+	return transformer(node, sprite);
 }
