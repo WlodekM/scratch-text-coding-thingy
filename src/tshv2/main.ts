@@ -32,7 +32,9 @@ export enum TokenType {
 	IN			= "IN",
 	CLASS		= "CLASS",
 	NEW			= "NEW",
-	BUFFER		= "BUFFER"
+	BUFFER		= "BUFFER",
+	INCREMENT	= "INCREMENT",
+	DECREMENT	= "DECREMENT",
 }
 
 export interface Token {
@@ -193,6 +195,14 @@ export class Lexer {
 			else if (char === ",")   this.pushToken({ line, type: TokenType.COMMA,  value: char });
 			else if (char === ":" && this.peek() === ':') {
 				this.pushToken({ line, type: TokenType.COLON_THINGY, value: '::' });
+				this.advance();
+			}
+			else if (char === "+" && this.peek() === '+') {
+				this.pushToken({ line, type: TokenType.INCREMENT, value: '++' });
+				this.advance();
+			}
+			else if (char === "-" && this.peek() === '-') {
+				this.pushToken({ line, type: TokenType.DECREMENT, value: '--' });
 				this.advance();
 			}
 			else if (char === "+" && this.peek() === '=') {
@@ -386,6 +396,12 @@ export interface ListDeclarationNode extends ASTNode {
 	vtype: 'list' | 'global'
 }
 
+export interface ClassDeclarationNode extends ASTNode {
+	type: "ClassDeclaration";
+	identifier: string;
+	fields: ASTNode[];
+}
+
 export interface ReturnNode extends ASTNode {
 	type: "Return";
 	value: ASTNode;
@@ -448,12 +464,14 @@ export class Parser {
 		this.source = source;
 	}
 
+	/** get the next token (or n tokens ahead of it) without advancing */
 	private peek(ahead = 0): Token {
 		return this.tokens[this.position + ahead];
 	}
 
 	private trace(error: string, line: number) {
 		if (!this.traces) return error;
+		console.log(line)
 		return this.source.split('\n')
 			.map(l => l.replace(/^\s*/, ''))
 			.map((t, l) => `${l+1} | ${t}`)
@@ -466,10 +484,12 @@ export class Parser {
 			.join('\n')
 	}
 
+	/** get the next token */
 	private advance(): Token {
 		return this.tokens[this.position++];
 	}
 
+	/** check if the next token is of the given type(s) and if so eat it */
 	private match(...types: TokenType[]): boolean {
 		if (types.includes(this.peek().type)) {
 			this.advance();
@@ -478,6 +498,7 @@ export class Parser {
 		return false;
 	}
 
+	/** check if the next token is of the given type(s) and dont eat it */
 	private matchTk(types: TokenType[], token = this.peek()): boolean {
 		if (types.includes(token.type)) {
 			return true;
@@ -485,6 +506,7 @@ export class Parser {
 		return false;
 	}
 
+	/** check if the next token is of the given type, is so, return it, otherwise -- throw an error */
 	private expect(type: TokenType, errorMessage: string, not=false): Token {
 		if (not ? this.peek().type !== type : this.peek().type === type) {
 			return this.advance();
@@ -531,6 +553,36 @@ export class Parser {
 		return nodes;
 	}
 
+	private parseField(): ASTNode {
+		if (this.match(TokenType.VAR)) {
+			const node = this.peek(-1);
+			const type = node.value
+			const identifier = this.expect(TokenType.IDENTIFIER, "Expected variable name").value;
+			if (type == 'global')
+				this.globalVars.push(identifier);
+			else this.localVars.push(identifier);
+			this.expect(TokenType.ASSIGN, "Expected '=' after variable name");
+			const value = this.parseAssignment();
+			return { type: "VariableDeclaration", identifier, value, vtype: type } as VariableDeclarationNode;
+		}
+		let warp = false;
+		if (this.match(TokenType.WARP_FN)) warp = true;
+		const name = this.expect(TokenType.IDENTIFIER, "Expected method name").value;
+		this.expect(TokenType.LPAREN, "Expected '(' after method name");
+		const params: string[] = [];
+		if (!this.match(TokenType.RPAREN)) {
+			do {
+				params.push(this.expect(TokenType.IDENTIFIER, "Expected parameter name").value);
+				if (this.matchTk([TokenType.COMMA])) this.advance()
+			} while (!this.match(TokenType.RPAREN));
+			if (this.match(TokenType.EOF))
+				throw "Expected ')' after parameters";
+		}
+		this.expect(TokenType.LBRACE, 'expected method body')
+		const body = this.parseBlock();
+		return { type: "FunctionDeclaration", name, params, body, warp } as FunctionDeclarationNode;
+	}
+
 	private parseStatement(): ASTNode {
 		if (this.match(TokenType.VAR)) {
 			const node = this.peek(-1);
@@ -562,6 +614,20 @@ export class Parser {
 			if (!this.peek()) throw 'reached EOF'
 
 			return { type: "ListDeclaration", identifier, value, vtype: type } as ListDeclarationNode;
+		}
+
+		if (this.match(TokenType.CLASS)) {
+			const identifier = this.expect(TokenType.IDENTIFIER, "Expected class name").value;
+			this.expect(TokenType.LBRACE, "Expected class declaration")
+			const fields: ASTNode[] = [];
+
+			while (!this.match(TokenType.RBRACE)) {
+				fields.push(this.parseField());
+			}
+
+			if (!this.peek()) throw 'reached EOF'
+
+			return { type: "ClassDeclaration", identifier, fields } as ClassDeclarationNode;
 		}
 
 		if (this.match(TokenType.INCLUDE)) {
@@ -665,6 +731,21 @@ export class Parser {
 
 	private parseAssignment(): ASTNode {
 		const expr = this.parseBinaryExpression();
+		if (this.match(TokenType.INCREMENT) || this.match(TokenType.DECREMENT)) {
+			//FIXME - probably would be better to make a node for this
+			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value: {
+				type: 'BinaryExpression',
+				left: {
+					type: 'Identifier',
+					name: (expr as IdentifierNode).name
+				} as IdentifierNode,
+				right: {
+					type: 'Literal',
+					value: 1
+				} as LiteralNode,
+				operator: this.peek(-1).type == TokenType.INCREMENT ? '+' : '-'
+			} as BinaryExpressionNode} as AssignmentNode;
+		}
 		if (this.match(TokenType.ASSIGN)) {
 			if (expr.type !== "Identifier")
 				throw new Error("Invalid assignment target; expected an identifier");
