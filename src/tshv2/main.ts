@@ -753,7 +753,7 @@ export class Parser {
 			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value } as AssignmentNode;
 		}
 		if (this.peek().type == TokenType.ASSIGNBINOP) {
-			const uh = this.advance();
+			const assign_operation = this.advance();
 			//FIXME - prolly would be better to put this in asttoblocks
 			if (expr.type !== "Identifier")
 				throw new Error("Invalid assignment target; expected an identifier");
@@ -765,7 +765,7 @@ export class Parser {
 					name: (expr as IdentifierNode).name
 				} as IdentifierNode,
 				right: value,
-				operator: uh.value[0]
+				operator: assign_operation.value[0]
 			} as BinaryExpressionNode} as AssignmentNode;
 		}
 		return expr;
