@@ -205,7 +205,7 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 				}
 			} else if (arg.type == 'field_checkbox_original') {
 				// console.log(arg)
-				return {}
+				return null
 			}
 			return {
 				name: arg.name,
@@ -221,7 +221,7 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 		if(args.find(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))) {
 			// console.log('branch!!', (args[0] ?? []))
 			return [opcode, [
-				(args[0] ?? []).map(argMap) ?? [], 'branch',
+				(args[0] ?? []).map(argMap).filter(a=>a !== null && Object.keys(a).length) ?? [], 'branch',
 				args
 					// find branches
 					.filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
@@ -244,11 +244,14 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 		].filter(a => a != null)
 	}
 
-	console.log(Object.entries(blocks).map(([opcode, {category}]) => [opcode, category]), Object.values(Blockly.Categories))
+	// console.log(Object.entries(blocks).map(([opcode, {category}]) => [opcode, category]), Object.values(Blockly.Categories))
     
     const processedBlocks = Object.fromEntries(
         Object.entries(blocks)
-			.filter(([_opcode, {category}]) => Object.values(Blockly.Categories).includes(category))
+			.filter(([_opcode, {category, extensions}]) => 
+				extensions?.includes("from_extension") ||
+				(category != 'more' &&
+				Object.values(Blockly.Categories).includes(category)))
 			.map(process_block)
     )
     return processedBlocks
