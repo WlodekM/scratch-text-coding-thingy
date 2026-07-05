@@ -22,7 +22,7 @@ const fs = is_browser ? undefined as unknown as any :
 
 //import process from "node:process";
 
-let blockDefinitions = bd
+let _blockDefinitions = bd
 const args = 
 	typeof Deno !== 'undefined' ? Deno.args :
 	//@ts-ignore:
@@ -258,7 +258,8 @@ export default async function ASTtoBlocks(
 	ast: ASTNode[],
 	basedir: string,
 	globalVariables?: Record<string, string>,
-	globalLists?: Record<string, [string, string[]]>
+	globalLists?: Record<string, [string, string[]]>,
+	blockDefinitions = _blockDefinitions
 ): Promise<[jsonBlock[], Environment]> {
 	const blocks: jsonBlock[] = [];
 	const sprite = new Environment();
@@ -1295,7 +1296,7 @@ export default async function ASTtoBlocks(
 				if (!preprocessFnDecl)
 					blockID++;
 
-				const definitionId = genId(blockID).toString();
+				const definitionId = genId(10).toString();
 
 				const argumentids = [];
 				const argumentdefaults = [];
