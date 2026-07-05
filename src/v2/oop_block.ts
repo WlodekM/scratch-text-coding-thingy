@@ -6,7 +6,7 @@ import { type BlockBuilder } from "./block_builder.ts";
 const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 // gen weed
-function genUid() {
+export function genUid() {
 	const length = 20;
 	const soupLength = soup.length;
 	const id: string[] = [];
@@ -27,7 +27,7 @@ export abstract class SpritePropertyWithId {
 	}
 }
 export abstract class SpritePropertyWithIdAndIntialValue extends SpritePropertyWithId {
-	abstract intial_value: any;
+	abstract initial_value: any;
 	constructor (id: string, name: string) {
 		super(id, name)
 	}
@@ -40,21 +40,21 @@ export enum VariableType {
 }
 
 export class Variable extends SpritePropertyWithIdAndIntialValue {
-	intial_value: string | number
+	initial_value: string | number
 	kind: PropertyKind = 'variable';
 	type: VariableType | [VariableType.Instance, string] = VariableType.Regular;
 	constructor (id: string, name: string, intial_value: string | number="") {
 		super(id, name)
-		this.intial_value = intial_value
+		this.initial_value = intial_value
 	}
 }
 
 export class List extends SpritePropertyWithIdAndIntialValue {
-	intial_value: (string | number)[]
+	initial_value: (string | number)[]
 	kind: PropertyKind = 'list';
 	constructor (id: string, name: string, intial_value: (string | number)[]=[]) {
 		super(id, name)
-		this.intial_value = intial_value
+		this.initial_value = intial_value
 	}
 }
 
@@ -68,6 +68,8 @@ export class Broadcast extends SpritePropertyWithId {
 export class Project {
 	sprites: Map<string, StageScope | SpriteScope> = new Map()
 	definitions: Record<string, Definition> = Object.assign({}, base_definitions)
+	extensions: string[] = [];
+	extensionUrls: Record<string, string> = {};
 }
 
 export enum ResolveKind {
@@ -78,6 +80,7 @@ export enum ResolveKind {
 	Function
 }
 
+type Constructor<T> = new (...args: any[]) => T;
 type definition_type = 'var' | 'list' | 'broadcast' | 'function'
 export class Scope {
 	project: Project
@@ -132,7 +135,8 @@ export class Scope {
 	lists: Map<string, List> = new Map();
 	block_dict: Map<string, Block> = new Map();
 	is_stage: boolean = false;
-	block_json: any
+	block_json: any;
+	identifier_macros: Record<string, () => Block | Stack | null> = {};
 	get_blocks_json(): Record<string, blockBlock> {
 		if (this.block_json) return this.block_json;
 		const blocks: Record<string, blockBlock> = {}
@@ -151,6 +155,17 @@ export class Scope {
 			this.block_dict.set(block.id, block)
 		}
 	}
+	duplicate(): Scope {
+		const scope = new (Object.getPrototypeOf(this).constructor as Constructor<this>)(this.project);
+		scope.block_dict = new Map(scope.block_dict.entries());
+		scope.is_stage = this.is_stage;
+		scope.block_json = this.block_json;
+		scope.lists = new Map(this.lists.entries());
+		scope.variables = new Map(this.variables.entries());
+		scope.stage = this.stage;
+		scope.identifier_macros = Object.assign({}, this.identifier_macros);
+		return scope;
+	}
 	constructor(project: Project) {
 		this.project = project
 	}
@@ -159,6 +174,12 @@ export class Scope {
 export class StageScope extends Scope {
 	broadcasts: Map<string, Broadcast> = new Map()
 	override is_stage = true;
+
+	override duplicate(): StageScope {
+		const scope: StageScope = super.duplicate() as StageScope;
+		scope.broadcasts = new Map(this.broadcasts.entries());
+		return scope;
+	}
 	
 	constructor(id: string, project?: Project) {
 		if (!project)
@@ -197,10 +218,12 @@ export enum BlockInputDataType {
 }
 
 export class ScratchBlockField {
-	value: Broadcast | Variable | List | null = null;
-	get_JSON(): [string, string] | [] {
+	value: Broadcast | Variable | List | string | null = null;
+	get_JSON(): [string, string] | [] | string {
 		if (!this.value)
 			return []
+		if (typeof this.value === 'string')
+			return this.value;
 		return [this.value.name, this.value.id]
 	}
 }
@@ -220,13 +243,28 @@ export class ScratchBlockInput {
 			return [[
 				InputType.unlocked2,
 				String((this.value as Block).id),
-				[
-					this.type,
-					0
-				],
+				// [
+				// 	this.type,
+				// 	0
+				// ],
 			] as Input, [this.value as Block]]
+		} else if (this.value === 0 && this.type == BlockInputDataType.block) {
+			return [[InputType.unlocked2,null], []]
 		} else if (this.type == BlockInputDataType.block) {
-			throw `exepected block, got ${this.value}`
+			// console.error(this)
+			throw `exepected block in input, got ${this.value}`
+		}
+		if (this.value instanceof Variable || this.value instanceof List) {
+			this.value = this.value as Variable | List
+			// if (this.type >= InputDataType.event_broadcast_menu)
+			return [[
+				InputType.locked,
+				[
+					this.value instanceof Variable ? InputDataType.data_variable : InputDataType.data_listcontents,
+					this.value.name,
+					this.value.id,
+				]
+			] as Input, []]
 		}
 		if (this.type < InputDataType.colour_picker
 			|| this.type == InputDataType.text) {
@@ -258,7 +296,7 @@ export class ScratchBlockInput {
 					this.value
 				]
 			] as Input, []]
-		this.value = this.value as Variable | List | Broadcast
+		this.value = this.value as Broadcast
 		if (this.type >= InputDataType.event_broadcast_menu)
 			return [[
 				InputType.locked,
@@ -316,6 +354,7 @@ export class Block {
 		return this._parent
 	}
 	next: Block | undefined;
+	shadow: boolean = false;
 	id: string;
 	scratch_block: ScratchBlock;
 	set_parent(new_parent: Block | undefined) {
@@ -370,16 +409,17 @@ export class Block {
 			inputs: Object.fromEntries(
 				inputs
 			),
-			shadow: false,
+			shadow: this.shadow,
 			topLevel: this.topLevel,
 		}
-		console.log(blocks)
+		// console.log(blocks)
 		return blocks
 	}
 }
 
 export class Stack {
 	blocks: Block[] = [];
+	parent?: Block;
 	get length(): number {
 		return this.blocks.length
 	}
@@ -398,15 +438,19 @@ export class Stack {
 		return this.blocks.at(-1)
 	}
 	scope: StageScope | SpriteScope;
-	constructor(scope: StageScope | SpriteScope) {
+	constructor(scope: StageScope | SpriteScope, parent?: Block) {
 		this.scope = scope;
+		this.parent = parent;
 	}
 	add(block: Block) {
 		block.scope = this.scope;
-		block.set_parent(this.blocks.at(-1))
-		if (this.blocks.length != 0)
+		if (this.blocks.length != 0) {
+			block.set_parent(this.blocks.at(-1))
 			this.blocks.at(-1)!.next = block
-		block.topLevel = this.blocks.length == 0
+		} else if (this.parent) {
+			block.set_parent(this.parent)
+		}
+		block.topLevel = this.blocks.length == 0 && !this.parent
 		this.blocks.push(block)
 		return block
 	}

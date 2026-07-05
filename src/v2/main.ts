@@ -143,7 +143,7 @@ const zip_reader = new zip.ZipReader(file_reader)
 
 const base_entries = await zip_reader.getEntries();
 const base_project_entry = base_entries.find((e:any) => e.filename == 'project.json')
-//@ts-ignoreL
+//@ts-ignore:
 const base_project_json_data: ArrayBuffer = await base_project_entry!.arrayBuffer();
 const td = new TextDecoder();
 const base_project: json.Project = JSON.parse(td.decode(base_project_json_data))
@@ -161,6 +161,12 @@ for (const [name, sprite] of project.sprites.entries()) {
 	//@ts-ignore: fuck off typescript
 	target.blocks = sprite.get_blocks_json()
 }
+
+if (!base_project.extensions) base_project.extensions = [];
+if (!base_project.extensionURLs) base_project.extensionURLs = {};
+
+base_project.extensions.push(...project.extensions);
+base_project.extensionURLs = {...base_project.extensionURLs, ...project.extensionUrls};
 
 resulting_files['_project.json'] = JSON.stringify(base_project);
 

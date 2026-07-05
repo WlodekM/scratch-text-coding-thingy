@@ -1,5 +1,5 @@
 import { Sprite } from "../jsontypes.ts";
-import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
+import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, IfNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
 import { ObjectMethodCallNode } from "../tshv2/main.ts";
 import { ResolveKind, SpriteOrStageScope } from "./oop_block.ts";
 
@@ -56,7 +56,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 
 				case 'initial_json':
 					return literal_helper(JSON.stringify(
-						identifier_value.intial_value
+						identifier_value.initial_value
 					))
 
 				case 'id':
@@ -245,6 +245,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 				loop
 			]
 		], literal_helper(1));
+	}],
+	['If', function (node: IfNode): ASTNode {
+		return bfnc_helper("control_if", [
+			node.thenBranch,
+			node.elseBranch,
+		].filter(b=>b!==undefined), node.condition)
 	}]
 ]
 

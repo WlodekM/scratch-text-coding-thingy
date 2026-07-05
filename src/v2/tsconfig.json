@@ -1,5 +1,8 @@
 {
 	"compilerOptions": {
-		"noFallthroughCasesInSwitch": false
+		"noFallthroughCasesInSwitch": false,
+		"declaration": true,
+		"declarationDir": "../declarations",
+		// "emitDeclarationOnly": true
 	},
 }
