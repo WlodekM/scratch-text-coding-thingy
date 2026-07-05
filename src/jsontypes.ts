@@ -446,5 +446,7 @@ export interface Project {
 			[k: string]: unknown
 		})[]
 	]
+	extensions?: string[]
+	extensionURLs: { [k: string]: string }
 	[k: string]: unknown
 }
