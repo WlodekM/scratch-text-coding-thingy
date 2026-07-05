@@ -12,4 +12,7 @@ const ast = parser.parse();
 const encoder = new TextEncoder();
 Deno.writeFileSync('ast.json', encoder.encode(JSON.stringify(ast, null, 2)))
 
-console.log(ast);
+console.log(Deno.inspect(ast, {
+	colors: true,
+	depth: 10,
+}));
