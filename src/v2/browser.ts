@@ -7,7 +7,7 @@ import getSpriteGlobals from "../getGlobalVars.ts";
 import ASTtoBlocks, { Environment, jsonBlock } from "../asttoblocks.ts";
 import * as json from '../jsontypes.ts'
 import { blockBlock } from "../main.ts";
-import blocks from "../blocks.ts";
+import blocks, { type Definition, jsBlocksToJSON } from "../blocks.ts";
 //import { parseArgs } from "jsr:@std/cli/parse-args";
 //const flags = parseArgs(Deno.args, {
 //    boolean: ["r"],
@@ -23,9 +23,11 @@ import blocks from "../blocks.ts";
 
 interface BackslashInterface {
 	bsl_error_info: AstError | LexerError | undefined;
+	blocks: Record<string, Definition>,
 	bsl_globals: Map<string, [Record<string, string>, Record<string, [string, string[]]>]>;
 	preprocess_globals(code: string, identifier: string): void
-	compile_bsl(code: string, identifier: string): Promise<Record<string, json.jsonBlockNoId>>
+	compile_bsl(code: string, identifier: string): Promise<Record<string, json.jsonBlockNoId>>;
+	jsBlocksToJSON(jsblocks: any): Record<string, Definition>;
 }
 
 interface ErrorInfo {
@@ -49,13 +51,13 @@ declare global {
 	var bsl_globals: Map<string, [Record<string, string>, Record<string, [string, string[]]>]>;
 	function preprocess_globals(code: string, identifier: string): void
 	function compile_bsl(code: string, identifier: string): Promise<Record<string, json.jsonBlockNoId>>
-	var Backslash: BackslashInterface & Record<string, any>
+	var Backslash: BackslashInterface;
 	var bsl_error_info: AstError | LexerError | undefined
 }
 
 const globals: Map<string, [Record<string, string>, Record<string, [string, string[]]>]> = 
-    globalThis.bsl_globals = 
-    new Map();
+	globalThis.bsl_globals = 
+	new Map();
 
 function getLocaiton(code: string, pos: number): [number, number] {
 	let line = 0, char = 0;
@@ -73,8 +75,8 @@ function getLocaiton(code: string, pos: number): [number, number] {
 globalThis.preprocess_globals =
 function preprocess_globals(code: string, identifier: string) {
 	globalThis.bsl_error_info = globalThis.Backslash.bsl_error_info = undefined;
-    const lexer = new Lexer(code);
-    let tokens;
+	const lexer = new Lexer(code);
+	let tokens;
 	try {
 		tokens = lexer.tokenize();
 	} catch (error) {
@@ -85,18 +87,18 @@ function preprocess_globals(code: string, identifier: string) {
 		};
 		return;
 	}
-    const parser = new Parser(tokens, code);
-    let ast;
-    try {
-        ast = parser.parse();
-    } catch (error) {
-        // console.error(error)
-        // console.log('at', parser.position, '\n'+tokens
-        //     .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
-        //     .filter((_, i) => Math.abs(parser.position - i) < 5)
-        //     .join('\n')
-        // )
-        // throw 'error during parsing'
+	const parser = new Parser(tokens, code);
+	let ast;
+	try {
+		ast = parser.parse();
+	} catch (error) {
+		// console.error(error)
+		// console.log('at', parser.position, '\n'+tokens
+		//     .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
+		//     .filter((_, i) => Math.abs(parser.position - i) < 5)
+		//     .join('\n')
+		// )
+		// throw 'error during parsing'
 		globalThis.bsl_error_info = globalThis.Backslash.bsl_error_info = {
 			kind: 'ast',
 			error: String(error),
@@ -104,74 +106,75 @@ function preprocess_globals(code: string, identifier: string) {
 			to: getLocaiton(code, tokens[parser.position].end),
 		};
 		return;
-    }
-    const newGlobalsList = getSpriteGlobals(ast, {}, {});
-    globals.set(identifier, newGlobalsList)
+	}
+	const newGlobalsList = getSpriteGlobals(ast, {}, {});
+	globals.set(identifier, newGlobalsList)
 }
 globalThis.compile_bsl =
 async function compile_bsl(code: string, identifier: string): Promise<Record<string, json.jsonBlockNoId>> {
-    if (globals.has(identifier))
-        globals.delete(identifier);
-    let [lastGlobalVariables, lastGlobalLists] = [{},{}];
-    for (const [v, l] of globals.values()) {
-        lastGlobalLists = {
-            ...lastGlobalLists,
-            ...l
-        };
-        lastGlobalVariables = {
-            ...lastGlobalVariables,
-            ...v
-        }
-    }
-    const lexer = new Lexer(code);
-    const tokens = lexer.tokenize();
-    const parser = new Parser(tokens, code);
-    let ast;
-    try {
-        ast = parser.parse();
-    } catch (error) {
-        console.error(error)
-        console.log('at', parser.position, '\n'+tokens
-            .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
-            .filter((_, i) => Math.abs(parser.position - i) < 5)
-            .join('\n')
-        )
-        throw 'error during parsing'
-    }
-    const newGlobalsList = getSpriteGlobals(ast, lastGlobalVariables, lastGlobalLists);
-    let [uniqueVars, uniqueLists]:
-        [Record<string, string>, Record<string, [string, string[]]>]
-        = [{}, {}];
-    function find_unique<T>(a:Record<string,T>,source:Record<string,T>) {
-        const unique: Record<string, T> = {};
-        for (const key in a) {
-            if (!Object.hasOwn(a, key)) continue;
-            if (typeof source[key] !== 'undefined') continue;
-            unique[key] = a[key];
-        }
-        return unique
-    }
-    uniqueLists = find_unique(newGlobalsList[1], lastGlobalLists)
-    uniqueVars = find_unique(newGlobalsList[0], lastGlobalVariables)
-    // console.debug('new globals:', newGlobals);
-    //[lastGlobalVariables, lastGlobalLists] = newGlobals;
+	if (globals.has(identifier))
+		globals.delete(identifier);
+	let [lastGlobalVariables, lastGlobalLists] = [{},{}];
+	for (const [v, l] of globals.values()) {
+		lastGlobalLists = {
+			...lastGlobalLists,
+			...l
+		};
+		lastGlobalVariables = {
+			...lastGlobalVariables,
+			...v
+		}
+	}
+	const lexer = new Lexer(code);
+	const tokens = lexer.tokenize();
+	const parser = new Parser(tokens, code);
+	let ast;
+	try {
+		ast = parser.parse();
+	} catch (error) {
+		console.error(error)
+		console.log('at', parser.position, '\n'+tokens
+			.map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
+			.filter((_, i) => Math.abs(parser.position - i) < 5)
+			.join('\n')
+		)
+		throw 'error during parsing'
+	}
+	const newGlobalsList = getSpriteGlobals(ast, lastGlobalVariables, lastGlobalLists);
+	let [uniqueVars, uniqueLists]:
+		[Record<string, string>, Record<string, [string, string[]]>]
+		= [{}, {}];
+	function find_unique<T>(a:Record<string,T>,source:Record<string,T>) {
+		const unique: Record<string, T> = {};
+		for (const key in a) {
+			if (!Object.hasOwn(a, key)) continue;
+			if (typeof source[key] !== 'undefined') continue;
+			unique[key] = a[key];
+		}
+		return unique
+	}
+	uniqueLists = find_unique(newGlobalsList[1], lastGlobalLists)
+	uniqueVars = find_unique(newGlobalsList[0], lastGlobalVariables)
+	// console.debug('new globals:', newGlobals);
+	//[lastGlobalVariables, lastGlobalLists] = newGlobals;
 
-    globals.set(identifier, [uniqueVars, uniqueLists])
+	globals.set(identifier, [uniqueVars, uniqueLists])
 
-    const [blockaroonies, _env]: [jsonBlock[], Environment] = await ASTtoBlocks(
-        ast,
-        '',
-        lastGlobalVariables,
-        lastGlobalLists,
-    );
+	const [blockaroonies, _env]: [jsonBlock[], Environment] = await ASTtoBlocks(
+		ast,
+		'',
+		lastGlobalVariables,
+		lastGlobalLists,
+		Backslash.blocks
+	);
 
-    function removeId(a: blockBlock): json.Block {
-        const b: json.Block & { id?: string } = a
-        delete b.id;
-        return b
-    }
-    console.debug(blockaroonies)
-    return Object.fromEntries(blockaroonies.map<[string, json.jsonBlockNoId]>(b => [b.id, 'data' in b ? b.data : removeId(b)]))
+	function removeId(a: blockBlock): json.Block {
+		const b: json.Block & { id?: string } = a
+		delete b.id;
+		return b
+	}
+	console.debug(blockaroonies)
+	return Object.fromEntries(blockaroonies.map<[string, json.jsonBlockNoId]>(b => [b.id, 'data' in b ? b.data : removeId(b)]))
 }
 
 globalThis.Backslash = {
@@ -179,5 +182,6 @@ globalThis.Backslash = {
 	compile_bsl,
 	preprocess_globals,
 	bsl_error_info: undefined,
-	blocks
+	blocks,
+	jsBlocksToJSON
 }

@@ -36,6 +36,8 @@ let envPlugin = {
 	},
 }
 
+const debug = process.argv.includes('-d')
+
 await esbuild.build({
 	entryPoints: ['browser.ts'],
 	bundle: true,
@@ -44,9 +46,9 @@ await esbuild.build({
 	format: 'iife',
 	external: ['esbuild'],
 	// minify: true,
-	minifyIdentifiers: true,
+	minifyIdentifiers: !debug,
 	tsconfig: 'tsconfig.json',
-	minifyWhitespace: true,
+	minifyWhitespace: !debug,
 	sourcemap: true,
 	// minifySyntax: true
 })
