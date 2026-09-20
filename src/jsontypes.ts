@@ -96,6 +96,16 @@ export interface Lists { }
 
 export type Broadcasts = Record<string, string>
 
+export interface Mutation {
+	tagName?: "mutation"
+	children?: unknown[]
+	proccode?: string
+	argumentids?: string
+	warp?: ("true" | "false" | "null") | boolean | null
+	hasnext?: ("true" | "false" | "null") | boolean | null
+	[k: string]: unknown
+}
+
 export interface Block {
 	opcode: string
 	next: string | null
@@ -104,7 +114,7 @@ export interface Block {
 	fields: any
 	shadow: boolean
 	topLevel: boolean
-	mutation?: any
+	mutation?: Mutation
 	x?: number
 	y?: number
 }

@@ -126,7 +126,7 @@ if (target_config.insert_blocks) {
 
 		for (const node of ast) {
 			console.log(node)
-			await process_node({node, sprite});
+			await process_node({node, scope: sprite});
 		}
 
 		const json = sprite.get_blocks_json();

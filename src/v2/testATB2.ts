@@ -62,7 +62,7 @@ stage.definitions = {
 // console.log(stage.definitions)
 
 for (const node of ast) {
-	process_node({node, sprite: stage})
+	process_node({node, scope: stage})
 }
 
 console.log(stage.get_blocks_json())

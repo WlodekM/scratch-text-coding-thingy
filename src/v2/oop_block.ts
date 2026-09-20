@@ -1,4 +1,4 @@
-import { blockBlock, InputType } from "../jsontypes.ts";
+import { blockBlock, InputType, Mutation } from "../jsontypes.ts";
 import { Input, InputDataType } from '../jsontypes.ts'
 import base_definitions, { Definition, FieldInputB } from '../blocks.ts'
 import { type BlockBuilder } from "./block_builder.ts";
@@ -16,8 +16,14 @@ export function genUid() {
 	return id.join('');
 };
 
-type PropertyKind = 'variable' | 'list' | 'broadcast'
-export abstract class SpritePropertyWithId {
+type PropertyKind = 'variable' | 'list' | 'broadcast' | 'function'
+
+export interface SpriteProperty {
+	kind: PropertyKind
+	name: string
+}
+
+export abstract class SpritePropertyWithId implements SpriteProperty {
 	id: string
 	name: string
 	abstract kind: PropertyKind
@@ -80,6 +86,191 @@ export enum ResolveKind {
 	Function
 }
 
+export class CustomBlock implements SpriteProperty {
+	name: string;
+	scope: SpriteOrStageScope;
+	kind: PropertyKind = 'function';
+	private _params: string[] = [];
+	get params(): string[] {
+		if (this.serialized)
+			return [...this._params];
+		return this._params;
+	}
+	set params(new_params: string[]) {
+		if (this.serialized)
+			return;
+		this._params = new_params;
+	}
+	/** run without screen refresh */
+	warp: boolean = false;
+	protected serialized: boolean = false;
+	private argumentids: string[] = [];
+	private argumentnames: string[] = [];
+	private argumentdefaults: (string | number)[] = [];
+	protected prototype?: Block;
+	protected definition?: Block;
+	private serialize_args() {
+		if (this.prototype === undefined)
+			throw 'prototype must be defined'
+		this.argumentids = [];
+		this.argumentdefaults = [];
+		this.argumentnames = [];
+		this.prototype.scratch_block.custom_defintion = [[], 'reporter']
+		for (const arg of this.params) {
+			const argid = genUid();
+			this.argumentids.push(argid)
+			this.argumentnames.push(arg);
+			this.argumentdefaults.push('');
+
+			// const inputBlock = () => {
+			const inputBlock = new Block(this.scope);
+			inputBlock.opcode = "argument_reporter_string_number";
+			inputBlock.scratch_block.fields.get('VALUE')!.value = arg;
+			inputBlock.shadow = true;
+			// return inputBlock;
+			// }
+
+			// fndBlocks.push(inputBlock)
+
+			// sc.identifierBlocks.set(arg, id => {
+			// 	return {
+			// 		...inputBlock,
+			// 		id
+			// 	}
+			// })
+
+			const input = new ScratchBlockInput(this.prototype.scratch_block);
+			input.type = InputDataType.text;
+			input.value = inputBlock;
+			input.locked = true;
+
+			this.prototype.scratch_block.custom_defintion[0].push({
+				name: argid,
+				// blocklyType: '',
+				// field: '',
+				// options: [],
+				type: 0,
+			})
+			this.prototype.scratch_block.inputs.set(argid, input);
+			// this.prototype.inputs[argid] = [1, inputBlock.id]
+		}
+	}
+	/**
+	 * locks in the current definition and returns a {@link Stack} and a
+	 * {@link Scope} for the custom block definition
+	 */
+	serialize(): [Stack, Scope] {
+		this.serialized = true;
+		// const function_stack = new Stack(this.scope);
+		this.prototype = new Block(this.scope);
+		this.prototype.opcode = 'procedures_prototype';
+		this.prototype.shadow = true;
+		this.prototype.shadow = true;
+
+		// const fndBlocks: jsonBlock[] = [];
+		this.definition = new Block(this.scope);
+		this.definition.opcode = 'procedures_definition';
+		const stack: Stack = new Stack(this.scope, this.definition);
+
+		// if ('x' in blk) delete blk.x;
+		// if ('y' in blk) delete blk.y;
+
+		// const this.prototype: jsonBlock = {
+		// 	opcode: 'procedures_prototype',
+		// 	...blk,
+		// 	next: null,
+		// 	id: genId(blockID).toString(),
+		// 	inputs: {},
+		// 	shadow: true
+		// }
+
+		// if (!preprocessFnDecl)
+		// 	blockID++;
+
+		// const definitionId = this.definition.id;
+		const fn_scope = this.scope.duplicate();
+
+		this.serialize_args()
+
+		this.prototype.mutation = this.get_mutation();
+		this.prototype.set_parent(this.definition);
+
+		// this.scope.define()
+		// this.scope.customBlocks[_node.name] = {
+		// 	mutation,
+		// 	inputs: Object.entries(this.prototype.inputs).map(i => [1, i[0]])
+		// }
+		// if (preprocessFnDecl)
+		// 	return new PartialBlockCollection([]) as BlockCollection;
+
+		// this.prototype.parent = definitionId
+
+		// lastBlock = {
+		// 	id: definitionId,
+		// 	...blk,
+		// 	opcode: 'procedures_definition'
+		// };
+		// lastCustomBlock = lastBlock;
+		// lastPrototypeBlock = this.prototype;
+
+		// console.debug(sc)
+
+		// for (const node of _node.body) {
+		// 	fndChildren.push(await processNode(level + 1, node, false, false, false, sc))
+		// }
+
+		// lastBlock = {} as blockBlock;
+
+		// const firstFndChild: BlockCollection | undefined =
+		// 	fndChildren[0] as BlockCollection | undefined;
+
+		this.definition.scratch_block.inputs.set('custom_block', new ScratchBlockInput(this.definition.scratch_block))
+		this.definition.scratch_block.inputs.get('custom_block')!.value = this.prototype.id;
+		// this.definition.topLevel = true;
+
+		// fndBlocks.push({
+		// 	opcode: 'procedures_definition',
+		// 	...blk,
+		// 	next: firstFndChild ? firstFndChild.block.id : null,
+		// 	inputs: {
+		// 		custom_block: [
+		// 			1,
+		// 			this.prototype.id
+		// 		]
+		// 	},
+		// 	topLevel: true,
+		// 	id: definitionId,
+		// 	x: 0,
+		// 	y: 0
+		// } as jsonBlock, this.prototype)
+		this.scope.add_block(this.definition)
+		this.scope.add_block(this.prototype)
+		// lastCustomBlock = undefined;
+		// lastPrototypeBlock = undefined;
+		// return new PartialBlockCollection([
+		// 	...fndBlocks.map(bl => new BlockCollection(bl, [])),
+		// 	new PartialBlockCollection(fndChildren),
+		// ]) as BlockCollection;
+		return [stack, fn_scope]
+	}
+	/** internal function, make sure the argument*s fields are updated before running */
+	private get_mutation(): Mutation {
+		return {
+			tagName: 'mutation',
+			children: [],
+			proccode: this.name + ` %s`.repeat(this.params.length),
+			argumentids: JSON.stringify(this.argumentids),
+			argumentnames: JSON.stringify(this.argumentnames),
+			argumentdefaults: JSON.stringify(this.argumentdefaults),
+			warp: JSON.stringify(this.warp) as "true" | "false"
+		}
+	}
+	constructor(name: string, scope: SpriteOrStageScope) {
+		this.name = name;
+		this.scope = scope;
+	}
+}
+
 type Constructor<T> = new (...args: any[]) => T;
 type definition_type = 'var' | 'list' | 'broadcast' | 'function'
 export class Scope {
@@ -131,9 +322,10 @@ export class Scope {
 		return null
 	}
 	stage: StageScope = undefined as unknown as StageScope;
-	variables: Map<string, Variable> = new Map();
-	lists: Map<string, List> = new Map();
-	block_dict: Map<string, Block> = new Map();
+	variables: Map<string, Variable> = new Map;
+	lists: Map<string, List> = new Map;
+	block_dict: Map<string, Block> = new Map;
+	func_dict: Map<string, CustomBlock> = new Map;
 	is_stage: boolean = false;
 	block_json: any;
 	identifier_macros: Record<string, () => Block | Stack | null> = {};
@@ -155,8 +347,11 @@ export class Scope {
 			this.block_dict.set(block.id, block)
 		}
 	}
+	add_block(block: Block) {
+		this.block_dict.set(block.id, block)
+	}
 	duplicate(): Scope {
-		const scope = new (Object.getPrototypeOf(this).constructor as Constructor<this>)(this.project);
+		const scope = new Scope(this.project);
 		scope.block_dict = new Map(scope.block_dict.entries());
 		scope.is_stage = this.is_stage;
 		scope.block_json = this.block_json;
@@ -188,6 +383,9 @@ export class StageScope extends Scope {
 		this.stage = this;
 		this.project.sprites.set(id, this);
 		this.definitions = project.definitions;
+		// console.log(this.definitions)
+		this.definitions.procedures_definition = [[{name: 'custom_block', type: 0}], 'reporter']
+		this.definitions.procedures_prototype = [[], 'reporter']
 	}
 	definitions: Record<string, Definition>;
 }
@@ -235,13 +433,14 @@ export class ScratchBlockInput {
 	value: ScratchBlockValue = 0;
 	type: BlockInputDataType | InputDataType = InputDataType.math_number;
 	block: ScratchBlock;
+	locked?: boolean = false;
 	constructor(block: ScratchBlock) {
 		this.block = block;
 	}
 	get_JSON(): [Input, Block[]] {
 		if (this.value instanceof Block) {
 			return [[
-				InputType.unlocked2,
+				this.locked ? InputType.locked : InputType.unlocked2,
 				String((this.value as Block).id),
 				// [
 				// 	this.type,
@@ -313,7 +512,10 @@ export class ScratchBlockInput {
 export class ScratchBlock {
 	opcode: string = 'undefined'
 	scope: SpriteScope | StageScope
+	custom_defintion?: Definition;
 	get definition() {
+		if (this.custom_defintion)
+			return this.custom_defintion;
 		if (this.scope.stage.definitions[this.opcode] === undefined)
 			throw new Error(`definition not found for ${this.opcode}, have you included base.js?`)
 		return this.scope.stage.definitions[this.opcode]
@@ -357,6 +559,7 @@ export class Block {
 	shadow: boolean = false;
 	id: string;
 	scratch_block: ScratchBlock;
+	mutation?: Mutation;
 	set_parent(new_parent: Block | undefined) {
 		console.log(this.id, this.scratch_block.opcode, 'set parent to', new_parent?.id)
 		this._parent = new_parent;
@@ -412,6 +615,8 @@ export class Block {
 			shadow: this.shadow,
 			topLevel: this.topLevel,
 		}
+		if (this.mutation !== undefined)
+			blocks[this.id].mutation = this.mutation;
 		// console.log(blocks)
 		return blocks
 	}
