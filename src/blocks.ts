@@ -19,9 +19,10 @@ export interface BaseInput {
 }
 
 export interface FieldInputA extends BaseInput {
-    options: [string, string][],
-    variableTypes: string[],
+    options?: [string, string][],
+    variableTypes?: string[],
     blocklyType: string
+	field_type?: 'var' | 'broadcast'
 }
 
 export interface FieldInputB extends FieldInputA {
@@ -127,6 +128,8 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
     // console.debug(Object.keys(blocks))
 
     function process_block([opcode, block]: [string, any]) {
+		if (opcode == 'control_for_each')
+			console.log('!!!!', opcode, block)
 		try {
 			Object.keys(block)
 			.filter(a => a.startsWith('args'))
@@ -140,10 +143,11 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 			throw error
 		}
 		// might probably be [InputThing][]
-		const args: InputThing[][] = Object.keys(block)
+		const args: InputThing[] = Object.keys(block)
 			.filter(a => a.startsWith('args'))
 			.map(n => block[n])
-			.filter(a => a[0]?.type != 'field_image');
+			.filter(a => a[0]?.type != 'field_image')
+			.flat(2);
 		type InputThing = {
 			type: "input_value" | "input_statement" | "field_variable" | string,
 			name: string
@@ -171,6 +175,7 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 					type: 1,
 					options: arg.options,
 					field: arg.name,
+					field_type: 'var',
 					variableTypes: arg.variableTypes,
 					blocklyType: arg.type
 				}
@@ -210,36 +215,46 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 			return {
 				name: arg.name,
 				type: arg.type == 'input_value' ? 1 : (() => {
-					console.error(block, args)
+					console.log(Object.keys(block)
+						.filter(a => a.startsWith('args'))
+						.map(n => block[n])
+						.filter(a => a[0]?.type != 'field_image'))
+					console.error(block, args, arg)
 					throw `Unknown input type ${arg.type} in ${opcode}.${arg.name}`
 				})(),
 				variableTypes: arg.variableTypes,
 				blocklyType: arg.type
 			}
 		}
-		
-		if(args.find(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))) {
-			// console.log('branch!!', (args[0] ?? []))
-			return [opcode, [
-				(args[0] ?? []).map(argMap).filter(a=>a !== null && Object.keys(a).length) ?? [], 'branch',
+
+		if (opcode == 'control_for_each') {
+			console.log(args, args.map(argMap), [opcode, [
+				args.filter(a => a.type != 'input_statement').map(argMap),
+				'branch',
 				args
 					// find branches
-					.filter(sub => sub && Array.isArray(sub) && sub.find(k => k.type == 'input_statement'))
-					// get the uh, branches
-					.reduce((branches, input_collection) => {
-						branches.push(
-							...input_collection
-							.filter(input => input.type == 'input_statement')
-						);
-						return branches;
-					}, [])
+					.filter(a => a.type == 'input_statement')
+					// get their names
+					.map(i => i.name)
+			]])
+		}
+		
+		if(args.find(k => k.type == 'input_statement')) {
+			// console.log('branch!!', (args[0] ?? []))
+			return [opcode, [
+				args.filter(a => a.type != 'input_statement').map(argMap),
+				'branch',
+				args
+					// find branches
+					.filter(a => a.type == 'input_statement')
 					// get their names
 					.map(i => i.name)
 			]]
 		}
 		return [
 			opcode,
-			[((args[0] ?? []).map(argMap) ?? []),
+			[
+				args.map(argMap),
 			(block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']
 		].filter(a => a != null)
 	}

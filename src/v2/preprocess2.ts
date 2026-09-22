@@ -1,4 +1,3 @@
-import { Sprite } from "../jsontypes.ts";
 import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, IfNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
 import { ObjectMethodCallNode } from "../tshv2/main.ts";
 import { ResolveKind, SpriteOrStageScope } from "./oop_block.ts";
@@ -30,7 +29,7 @@ const identifier_defintions: Map<string, ASTNode | undefined> = new Map();
 const function_defintions: Map<string, ASTNode | undefined> = new Map();
 
 // deno-lint-ignore no-explicit-any
-const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNode | undefined][] = [
+const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNode | undefined | ASTNode[]][] = [
 	['ObjectAccess', function(node: ObjectAccessNode, sprite: SpriteOrStageScope): ASTNode {
 		let vtype: null | 'v' | 'l' = null;
 		const object: IdentifierNode | ASTNode = node.object;
@@ -43,6 +42,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 			return object
 		}
 		if (identifier_value.kind == 'list') {
+			vtype = 'l';
 			switch (node.property) {
 				case 'length':
 					return fnc_helper('data_lengthoflist',
@@ -231,7 +231,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 	['For', function(node: ForNode): ASTNode {
 		const loop = bfnc_helper("control_for_each", [
 			node.branch
-		], literal_helper((node.varname as IdentifierNode).name), node.times);
+		], node.varname as IdentifierNode, node.times);
 		if (!node.define)
 			return loop;
 		return bfnc_helper("control_repeat", [
@@ -255,7 +255,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 ]
 
 // convert nodes that aren't necessarily blocks to block nodes
-export default function transformAST(node: ASTNode, sprite: SpriteOrStageScope): ASTNode | undefined {
+export default function transformAST(node: ASTNode, sprite: SpriteOrStageScope): ASTNode | undefined | ASTNode[] {
 	const [,transformer] = TRANSFORMERS.find(([t]) => t == node.type as NodeType)??[];
 	if (!transformer)
 		return node;

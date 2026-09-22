@@ -16,6 +16,32 @@ export function genUid() {
 	return id.join('');
 };
 
+const map = 'abcdefghijklmnopqrstuvwxyz';
+
+function ntol(number: number | bigint) {
+    number = BigInt(number)
+	// const chars = ((number - 1n) / 26n) + 1n;
+	let n = '';
+	let rp = 1n;
+	let r = 26n;
+	while (true) {
+		const ch = (number - rp) % r;
+        number -= ch;
+        // console.log(ch, number, rp, r, ch / rp)
+		n = map[Number(ch / rp)] + n;
+		rp = r;
+		r *= 26n
+        if (number - rp <= 0) break;
+	}
+	return n;
+}
+
+let last = 0;
+
+export function gen_id(): string {
+	return ntol(last++);
+}
+
 type PropertyKind = 'variable' | 'list' | 'broadcast' | 'function'
 
 export interface SpriteProperty {
@@ -103,12 +129,19 @@ export class CustomBlock implements SpriteProperty {
 	}
 	/** run without screen refresh */
 	warp: boolean = false;
-	protected serialized: boolean = false;
-	private argumentids: string[] = [];
-	private argumentnames: string[] = [];
-	private argumentdefaults: (string | number)[] = [];
-	protected prototype?: Block;
-	protected definition?: Block;
+	/** @readonly @constant */
+	serialized: boolean = false;
+	/** @readonly @constant */
+	argumentids: string[] = [];
+	/** @readonly @constant */
+	argumentnames: string[] = [];
+	/** @readonly @constant */
+	argumentdefaults: (string | number)[] = [];
+	/** @readonly @constant */
+	prototype?: Block;
+	/** @readonly @constant */
+	definition?: Block;
+	inputs: CustomBlockInput[] = [];
 	private serialize_args() {
 		if (this.prototype === undefined)
 			throw 'prototype must be defined'
@@ -121,12 +154,28 @@ export class CustomBlock implements SpriteProperty {
 			this.argumentids.push(argid)
 			this.argumentnames.push(arg);
 			this.argumentdefaults.push('');
+			this.inputs.push({
+				id: argid,
+				name: arg
+			})
 
 			// const inputBlock = () => {
-			const inputBlock = new Block(this.scope);
-			inputBlock.opcode = "argument_reporter_string_number";
-			inputBlock.scratch_block.fields.get('VALUE')!.value = arg;
-			inputBlock.shadow = true;
+			const input_block = new Block(this.scope, this.prototype);
+			input_block.scratch_block.custom_defintion = [
+				[{
+					field: 'VALUE',
+					name: 'VALUE',
+					blocklyType: '',
+					type: 1
+				}], 'reporter'
+			]
+			input_block.scratch_block.load_inputs();
+			input_block.opcode = "argument_reporter_string_number";
+			input_block.scratch_block.fields.get('VALUE')!.value = {
+				id: argid,
+				name: arg
+			};
+			input_block.shadow = true;
 			// return inputBlock;
 			// }
 
@@ -141,7 +190,7 @@ export class CustomBlock implements SpriteProperty {
 
 			const input = new ScratchBlockInput(this.prototype.scratch_block);
 			input.type = InputDataType.text;
-			input.value = inputBlock;
+			input.value = input_block;
 			input.locked = true;
 
 			this.prototype.scratch_block.custom_defintion[0].push({
@@ -162,14 +211,14 @@ export class CustomBlock implements SpriteProperty {
 	serialize(): [Stack, Scope] {
 		this.serialized = true;
 		// const function_stack = new Stack(this.scope);
+		this.definition = new Block(this.scope);
+		this.definition.opcode = 'procedures_definition';
 		this.prototype = new Block(this.scope);
 		this.prototype.opcode = 'procedures_prototype';
 		this.prototype.shadow = true;
 		this.prototype.shadow = true;
 
 		// const fndBlocks: jsonBlock[] = [];
-		this.definition = new Block(this.scope);
-		this.definition.opcode = 'procedures_definition';
 		const stack: Stack = new Stack(this.scope, this.definition);
 
 		// if ('x' in blk) delete blk.x;
@@ -191,6 +240,8 @@ export class CustomBlock implements SpriteProperty {
 		const fn_scope = this.scope.duplicate();
 
 		this.serialize_args()
+
+		fn_scope.current_custom_block_inputs = this.inputs;
 
 		this.prototype.mutation = this.get_mutation();
 		this.prototype.set_parent(this.definition);
@@ -225,7 +276,7 @@ export class CustomBlock implements SpriteProperty {
 		// 	fndChildren[0] as BlockCollection | undefined;
 
 		this.definition.scratch_block.inputs.set('custom_block', new ScratchBlockInput(this.definition.scratch_block))
-		this.definition.scratch_block.inputs.get('custom_block')!.value = this.prototype.id;
+		this.definition.scratch_block.inputs.get('custom_block')!.value = this.prototype;
 		// this.definition.topLevel = true;
 
 		// fndBlocks.push({
@@ -275,17 +326,22 @@ type Constructor<T> = new (...args: any[]) => T;
 type definition_type = 'var' | 'list' | 'broadcast' | 'function'
 export class Scope {
 	project: Project
+	current_custom_block_inputs?: CustomBlockInput[] = undefined;
+	define(type: 'function', name: string, block: CustomBlock): void
 	define(type: 'broadcast', name: string): Broadcast
 	define(type: 'list', name: string): List
 	define(type: 'var', name: string): Variable
-	define(type: definition_type, name: string): Variable | List | Broadcast {
-		if (type == 'function') throw 'TODO'
+	define(type: definition_type, name: string, block?: CustomBlock): Variable | List | Broadcast | void {
+		if (type == 'function') {
+			this.func_dict.set(name, block!);
+			return;
+		}
 		if (type == 'var') {
 			const variable = new Variable(genUid(), name);
 			this.variables.set(name, variable);
 			return variable;
 		}
-		else if (type == 'list') {
+		if (type == 'list') {
 			const list = new List(genUid(), name);
 			this.lists.set(name, list);
 			return list;
@@ -295,11 +351,11 @@ export class Scope {
 		return broadcast;
 	}
 	resolve(kind: ResolveKind.Broadcast, identifier: string):	Broadcast | null
-	resolve(kind: ResolveKind.Function, identifier: string):	never //TODO: function declarations
+	resolve(kind: ResolveKind.Function, identifier: string):	CustomBlock | null
 	resolve(kind: ResolveKind.List, identifier: string):		List | null
 	resolve(kind: ResolveKind.Var_or_list, identifier: string):	Variable | List | null
 	resolve(kind: ResolveKind.Variable, identifier: string):	Variable | null
-	resolve(kind: ResolveKind, identifier: string): Variable | List | Broadcast | null {
+	resolve(kind: ResolveKind, identifier: string): Variable | List | Broadcast | CustomBlock | null {
 		if (kind == ResolveKind.Variable || ResolveKind.Var_or_list) {
 			if (this.variables.has(identifier))
 				return this.variables.get(identifier)!;
@@ -316,9 +372,10 @@ export class Scope {
 			if (this.stage.broadcasts.has(identifier))
 				return this.stage.broadcasts.get(identifier)!;
 		}
-		if (kind == ResolveKind.Function) 
-			//TODO:
-			throw 'todo';
+		if (kind == ResolveKind.Function) {
+			if (this.func_dict.has(identifier))
+				return this.func_dict.get(identifier)!;
+		}
 		return null
 	}
 	stage: StageScope = undefined as unknown as StageScope;
@@ -352,7 +409,8 @@ export class Scope {
 	}
 	duplicate(): Scope {
 		const scope = new Scope(this.project);
-		scope.block_dict = new Map(scope.block_dict.entries());
+		scope.current_custom_block_inputs = this.current_custom_block_inputs;
+		scope.block_dict = new Map(this.block_dict.entries());
 		scope.is_stage = this.is_stage;
 		scope.block_json = this.block_json;
 		scope.lists = new Map(this.lists.entries());
@@ -415,8 +473,13 @@ export enum BlockInputDataType {
 	block = Infinity,
 }
 
+export interface CustomBlockInput {
+	name: string,
+	id: string,
+}
+
 export class ScratchBlockField {
-	value: Broadcast | Variable | List | string | null = null;
+	value: Broadcast | Variable | List | CustomBlockInput | string | null = null;
 	get_JSON(): [string, string] | [] | string {
 		if (!this.value)
 			return []
@@ -549,7 +612,7 @@ export class ScratchBlock {
 }
 
 export class Block {
-	static _id = 0
+	static _id = 1
 	scope: SpriteScope | StageScope
 	private _parent: Block | undefined;
 	get parent(): Block | undefined {
@@ -561,7 +624,7 @@ export class Block {
 	scratch_block: ScratchBlock;
 	mutation?: Mutation;
 	set_parent(new_parent: Block | undefined) {
-		console.log(this.id, this.scratch_block.opcode, 'set parent to', new_parent?.id)
+		// console.log(this.id, this.scratch_block.opcode, 'set parent to', new_parent?.id)
 		this._parent = new_parent;
 		this.topLevel = new_parent === undefined;
 	}
@@ -576,8 +639,7 @@ export class Block {
 	}
 	topLevel: boolean = false;
 	constructor(scope: SpriteScope | StageScope, parent?: Block) {
-		//FIXME - non-numerical IDs
-		this.id = (Block._id++).toString()
+		this.id = ntol(Block._id++).toString()
 		this.scope = scope;
 		this.scratch_block = new ScratchBlock(scope);
 		if (!parent)
@@ -589,7 +651,7 @@ export class Block {
 		scope.block_dict.set(this.id, this)
 	}
 	get_JSON(): Record<string, blockBlock> {
-		console.log('getting json of', this.opcode)
+		// console.log('getting json of', this.opcode)
 		let blocks: Record<string, blockBlock> = {}
 		const inputs: [string, Input][] = [];
 		for (const [id, input] of this.scratch_block.inputs.entries()) {
@@ -600,7 +662,7 @@ export class Block {
 			}
 			// blocks.push(...additional_blocks.map(bl => bl.get_JSON()).flat())
 		}
-		console.log(this.parent?.id)
+		// console.log(this.parent?.id)
 		blocks[this.id] = {
 			opcode: this.opcode,
 			next: this.next ? this.next.id : null,

@@ -1342,7 +1342,7 @@ export default async function ASTtoBlocks(
 					argumentids: JSON.stringify(argumentids),
 					argumentnames: JSON.stringify(argumentnames),
 					argumentdefaults: JSON.stringify(argumentdefaults),
-					warp: JSON.stringify(fndNode.warp)
+					warp: JSON.stringify(fndNode.warp) as 'true' | 'false'
 				}
 
 				sprite.customBlocks[fndNode.name] = {
@@ -1404,8 +1404,8 @@ export default async function ASTtoBlocks(
 				if (lastCustomBlock)
 					lastCustomBlock.opcode = 'procedures_definition_return';
 				if (lastPrototypeBlock)	{
-					lastPrototypeBlock.mutation.returns = 'true';
-					lastPrototypeBlock.mutation.optype = '"string"';
+					lastPrototypeBlock.mutation!.returns = 'true';
+					lastPrototypeBlock.mutation!.optype = '"string"';
 				}
 				const returnBlock: jsonBlock = {
 					opcode: 'procedures_return',

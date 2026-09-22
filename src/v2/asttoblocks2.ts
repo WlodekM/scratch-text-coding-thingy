@@ -1,7 +1,17 @@
 // import { Project } from "./jsontypes.ts";
 // import { Variable } from "../jsontypes.ts";
 import { Input, jsBlocksToJSON } from "../blocks.ts";
-import { Block, List, ResolveKind, ScratchBlockValue, Stack, Variable, type SpriteOrStageScope, CustomBlock, } from './oop_block.ts'
+import {
+	Block,
+	List,
+	ResolveKind,
+	ScratchBlockValue,
+	Stack,
+	Variable,
+	type SpriteOrStageScope,
+	CustomBlock,
+	ScratchBlockInput
+} from './oop_block.ts'
 import { AssignmentNode, ASTNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IncludeNode, ListDeclarationNode, LiteralNode, VariableDeclarationNode } from "../tshv2/main.ts";
 import transformAST from "./preprocess2.ts";
 import { BlockBuilder } from "./block_builder.ts";
@@ -39,8 +49,23 @@ export async function process_node(
 		{ node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block },
 	throw_if_null = false,
 ): Promise<ScratchBlockValue | null> {
-	const node = await transformAST(original_node, scope)
+	const transformed = await transformAST(original_node, scope);
+	if (Array.isArray(transformed)) {
+		if (!stack || !throw_if_null)
+			throw 'transformed should be in stack';
+		for (const node of transformed) {
+			await process_node({
+				node,
+				scope,
+				parent,
+				stack
+			});
+		}
+		return null;
+	}
+	const node = transformed as ASTNode | null;
 	if (!node) return null;
+	console.log(node)
 	const handlers: Record<string, (() => ScratchBlockValue | null) | (() => Promise<ScratchBlockValue | null>)> = ({
 		async GreenFlag() {
 			if (stack || parent)
@@ -60,6 +85,63 @@ export async function process_node(
 			// console.log(node,stack)
 			// if (!stack) throw new Error('have to be inside stack');
 			const _node = node as FunctionCallNode;
+			const custom_block = scope.resolve(ResolveKind.Function, _node.identifier)
+			if (custom_block !== null) {
+				const block = new Block(scope);
+				block.scratch_block.custom_defintion = [[], 'reporter'];
+				// block.scratch_block
+				block.opcode = 'procedures_call';
+				for (let i = 0; i < custom_block.argumentids.length; i++) {
+					const id = custom_block.argumentids[i];
+					const arg = _node.args[i];
+					const input = new ScratchBlockInput(block.scratch_block);
+					if (arg)
+						input.value = await process_node({
+							node: arg,
+							scope,
+							parent: block
+						}, true);
+					// input.type
+					block.scratch_block.inputs.set(id, input)
+				}
+				if (custom_block.prototype === undefined)
+					throw new Error('how the fuck did this even occur')
+				block.mutation = custom_block.prototype.mutation
+				if (stack)
+					stack.add(block);
+				else
+					block.set_parent(parent);
+				return block
+				// const blockDefinition = sprite.customBlocks[fnNode2.identifier]
+				// const definition = [blockDefinition.inputs.map(i => { return { name: i[1], type: i[0] } })]
+				// const child: PartialBlockCollection[] = [];
+				// const inputs = [];
+				// const fields: ([string, any] | [])[] = [];
+				// for (let i = 0; i < Math.min(definition[0].length, fnNode2.args.length); i++) {
+				// 	const inp = definition[0][i];
+				// 	// console.log(inp)
+				// 	const { inputs: inps, fields: flds } = await arg2input(level, inp, fnNode2.args[i], child, scope)
+				// 	inputs.push(inps)
+				// 	if (flds && flds.length !== 0)
+				// 		fields.push(flds)
+				// }
+				// const block: jsonBlock = {
+				// 	opcode: "procedures_call",
+				// 	...blk,
+				// 	fields: Object.fromEntries(fields),
+				// 	mutation: blockDefinition.mutation,
+				// 	id: thisBlockID.toString(),
+				// 	inputs: Object.fromEntries(inputs),
+				// 	next: null, // no next (yet)
+				// 	topLevel,
+				// 	parent: topLevel || !lastBlock ? null : lastBlock.id.toString(),
+				// 	shadow: false,
+				// }
+				// // console.debug(block)
+				// if (!topLevel && !noNext) lastBlock.next = block.id.toString();
+				// if (!noLast) lastBlock = block;
+				// return new BlockCollection(block, child) //TODO: figure out how to map function args to children
+			}
 			const block = new Block(scope);
 			block.opcode = _node.identifier;
 			const definition = block.scratch_block.definition;
@@ -74,17 +156,20 @@ export async function process_node(
 					parent: block
 				});
 				if (value === null) throw 'cant use a null node in arguments'
-				console.log(value, input.name, block.scratch_block.inputs)
+				// console.log(value, input.name, block.scratch_block.inputs)
 				if (block.scratch_block.fields.has(input.name)) {
-					if (typeof value !== 'string' && !(value instanceof Variable) && !(value instanceof List))
-						throw 'expected string or list or var in field'
+					if (typeof value !== 'string' && !(value instanceof Variable) && !(value instanceof List)) {
+						console.log(_node)
+						throw `expected string or list or var in field, got ${value}`
+					}
 					block.scratch_block.fields.get(input.name)!.value = value
-				} else
+				} else {
 					block
 						.scratch_block
 						.inputs
 						.get(input.name)!
 						.value = value;
+				}
 			}
 			if (stack)
 				stack.add(block);
@@ -327,13 +412,13 @@ export async function process_node(
 			for (let i = 0; i < Math.min(_node.args.length, inputs.length); i++) {
 				const arg = _node.args[i];
 				const input = inputs[i];
-				console.log(arg, input)
+				// console.log(arg, input)
 				const value = await process_node({
 					node: arg,
 					scope,
 					parent: block
 				});
-				console.log('akjshfkjskjlkvxnojnvdkdn', value)
+				// console.log('akjshfkjskjlkvxnojnvdkdn', value)
 				// if (value instanceof Block) {
 				// 	value.set_parent(block)
 				// }
@@ -341,15 +426,21 @@ export async function process_node(
 
 				const scratch_block = block
 					.scratch_block;
-				if (scratch_block.fields.has(input.name))
-					scratch_block.fields.get(input.name)!.value = scope.resolve(ResolveKind.Var_or_list, input.name);
-				else
+				// console.log(scratch_block.fields, input.name)
+				if (scratch_block.fields.has(input.name)) {
+					if (typeof value !== 'string' && !(value instanceof Variable) && !(value instanceof List)) {
+						console.log(_node)
+						throw `expected string or list or var in field, got ${value}`
+					}
+					scratch_block.fields.get(input.name)!.value = value;
+				} else {
 					scratch_block
 						.inputs
 						.get(input.name)!
 						.value = value;
+				}
 			}
-			console.log(block.scratch_block.inputs)
+			// console.log(block.scratch_block.inputs)
 			for (let i = 0; i < definition[2]!.length; i++) {
 				const branch_arg = definition[2]![i];
 				const branch = _node.branches[i];
@@ -438,6 +529,28 @@ export async function process_node(
 		},
 		Identifier() {
 			const _node = node as IdentifierNode;
+			if (scope.current_custom_block_inputs?.find(i => i.name == _node.name)) {
+				const input = scope.current_custom_block_inputs!
+					.find(i => i.name == _node.name)!;
+				const input_block = new Block(scope, parent);
+				input_block.scratch_block.custom_defintion = [
+					[{
+						field: 'VALUE',
+						name: 'VALUE',
+						blocklyType: '',
+						type: 1
+					}], 'reporter'
+				]
+				input_block.scratch_block.load_inputs();
+				input_block.opcode = "argument_reporter_string_number";
+				input_block.scratch_block.fields.get('VALUE')!.value = input;
+				// input_block.shadow = true;
+				if (stack)
+					stack.add(input_block);
+				else
+					input_block.set_parent(parent);
+				return input_block
+			}
 			if (scope.identifier_macros[_node.name]) {
 				const returnValue = scope.identifier_macros[_node.name]();
 				if (returnValue instanceof Stack) {
@@ -448,9 +561,9 @@ export async function process_node(
 					}
 					return null;
 				} else if (returnValue instanceof Block) {
-					if (!stack) throw 'need to be in stack to use '+_node.name;
-					stack.add(returnValue);
-					return null;
+					if (stack) 
+						stack.add(returnValue);
+					return returnValue;
 				}
 				return returnValue;
 			}
@@ -475,6 +588,11 @@ export async function process_node(
 				}, true)
 				// stack.add();
 			}
+			// if (fn_stack.length > 0) {
+			fn_stack.parent!.next = fn_stack.blocks[0];
+			// }
+			scope.define('function', _node.name, custom_block);
+			scope.add_stack(fn_stack)
 			return null;
 		}
 	});

@@ -1,4 +1,3 @@
-// deno-lint-ignore-file no-window no-var
 // the new and improved tosh !
 // now using targets instead of projects !
 import { Lexer, Parser } from "../tshv2/main.ts";

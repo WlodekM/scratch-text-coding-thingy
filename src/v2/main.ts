@@ -132,6 +132,7 @@ if (target_config.insert_blocks) {
 		const json = sprite.get_blocks_json();
 		console.log('and i know just where youre going', sprite_name)
 		console.log(json)
+		console.log(JSON.stringify(json))
 	}
 }
 
