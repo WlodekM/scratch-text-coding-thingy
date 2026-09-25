@@ -11,12 +11,16 @@ import ASTtoBlocks, { Environment, jsonBlock } from "../asttoblocks.ts";
 import * as json from '../jsontypes.ts'
 import { blockBlock } from "../main.ts";
 import { parseArgs } from "jsr:@std/cli/parse-args";
+import fs from 'node:fs'
 const flags = parseArgs(Deno.args, {
 	boolean: ["r", "d"],
 	// string: ["version"],
 	// default: { color: true },
 	// negatable: ["color"],
 });
+
+if (fs.existsSync('deno.lock'))
+	fs.rmSync('deno.lock')
 
 console.log(flags)
 
@@ -161,6 +165,11 @@ for (const [name, sprite] of project.sprites.entries()) {
 	}
 	//@ts-ignore: fuck off typescript
 	target.blocks = sprite.get_blocks_json()
+	Object.assign(target.variables, sprite.get_variables_json())
+	//@ts-ignore: fuck off typescript
+	Object.assign(target.lists, sprite.get_lists_json())
+	if (sprite.is_stage) //@ts-ignore: fuck off typescript
+		Object.assign(target.broadcasts, (sprite as StageScope).get_broadcasts_json())
 }
 
 if (!base_project.extensions) base_project.extensions = [];

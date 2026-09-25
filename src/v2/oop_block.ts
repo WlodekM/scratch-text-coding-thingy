@@ -72,9 +72,12 @@ export enum VariableType {
 }
 
 export class Variable extends SpritePropertyWithIdAndIntialValue {
-	initial_value: string | number
+	initial_value: string | number | null = null;
 	kind: PropertyKind = 'variable';
 	type: VariableType | [VariableType.Instance, string] = VariableType.Regular;
+	get_JSON(): [string, number | string] {
+		return [this.name, this.initial_value ?? 0]
+	}
 	constructor (id: string, name: string, intial_value: string | number="") {
 		super(id, name)
 		this.initial_value = intial_value
@@ -84,6 +87,9 @@ export class Variable extends SpritePropertyWithIdAndIntialValue {
 export class List extends SpritePropertyWithIdAndIntialValue {
 	initial_value: (string | number)[]
 	kind: PropertyKind = 'list';
+	get_JSON(): [string, (number | string)[]] {
+		return [this.name, this.initial_value ?? []]
+	}
 	constructor (id: string, name: string, intial_value: (string | number)[]=[]) {
 		super(id, name)
 		this.initial_value = intial_value
@@ -399,6 +405,20 @@ export class Scope {
 		// console.log('i hear every door you open')
 		return blocks;
 	}
+	get_variables_json(): Record<string, [string, number | string]> {
+		const vars: Record<string, [string, number | string]> = {};
+		for (const variable of this.variables.values()) {
+			vars[variable.id] = variable.get_JSON()
+		}
+		return vars;
+	}
+	get_lists_json(): Record<string, [string, (number | string)[]]> {
+		const lists: Record<string, [string, (number | string)[]]> = {};
+		for (const list of this.lists.values()) {
+			lists[list.id] = list.get_JSON()
+		}
+		return lists;
+	}
 	add_stack(stack: Stack) {
 		for (const block of stack.blocks) {
 			this.block_dict.set(block.id, block)
@@ -432,6 +452,14 @@ export class StageScope extends Scope {
 		const scope: StageScope = super.duplicate() as StageScope;
 		scope.broadcasts = new Map(this.broadcasts.entries());
 		return scope;
+	}
+
+	get_broadcasts_json(): Record<string, string> {
+		const broadcasts: Record<string, string> = {};
+		for (const broadcast of this.broadcasts.values()) {
+			broadcasts[broadcast.id] = broadcast.name;
+		}
+		return broadcasts;
 	}
 	
 	constructor(id: string, project?: Project) {
@@ -493,14 +521,16 @@ export type ScratchBlockValue = Broadcast | Block | List | Variable | string | n
 
 export class ScratchBlockInput {
 	shadow: boolean = false;
-	value: ScratchBlockValue = 0;
+	value: ScratchBlockValue | null = null;
 	type: BlockInputDataType | InputDataType = InputDataType.math_number;
 	block: ScratchBlock;
 	locked?: boolean = false;
 	constructor(block: ScratchBlock) {
 		this.block = block;
 	}
-	get_JSON(): [Input, Block[]] {
+	get_JSON(): [Input, Block[]] | [null, []] {
+		if (this.value == null)
+			return [null, []];
 		if (this.value instanceof Block) {
 			return [[
 				this.locked ? InputType.locked : InputType.unlocked2,
@@ -656,6 +686,8 @@ export class Block {
 		const inputs: [string, Input][] = [];
 		for (const [id, input] of this.scratch_block.inputs.entries()) {
 			const [input_json, additional_blocks] = input.get_JSON();
+			if (input_json === null)
+				continue;
 			inputs.push([id, input_json]);
 			for (const new_blocks of additional_blocks.map(bl => bl.get_JSON())) {
 				blocks = {...blocks, ...new_blocks}

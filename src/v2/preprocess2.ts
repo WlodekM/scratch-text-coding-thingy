@@ -1,4 +1,4 @@
-import type { ASTNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, IfNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
+import type { ASTNode, BooleanNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, IfNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
 import { ObjectMethodCallNode } from "../tshv2/main.ts";
 import { ResolveKind, SpriteOrStageScope } from "./oop_block.ts";
 
@@ -46,12 +46,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 			switch (node.property) {
 				case 'length':
 					return fnc_helper('data_lengthoflist',
-						literal_helper(identifier.name)
+						identifier
 					)
 				
 				case 'json':
 					return fnc_helper('skyhigh173JSON_json_vm_getlist',
-						literal_helper(identifier.name)
+						identifier
 					)
 
 				case 'initial_json':
@@ -66,8 +66,8 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 				
 				case 'last':
 					return fnc_helper('data_itemoflist',
-						fnc_helper('data_lengthoflist', literal_helper(identifier.name)),
-						literal_helper(identifier.name)
+						fnc_helper('data_lengthoflist', identifier),
+						identifier
 					)
 			
 				default:
@@ -116,7 +116,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 						throw 'list::push() requires an element to push'
 					return fnc_helper('data_addtolist',
 						node.args[0],
-						literal_helper(identifier.name)
+						identifier
 					)
 				
 				case 'replace':
@@ -124,7 +124,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 						throw 'list::replace() requires an index and an item'
 					return fnc_helper('data_replaceitemoflist',
 						node.args[0],
-						literal_helper(identifier.name),
+						identifier,
 						node.args[1]
 					)
 				
@@ -133,7 +133,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 						throw 'list::remove() requires an index'
 					return fnc_helper('data_deleteoflist',
 						node.args[0],
-						literal_helper(identifier.name)
+						identifier
 					)
 				
 				case 'insert':
@@ -142,12 +142,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 					return fnc_helper('data_insertatlist',
 						node.args[1],
 						node.args[0],
-						literal_helper(identifier.name),
+						identifier,
 					)
 				
 				case 'clear':
 					return fnc_helper('data_deletealloflist',
-						literal_helper(identifier.name)
+						identifier
 					)
 				
 				case 'at':
@@ -155,7 +155,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 						throw 'list::at() requires an index'
 					return fnc_helper('data_itemoflist',
 						node.args[0],
-						literal_helper(identifier.name)
+						identifier
 					)
 
 				case 'indexof':
@@ -163,7 +163,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 						throw 'list::indexof() requires an item'
 					return fnc_helper('data_itemnumoflist',
 						node.args[0],
-						literal_helper(identifier.name)
+						identifier
 					)
 
 				case 'contains':
@@ -171,7 +171,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 						throw 'list::contains() requires an item'
 					return fnc_helper('data_listcontainsitem',
 						node.args[0],
-						literal_helper(identifier.name)
+						identifier
 					)
 				
 				default:
@@ -220,14 +220,14 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 			return node;
 		return identifier_defintions.get(node.identifier)!
 	}],
-	['OnEvent', function(node: OnEventNode): ASTNode {
-		return bfnc_helper('event_whenbroadcastreceived',
-			[
-				node.branch
-			],
-			literal_helper(node.event),
-		)
-	}],
+	// ['OnEvent', function(node: OnEventNode): ASTNode {
+	// 	return bfnc_helper('event_whenbroadcastreceived',
+	// 		[
+	// 			node.branch
+	// 		],
+	// 		{ type: 'Identifier', name: node.event } as IdentifierNode,
+	// 	)
+	// }],
 	['For', function(node: ForNode): ASTNode {
 		const loop = bfnc_helper("control_for_each", [
 			node.branch
@@ -251,6 +251,12 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 			node.thenBranch,
 			node.elseBranch,
 		].filter(b=>b!==undefined), node.condition)
+	}],
+	['Boolean', function (node: BooleanNode) {
+		if (node.value) {
+			return fnc_helper('operator_not', fnc_helper('operator_not'))
+		}
+		return fnc_helper('operator_not')
 	}]
 ]
 

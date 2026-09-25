@@ -88,11 +88,13 @@ export interface RealSprite {
 
 export type Sprite = Stage | RealSprite
 
-export type Variable = [string, number]
+export type Variable = [string, number | string]
 
 export type Variables = Record<string, Variable>
 
-export interface Lists { }
+export type List = [string, (string | number)[]]
+
+export type Lists = Record<string, List>
 
 export type Broadcasts = Record<string, string>
 

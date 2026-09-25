@@ -1,6 +1,6 @@
 // import { Project } from "./jsontypes.ts";
 // import { Variable } from "../jsontypes.ts";
-import { Input, jsBlocksToJSON } from "../blocks.ts";
+import { Definition, Input, jsBlocksToJSON } from "../blocks.ts";
 import {
 	Block,
 	List,
@@ -10,9 +10,10 @@ import {
 	Variable,
 	type SpriteOrStageScope,
 	CustomBlock,
-	ScratchBlockInput
+	ScratchBlockInput,
+	Broadcast
 } from './oop_block.ts'
-import { AssignmentNode, ASTNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IncludeNode, ListDeclarationNode, LiteralNode, VariableDeclarationNode } from "../tshv2/main.ts";
+import { AssignmentNode, ASTNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IncludeNode, ListDeclarationNode, LiteralNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
 import transformAST from "./preprocess2.ts";
 import { BlockBuilder } from "./block_builder.ts";
 import { BinaryExpressionNode } from "../tshv2/main.ts";
@@ -31,6 +32,38 @@ if (is_browser)
 	blockly = globalThis.ScratchBlocks ?? globalThis.Blockly
 else {
 	blockly = (await import('./fake_blockly.ts')).blockly
+}
+
+async function process_inputs(node: ASTNode & {args: ASTNode[]}, block: Block, definition: Definition, scope: SpriteOrStageScope) {
+	const [inputs] = definition;
+	block.scratch_block.load_inputs()
+	for (let i = 0; i < Math.min(node.args.length, inputs.length); i++) {
+		const arg = node.args[i];
+		const input = inputs[i];
+		const value = await process_node({
+			node: arg,
+			scope: scope,
+			parent: block
+		}, true);
+		if (value === null) throw 'cant use a null node in arguments'
+		// console.log(value, input.name, block.scratch_block.inputs)
+		if (block.scratch_block.fields.has(input.name)) {
+			if (typeof value !== 'string' &&
+				!(value instanceof Variable) &&
+				!(value instanceof List) && 
+				!(value instanceof Broadcast)) {
+				console.log(node)
+				throw `expected string, list, var or broadcast in field, got ${value}`
+			}
+			block.scratch_block.fields.get(input.name)!.value = value
+		} else {
+			block
+				.scratch_block
+				.inputs
+				.get(input.name)!
+				.value = value;
+		}
+	}
 }
 
 export function process_node(
@@ -145,32 +178,7 @@ export async function process_node(
 			const block = new Block(scope);
 			block.opcode = _node.identifier;
 			const definition = block.scratch_block.definition;
-			const [inputs] = definition;
-			block.scratch_block.load_inputs()
-			for (let i = 0; i < Math.min(_node.args.length, inputs.length); i++) {
-				const arg = _node.args[i];
-				const input = inputs[i];
-				const value = await process_node({
-					node: arg,
-					scope: scope,
-					parent: block
-				});
-				if (value === null) throw 'cant use a null node in arguments'
-				// console.log(value, input.name, block.scratch_block.inputs)
-				if (block.scratch_block.fields.has(input.name)) {
-					if (typeof value !== 'string' && !(value instanceof Variable) && !(value instanceof List)) {
-						console.log(_node)
-						throw `expected string or list or var in field, got ${value}`
-					}
-					block.scratch_block.fields.get(input.name)!.value = value
-				} else {
-					block
-						.scratch_block
-						.inputs
-						.get(input.name)!
-						.value = value;
-				}
-			}
+			await process_inputs(_node, block, definition, scope);
 			if (stack)
 				stack.add(block);
 			else
@@ -267,6 +275,8 @@ export async function process_node(
 						return a
 					}
 					let ext: any = null;
+					let register_resolve: (...args: unknown[]) => void;
+					const register_promise = new Promise((resolve) => register_resolve = resolve);
 					//@ts-ignore:
 					globalThis.window = globalThis
 					//@ts-ignore:
@@ -275,7 +285,7 @@ export async function process_node(
 						fetch: asyncNop,
 						extensions: {
 							unsandboxed: true,
-							register: (e: any) => { ext = e }
+							register: (e: any) => { ext = e; register_resolve?.() }
 						},
 						vm: {
 							runtime: {
@@ -370,7 +380,12 @@ export async function process_node(
 							extUrl = `data:text/javascript,${url}`;
 					}
 					await import(ipath);
-					if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
+					await Promise.race([new Promise(resolve => setTimeout(resolve, 1000)), register_promise])
+					
+					if (ext == null || !ext?.getInfo) {
+						console.debug(ext, ipath)
+						throw "Extension didnt load properly";
+					}
 					const { blocks, id: extid } = ext.getInfo();
 					scope.project.extensions.push(extid);
 					scope.project.extensionUrls[extid] = extUrl;
@@ -398,14 +413,45 @@ export async function process_node(
 			await include_handlers[_node.itype]()
 			return null
 		},
+		async OnEvent() {
+			if (stack || parent)
+				throw 'cannot be in stack or have a parent'
+			const _node = node as OnEventNode;
+			const block = new Block(scope);
+			const broadcast = scope.stage.define('broadcast', _node.event);
+			block.opcode = 'event_whenbroadcastreceived';
+			block.scratch_block.load_inputs()
+			block.scratch_block.fields.get('BROADCAST_OPTION')!.value = broadcast;
+			const broadcast_stack = new Stack(scope);
+			broadcast_stack.add(block);
+			for (const node of _node.branch) {
+				await process_node({ node, stack: broadcast_stack, scope });
+			}
+			return block;
+		},
 		async BranchFunctionCall() {
-			if (!stack) throw new Error('have to be inside stack');
 			const _node = node as BranchFunctionCallNode;
 			const block = new Block(scope);
 			// console.log(_node)
 			block.opcode = _node.identifier;
 			const definition = block.scratch_block.definition;
-			if (definition[1] !== 'branch') throw `definition not branch; are you sure this is a branch block? (${block.opcode})`
+			if (definition[1] === 'hat') {
+				if (stack || parent)
+					throw 'cannot be in stack or have a parent'
+				if (_node.branches.length != 1)
+					throw 'must have one branch'
+				const hat_stack = new Stack(scope);
+				// blok.opcode = 'event_whenflagclicked';
+				hat_stack.add(block)
+				for (const node of _node.branches[0]) {
+					await process_node({ node, stack: hat_stack, scope });
+				}
+				await process_inputs(_node, block, definition, scope);
+				scope.add_stack(hat_stack)
+				return block;
+			}
+			if (!stack) throw new Error('have to be inside stack');
+			if (definition[1] !== 'branch') throw `definition not branch nor hat; are you sure this is a branch block? (${block.opcode})`
 			const [inputs] = definition;
 			block.scratch_block.load_inputs();
 			// console.log('auiuinjsflom', _node.args, inputs.length)
@@ -567,9 +613,10 @@ export async function process_node(
 				}
 				return returnValue;
 			}
-			const variable = scope.resolve(ResolveKind.Variable, _node.name);
-			if (!variable)
-				throw `cannot resolve variable ${JSON.stringify(variable)}; has it been defined?`
+			const variable = scope.resolve(ResolveKind.Var_or_list, _node.name);
+			if (!variable) {
+				throw `cannot resolve identifier ${JSON.stringify(variable)}; has it been defined?`
+			}
 			return variable
 		},
 		async FunctionDeclaration() {
