@@ -34,7 +34,7 @@ else {
 	blockly = (await import('./fake_blockly.ts')).blockly
 }
 
-async function process_inputs(node: ASTNode & {args: ASTNode[]}, block: Block, definition: Definition, scope: SpriteOrStageScope) {
+async function process_inputs(node: ASTNode & {args: ASTNode[]}, block: Block, definition: Definition, scope: SpriteOrStageScope, path: string) {
 	const [inputs] = definition;
 	block.scratch_block.load_inputs()
 	for (let i = 0; i < Math.min(node.args.length, inputs.length); i++) {
@@ -43,7 +43,8 @@ async function process_inputs(node: ASTNode & {args: ASTNode[]}, block: Block, d
 		const value = await process_node({
 			node: arg,
 			scope: scope,
-			parent: block
+			parent: block,
+			path
 		}, true);
 		if (value === null) throw 'cant use a null node in arguments'
 		// console.log(value, input.name, block.scratch_block.inputs)
@@ -67,19 +68,19 @@ async function process_inputs(node: ASTNode & {args: ASTNode[]}, block: Block, d
 }
 
 export function process_node(
-	{ node, stack, scope, parent }: { node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block },
+	{ node, stack, scope, parent, path }: { node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block, path: string },
 ): Promise<ScratchBlockValue | null>
 export function process_node(
-	{ node, stack, scope, parent }: { node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block },
+	{ node, stack, scope, parent, path }: { node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block, path: string },
 	throw_if_null: false,
 ): Promise<ScratchBlockValue | null>
 export function process_node(
-	{ node, stack, scope, parent }: { node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block },
+	{ node, stack, scope, parent, path }: { node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block, path: string },
 	throw_if_null: true,
 ): Promise<ScratchBlockValue>
 export async function process_node(
-	{ node: original_node, stack, scope, parent }:
-		{ node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block },
+	{ node: original_node, stack, scope, parent, path: pwd }:
+		{ node: ASTNode, stack?: Stack, scope: SpriteOrStageScope, parent?: Block, path: string },
 	throw_if_null = false,
 ): Promise<ScratchBlockValue | null> {
 	const transformed = await transformAST(original_node, scope);
@@ -91,7 +92,8 @@ export async function process_node(
 				node,
 				scope,
 				parent,
-				stack
+				stack,
+				path: pwd
 			});
 		}
 		return null;
@@ -109,7 +111,7 @@ export async function process_node(
 			gf_block.opcode = 'event_whenflagclicked';
 			gf_stack.add(gf_block)
 			for (const node of _node.branch) {
-				await process_node({ node, stack: gf_stack, scope });
+				await process_node({ node, stack: gf_stack, scope, path: pwd });
 			}
 			scope.add_stack(gf_stack)
 			return gf_block;
@@ -132,7 +134,8 @@ export async function process_node(
 						input.value = await process_node({
 							node: arg,
 							scope,
-							parent: block
+							parent: block,
+							path: pwd
 						}, true);
 					// input.type
 					block.scratch_block.inputs.set(id, input)
@@ -178,7 +181,7 @@ export async function process_node(
 			const block = new Block(scope);
 			block.opcode = _node.identifier;
 			const definition = block.scratch_block.definition;
-			await process_inputs(_node, block, definition, scope);
+			await process_inputs(_node, block, definition, scope, pwd);
 			if (stack)
 				stack.add(block);
 			else
@@ -204,7 +207,8 @@ export async function process_node(
 				block.scratch_block.inputs.get('VALUE')!.value = await process_node({
 					node: _node.value,
 					scope,
-					parent: block
+					parent: block,
+					path: pwd
 				}, THROW_IF_NULL);
 				stack.add(block);
 				// console.log(block.scratch_block.inputs)
@@ -367,10 +371,10 @@ export async function process_node(
 					let ipath = _node.path;
 					//TODO: basedir
 					if (_node.itype == 'extensions/file')
-						ipath = path.resolve('.', ipath);
+						ipath = path.resolve(pwd, ipath);
 					let extUrl = _node.path;
 					if (_node.itype == 'extensions/file') {
-						const file = fs.readFileSync(path.resolve('.', ipath));
+						const file = fs.readFileSync(path.resolve(pwd, ipath));
 						const base64 = (typeof file == 'string' ? Buffer.from(file) : file).toString('base64')
 						const url = encodeURIComponent(file.toString())
 						// console.log(base64, url)
@@ -400,14 +404,16 @@ export async function process_node(
 										name: a[0],
 										type: 1
 									} as Input
-								}), block.blockType == Scratch.BlockType.EVENT ? 'hat' : 'reporter']]
+								}),
+									[Scratch.BlockType.EVENT, Scratch.BlockType.HAT].includes(block.blockType) ? 'hat' :
+									block.blockType == Scratch.BlockType.COMMAND ? 'command' : 'reporter']]
 							})
 						)
 					}
 				},
 				//TODO: other include types
 			}
-			include_handlers['extension/file'] = include_handlers.extension;
+			include_handlers['extensions/file'] = include_handlers.extension;
 			if (!include_handlers[_node.itype])
 				throw `cannot handle include type ${JSON.stringify(_node.itype)}`
 			await include_handlers[_node.itype]()
@@ -425,7 +431,7 @@ export async function process_node(
 			const broadcast_stack = new Stack(scope);
 			broadcast_stack.add(block);
 			for (const node of _node.branch) {
-				await process_node({ node, stack: broadcast_stack, scope });
+				await process_node({ node, stack: broadcast_stack, scope, path: pwd });
 			}
 			return block;
 		},
@@ -435,6 +441,7 @@ export async function process_node(
 			// console.log(_node)
 			block.opcode = _node.identifier;
 			const definition = block.scratch_block.definition;
+			console.log(definition)
 			if (definition[1] === 'hat') {
 				if (stack || parent)
 					throw 'cannot be in stack or have a parent'
@@ -444,9 +451,9 @@ export async function process_node(
 				// blok.opcode = 'event_whenflagclicked';
 				hat_stack.add(block)
 				for (const node of _node.branches[0]) {
-					await process_node({ node, stack: hat_stack, scope });
+					await process_node({ node, stack: hat_stack, scope, path: pwd });
 				}
-				await process_inputs(_node, block, definition, scope);
+				await process_inputs(_node, block, definition, scope, pwd);
 				scope.add_stack(hat_stack)
 				return block;
 			}
@@ -462,7 +469,8 @@ export async function process_node(
 				const value = await process_node({
 					node: arg,
 					scope,
-					parent: block
+					parent: block,
+					path: pwd
 				});
 				// console.log('akjshfkjskjlkvxnojnvdkdn', value)
 				// if (value instanceof Block) {
@@ -496,6 +504,7 @@ export async function process_node(
 						node,
 						stack: branch_stack,
 						scope,
+						path: pwd
 					});
 				}
 				if (!branch_stack.empty) {
@@ -522,7 +531,7 @@ export async function process_node(
 				.set_opcode('data_setvariableto')
 				.set_field('VARIABLE', variable);
 			block.get_input('VALUE')
-				.set_value(await process_node({ scope, node: _node.value, parent: block.block }, THROW_IF_NULL))
+				.set_value(await process_node({ scope, node: _node.value, parent: block.block, path: pwd }, THROW_IF_NULL))
 			stack.addb(block)
 			return block.block
 		},
@@ -561,9 +570,9 @@ export async function process_node(
 					// inner_block.get_input_by_index(1)
 					// 		.set_value(await process_node({sprite, node: _node.right}, THROW_IF_NULL));
 					inner_block.scratch_block.inputs.get(inputs[0]!.name)!.value =
-						await process_node({ scope, node: _node.left, parent: block ?? inner_block }, THROW_IF_NULL);
+						await process_node({ scope, node: _node.left, parent: block ?? inner_block, path: pwd }, THROW_IF_NULL);
 					inner_block.scratch_block.inputs.get(inputs[1]!.name)!.value =
-						await process_node({ scope, node: _node.right, parent: block ?? inner_block }, THROW_IF_NULL);
+						await process_node({ scope, node: _node.right, parent: block ?? inner_block, path: pwd }, THROW_IF_NULL);
 				}
 				if (!block) block = inner_block;
 			}
@@ -631,7 +640,8 @@ export async function process_node(
 					node: child,
 					stack: fn_stack,
 					scope: fn_scope,
-					parent: fn_stack.length > 0 ? fn_stack.top : undefined
+					parent: fn_stack.length > 0 ? fn_stack.top : undefined,
+					path: pwd
 				}, true)
 				// stack.add();
 			}
