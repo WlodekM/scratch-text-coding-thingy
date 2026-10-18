@@ -678,13 +678,15 @@ export default async function ASTtoBlocks(
 					let ext: any = null;
 					//@ts-ignore:
 					globalThis.window = globalThis
+					let register_resolve: (...args: unknown[]) => void;
+					const register_promise = new Promise((resolve) => register_resolve = resolve);
 					//@ts-ignore:
 					const Scratch = globalThis.Scratch = {
 						translate: (a: string) => a,
 						fetch: asyncNop,
 						extensions: {
 							unsandboxed: true,
-							register: (e: Class) => { ext = e }
+							register: (e: any) => { ext = e; register_resolve?.() }
 						},
 						vm: {
 							runtime: {
@@ -778,7 +780,13 @@ export default async function ASTtoBlocks(
 							extUrl = `data:text/javascript,${url}`;
 					}
 					await import(ipath);
-					if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
+					await Promise.race([new Promise(resolve => setTimeout(resolve, 1000)), register_promise])
+					
+					if (ext == null || !ext?.getInfo) {
+						console.debug(ext, ipath)
+						throw "Extension didnt load properly";
+					}
+					// if (ext == null || !ext?.getInfo) throw "Extension didnt load properly";
 					const { blocks, id: extid } = ext.getInfo();
 					sprite.extensions.push([extUrl, extid]);
 					blockDefinitions = {
@@ -1092,6 +1100,7 @@ export default async function ASTtoBlocks(
 				lastBlock = {
 					id: thisBlockID.toString()
 				} as blockBlock
+				console.log(bDefinition, branchNode.identifier)
 				for (let i = 0; i < Math.min(bDefinition[0].length, branchNode.args.length); i++) {
 					const inp = bDefinition[0][i];
 					const { inputs: inps, fields: flds } = await arg2input(level, inp, branchNode.args[i], branchChildren, scope)
