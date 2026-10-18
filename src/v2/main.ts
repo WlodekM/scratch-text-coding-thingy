@@ -81,7 +81,8 @@ if (target_config.insert_blocks) {
 
 		console.log(code_path)
 		
-		const code = Deno.readTextFileSync(path.resolve(dir, code_path));
+		const full_code_path = path.resolve(dir, code_path);
+		const code = Deno.readTextFileSync(full_code_path);
 		console.log(code)
 		const lexer = new Lexer(code);
 		const tokens = lexer.tokenize();
@@ -130,7 +131,7 @@ if (target_config.insert_blocks) {
 
 		for (const node of ast) {
 			console.log(node)
-			await process_node({node, scope: sprite});
+			await process_node({node, scope: sprite, path: path.dirname(full_code_path)});
 		}
 
 		const json = sprite.get_blocks_json();
