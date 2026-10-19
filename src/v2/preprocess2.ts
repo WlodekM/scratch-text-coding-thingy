@@ -253,7 +253,7 @@ const TRANSFORMERS: [NodeType, (node: any, sprite: SpriteOrStageScope) => ASTNod
 		].filter(b=>b!==undefined), node.condition)
 	}],
 	['Boolean', function (node: BooleanNode) {
-		if (node.value) {
+		if (!node.value) {
 			return fnc_helper('operator_not', fnc_helper('operator_not'))
 		}
 		return fnc_helper('operator_not')
