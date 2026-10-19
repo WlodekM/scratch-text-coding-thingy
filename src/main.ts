@@ -1,15 +1,37 @@
-// deno-lint-ignore-file no-explicit-any
-import { parse, stringify } from "jsr:@std/yaml";
-import * as json from './jsontypes.ts'
-import { Lexer, Parser } from "./tshv2/main.ts";
-import ASTtoBlocks, { Environment, jsonBlock } from "./asttoblocks.ts";
-import * as zip from "jsr:@zip-js/zip-js";
-import CryptoJS from "https://esm.sh/crypto-js@4.1.1";
+// the new and improved tosh !
+// now using targets instead of projects !
 import path from 'node:path'
-import * as mus from 'music-metadata';
-import getSpriteGlobals from "./getGlobalVars.ts";
+import { parse } from "jsr:@std/yaml";
+import * as zip from "jsr:@zip-js/zip-js";
+import { Lexer, Parser } from "./tshv2/main.ts";
+import { Project, SpriteScope, StageScope } from "./oop_block.ts";
+import { process_node } from "./asttoblocks2.ts";
+import retro_getSpriteGlobals from "./getGlobalVars.ts";
+import ASTtoBlocks, { Environment, jsonBlock } from "./legacy/asttoblocks.ts";
+import * as json from './jsontypes.ts'
+type blockBlock = ({ id: string } & json.Block)
+import { parseArgs } from "jsr:@std/cli/parse-args";
+import fs from 'node:fs'
+const flags = parseArgs(Deno.args, {
+	boolean: ["r", "d"],
+	// string: ["version"],
+	// default: { color: true },
+	// negatable: ["color"],
+});
 
-// the t stands for tosh3
+if (fs.existsSync('deno.lock'))
+	fs.rmSync('deno.lock')
+
+console.log(flags)
+
+const dir: string = path.resolve(flags._ ? String(flags._) : 0 || Deno.cwd() || '.');
+const retro = flags.r;
+const debug = flags.d;
+
+interface TInsertBlocks {
+	code: string
+}
+
 type TSound = {
     format: 'wav' | 'mp3' | string
     path: string
@@ -32,435 +54,172 @@ type TSprite = {
     y?: number,
     layer?: number
 }
-type TProject = {
-    sprites: Record<string, TSprite>
-    preprocess?: string
-    search_dir?: string
+
+interface TargetConfig {
+	insert_blocks?: Record<string, TInsertBlocks>,
+	base: string
 }
 
-const dir: string = path.resolve(Deno.args[0] || Deno.cwd() || '.');
+const target_config: TargetConfig =
+	parse(Deno.readTextFileSync(path.resolve(dir, 'target.trg.yaml'))) as any;
 
-console.log(dir)
+const resulting_files: Record<string, Uint8Array|string> = {}
 
-const decoder = new TextDecoder("utf-8");
-const rawProjectConfig: string = decoder.decode(
-    Deno.readFileSync(
-        path.join(dir, 'project.prj.yaml')
-    )
-)
-const project: TProject = parse(rawProjectConfig) as TProject
-
-function search_dir(_path: string) {
-    const dir = Deno.readDirSync(_path)
-    for (const element of dir) {
-        if (element.isDirectory) {
-            search_dir(path.join(_path, element.name))
-            continue;
-        }
-        if (!element.name.endsWith('.spr.yaml'))
-            continue;
-        const raw_sprite: string = decoder.decode(
-            Deno.readFileSync(
-                path.join(_path, element.name)
-            )
-        )//.replaceAll(`src/${element.name.replace('.spr.yaml','')}/`, '')
-        // console.log(`src/${element.name}/`)
-        const sprite: TSprite = parse(raw_sprite) as TSprite
-        if (!sprite.path_root)
-            sprite.path_root = _path
-        // Deno.writeTextFileSync(
-        //     path.join(_path, element.name),
-        //     stringify(sprite)
-        // )
-        project.sprites[element.name] = sprite;
-    }
-}
-if (project.search_dir) {
-    search_dir(path.resolve(dir, project.search_dir))
-}
-
-// console.debug(project)
-
-const projectJson: {
-    targets: json.Sprite[],
-    meta: any,
-    $schema?: string,
-    extensions: string[],
-    extensionURLs: Record<string, string>
-} = {
-    targets: [],
-    meta: {},
-    extensions: [],
-    extensionURLs: {},
-}
-
-function removeId(a: blockBlock): json.Block {
-    const b: json.Block & { id?: string } = a
-    delete b.id;
-    return b
-}
-
-async function getCode(sourcePath:string) {
-    if (!project.preprocess)
-        return new TextDecoder().decode(Deno.readFileSync(sourcePath));
-    const cmd = [...project.preprocess.replaceAll('$$', sourcePath).split(' ')]
-    const prog = cmd.shift()
-    if(!prog)throw 'no program'
-    const c = new Deno.Command(prog, {
-        args: cmd,
-        stdout: "piped",
-        stderr: "piped",
-    })
-    const output = await c.output();
-    if (output.code != 0) {
-        console.error(`prepreprocessing code code not OK; code is ${output.code}.`)
-        console.log('stdout:')
-        Deno.stdout.write(output.stdout)
-        console.log('stderr:')
-        Deno.stderr.write(output.stderr);
-        throw 'error at prepreprocessing'
-    }
-    if (Deno.args.includes('-dd'))
-        Deno.stdout.write(output.stdout)
-    return new TextDecoder().decode(output.stdout)
-}
-
-function parseIncludes(code:string, basedir: string) {
-    code = code.replace(/^.include(\s*)"(.*)"/gm, (m,_, _path) => {
-        return Deno.readTextFileSync(path.resolve(basedir, _path))
-    })
-    return code
-}
-
-export type blockBlock = ({ id: string } & json.Block)
-export type varBlock = { id: string, data:  [12, string, string] }
-// export type jsonBlock = blockBlock | varBlock
-
-// path, [id, type]
-const assets: Map<string, [string, string]> = new Map();
-const extensions: Set<[string, string]> = new Set();
+// const assets: Map<string, [string, string]> = new Map();
+// const extensions: Set<[string, string]> = new Set();
 let lastGlobalVariables: Record<string, string> = {};
 let lastGlobalLists: Record<string, [string, string[]]> = {};
 
-for (const spriteName of Object.keys(project.sprites)
-    .sort((a, b) => +(project.sprites[b].stage??0) - +(project.sprites[a].stage??0))
-) {
-    const sprite: TSprite = project.sprites[spriteName];
-    console.log('preprocessing', sprite.name)
-    const jsonSprite: Partial<json.Sprite> = {};
-    jsonSprite.name = sprite.name
-    jsonSprite.isStage = sprite.stage ?? false
-    jsonSprite.lists = {}
-    jsonSprite.variables = {}
-    jsonSprite.broadcasts = {}
-    jsonSprite.costumes = []
+const project = new Project();
+if (target_config.insert_blocks) {
+	const stage = new StageScope('stage', project);
+	console.log(stage.definitions)
+	for (const sprite_name in target_config.insert_blocks) {
+		if (!Object.hasOwn(target_config.insert_blocks, sprite_name)) continue;
+		
+		const { code: code_path } = target_config.insert_blocks[sprite_name];
 
-    //@ts-expect-error:
-    globalThis.base_path = sprite.path_root??dir
-    //@ts-expect-error:
-    globalThis.project_path = dir
-    if (sprite.code) {
-        // console.debug('has code!')
-        try {
-            const sourceCode = await getCode(path.resolve(sprite.path_root??dir, sprite.code));
-            const lexer = new Lexer(sourceCode);
-            const tokens = lexer.tokenize();
-            const parser = new Parser(tokens, sourceCode);
-            let ast;
-            try {
-                ast = parser.parse();
-            } catch (error) {
-                console.error(error)
-                console.log('at', parser.position, '\n'+tokens
-                    .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
-                    .filter((_, i) => Math.abs(parser.position - i) < 5)
-                    .join('\n')
-                )
-                throw 'error during parsing'
-            }
-            const newGlobals = getSpriteGlobals(ast, lastGlobalVariables, lastGlobalLists);
-            // console.debug('new globals:', newGlobals);
-            [lastGlobalVariables, lastGlobalLists] = newGlobals;
-        } catch (error) {
-            console.error('error while parsing code for', sprite.name);
-            throw error;
-        }
-    }
+		console.log(code_path)
+		
+		const full_code_path = path.resolve(dir, code_path);
+		const code = Deno.readTextFileSync(full_code_path);
+		console.log(code)
+		const lexer = new Lexer(code);
+		const tokens = lexer.tokenize();
+		const parser = new Parser(tokens, code);
+		const sprite = new SpriteScope(sprite_name, stage);
+		if (retro) {
+			// deno-lint-ignore no-inner-declarations
+			function get_path(_path: string): string {
+				return path.resolve(dir, _path)
+			}
+			const basedir = path.dirname(get_path(code))
+			let ast;
+			try {
+				ast = parser.parse();
+			} catch (error) {
+				console.error(error)
+				console.log('at', parser.position, '\n'+tokens
+					.map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
+					.filter((_, i) => Math.abs(parser.position - i) < 5)
+					.join('\n')
+				)
+				throw 'error during parsing'
+			}
+			const newGlobals = retro_getSpriteGlobals(ast, lastGlobalVariables, lastGlobalLists);
+			// console.debug('new globals:', newGlobals);
+			[lastGlobalVariables, lastGlobalLists] = newGlobals;
+
+			/*dont care*/// deno-lint-ignore no-unused-vars
+			const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(
+				ast,
+				basedir,
+				lastGlobalVariables,
+				lastGlobalLists,
+			);
+
+			// deno-lint-ignore no-inner-declarations
+			function removeId(a: blockBlock): json.Block {
+				const b: json.Block & { id?: string } = a
+				delete b.id;
+				return b
+			}
+			sprite.block_json = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
+			continue;
+		}
+		const ast = parser.parse();
+
+		for (const node of ast) {
+			console.log(node)
+			await process_node({node, scope: sprite, path: path.dirname(full_code_path)});
+		}
+
+		const json = sprite.get_blocks_json();
+		console.log('and i know just where youre going', sprite_name)
+		console.log(json)
+		console.log(JSON.stringify(json))
+	}
 }
 
-let layer = -1;
-for (const spriteName of Object.keys(project.sprites)
-    .sort((a, b) => +(project.sprites[b].stage??0) - +(project.sprites[a].stage??0))
-) {
-    layer++;
-    const sprite: TSprite = project.sprites[spriteName];
-    console.log('processing', sprite.name)
-    let jsonSprite: Partial<json.Sprite> = {};
-    jsonSprite.name = sprite.name
-    jsonSprite.isStage = sprite.stage ?? false
-    jsonSprite.lists = {}
-    jsonSprite.variables = {}
-    jsonSprite.broadcasts = {}
-    jsonSprite.costumes = []
+const base_sb3 = Deno.readFileSync(path.resolve(dir, target_config.base));
 
-    // deno-lint-ignore no-inner-declarations
-    function get_path(_path: string): string {
-        return path.resolve(sprite.path_root??dir, _path)
-    }
+const file_reader = new zip.BlobReader(new Blob([base_sb3.buffer]));
 
-    if (sprite.code) {
-        try {
-            const basedir = path.dirname(get_path(sprite.code))
-            const sourceCode = parseIncludes(
-                await getCode(get_path(sprite.code)),
-                basedir
-            );
-            if (Deno.args.includes('-da'))
-                console.log(sourceCode)
+const zip_reader = new zip.ZipReader(file_reader)
 
-            const lexer = new Lexer(sourceCode);
-            const tokens = lexer.tokenize();
-            const parser = new Parser(tokens, sourceCode);
-            let ast;
-            try {
-                ast = parser.parse();
-            } catch (error) {
-                console.error(error)
-                console.log('at', parser.position, '\n'+tokens
-                    .map((a, i) => i == parser.position ? `${i} ${a.type}(${a.value}) <--` : `${i} ${a.type}(${a.value})`)
-                    .filter((_, i) => Math.abs(parser.position - i) < 5)
-                    .join('\n')
-                )
-                throw 'error during parsing'
-            }
-            if (Deno.args.includes('-a')) {
-                Deno.writeFileSync('ast.json', new TextEncoder().encode(JSON.stringify(ast, null, 4)))
-            }
-            const [blockaroonies, env]: [jsonBlock[], Environment] = await ASTtoBlocks(
-                ast,
-                basedir,
-                lastGlobalVariables,
-                lastGlobalLists,
-            );
-            // console.log(ast, blockaroonies, env)
-            jsonSprite.variables = {
-                ...Object.fromEntries(
-                    [...env.variables.entries()].map(([v, n]) => [
-                        n,
-                        [
-                            v,
-                            0
-                        ]
-                    ])
-                )
-            }
-            jsonSprite.lists = {
-                ...Object.fromEntries(
-                    [...env.lists.entries()].map(([v, n]) => [
-                        n[0],
-                        [
-                            v,
-                            n[1]
-                        ]
-                    ])
-                )
-            }
-            const stage = projectJson.targets.find(t => t.isStage);
-            if (stage) {
-                stage.variables = {
-                    ...Object.fromEntries(
-                        [...env.globalVariables.entries()].map(([v, n]) => [
-                            n,
-                            [
-                                v,
-                                0
-                            ]
-                        ])
-                    ),
-                    ...stage.variables
-                }
-                stage.lists = {
-                    ...Object.fromEntries(
-                        [...env.globalLists.entries()].map(([v, n]) => [
-                            n[0],
-                            [
-                                v,
-                                n[1]
-                            ]
-                        ])
-                    ),
-                    ...stage.lists
-                }
-            }
-            lastGlobalVariables = Object.fromEntries([...env.globalVariables.entries()]);
-            lastGlobalLists = Object.fromEntries([...env.globalLists.entries()])
-            // console.log(
-            //     lastGlobalVariables,
-            //     lastGlobalLists,
-            //     env.globalVariables
-            // )
-            env.extensions.forEach(ext => extensions.add(ext))
-            if (stage)
-                stage.broadcasts = {
-                    ...stage.broadcasts,
-                    ...Object.fromEntries(
-                        [...env.broadcasts.entries()]
-                        .map(([a, b]) => [b, a])
-                    )
-                }
-            //FIXME - fix either the type or this idfk
-            //@ts-ignore: im just so tired atp
-            jsonSprite.blocks = Object.fromEntries(blockaroonies.map(b => [b.id, 'data' in b ? b.data : removeId(b)]))
-        } catch (error) {
-            console.error('error while parsing code for', sprite.name);
-            throw error;
-        }
-    } else {
-        jsonSprite.blocks = {}
-    }
+const base_entries = await zip_reader.getEntries();
+const base_project_entry = base_entries.find((e:any) => e.filename == 'project.json')
+//@ts-ignore:
+const base_project_json_data: ArrayBuffer = await base_project_entry!.arrayBuffer();
+const td = new TextDecoder();
+const base_project: json.Project = JSON.parse(td.decode(base_project_json_data))
+// console.log(base_project)
 
-    jsonSprite.currentCostume = 0;
-    jsonSprite.sounds = [] // TODO: fix this
-
-    jsonSprite.volume = 100;
-    jsonSprite.layerOrder = sprite.layer ?? layer
-    jsonSprite.isStage = sprite.stage ?? false
-    if (jsonSprite.isStage) {
-        jsonSprite.tempo = 60
-        jsonSprite.videoTransparency = 50
-        jsonSprite.videoState = 'on'
-    } else if (jsonSprite.isStage == false) {
-        jsonSprite = {
-            ...jsonSprite,
-            visible: !(sprite.hidden??false),
-            x: sprite.x ?? 0,
-            y: sprite.y ?? 0,
-            size: 100,
-            direction: 90,
-            draggable: false,
-            rotationStyle: 'all around',
-        }
-    }
-    if (sprite.current_costume)
-        jsonSprite.currentCostume = sprite.current_costume
-    let completesprite: json.Sprite;
-    if (jsonSprite.isStage) {
-        completesprite = jsonSprite as json.Stage
-    } else if (jsonSprite.isStage == false) {
-        completesprite = jsonSprite as json.RealSprite
-    } else throw new Error()
-
-    for (const [name, asset] of Object.entries(sprite.costumes)) {
-        const asset_path = get_path(asset.path)
-        let [rotationCenterX, rotationCenterY] = [0, 0]
-        const ext = asset_path.match(/\.([^\.]*?)$/)![1]
-        if (!assets.has(asset_path)) {
-            const assetData = new TextDecoder().decode(Deno.readFileSync(asset_path));
-            const match = [...assetData.matchAll(/<!--rotationCenter:(.*?):(.*?)-->/g)][0];
-            // console.log(match ? match[1] : 'a')
-            if(match && match[1] && match[2]) {
-                [rotationCenterX, rotationCenterY] = [Number(match[1]), Number(match[2])]
-            }
-            const hash = CryptoJS.MD5(assetData).toString();
-            assets.set(asset_path, [hash, ext]);
-        }
-        if (asset.rotationCenter)
-            [rotationCenterX, rotationCenterY] = asset.rotationCenter;
-        jsonSprite.costumes!.push({
-            assetId: (assets.get(asset_path) ?? [''])[0],
-            dataFormat: asset.format, // TODO - figure out bitmap format
-            bitmapResolution: 1,
-            md5ext: assets.get(asset_path)!.join('.'),
-            name,
-            rotationCenterX,
-            rotationCenterY,
-        })
-    }
-
-    for (const [name, sound] of Object.entries(sprite.sounds ?? {})) {
-        const sound_path = get_path(sound.path)
-        let metadata;
-        try {
-            metadata = await mus.parseFile(sound_path);
-        } catch (error) {
-            console.error('error with parsing sound file at', sound_path);
-            throw error
-        }
-        if (!metadata.format.sampleRate)
-            throw 'couldnt get sample rate'
-        if (!metadata.format.numberOfSamples)
-            throw 'couldnt get sample rate';
-        const ext = sound_path.match(/\.([^\.]*?)$/)![1]
-        if (!assets.has(sound_path)) {
-            const assetData = new TextDecoder().decode(Deno.readFileSync(sound_path));
-            const hash = CryptoJS.MD5(assetData).toString();
-            assets.set(sound_path, [hash, ext]);
-        }
-        (jsonSprite.sounds as {
-            assetId: string
-            dataFormat: "wav" | "wave" | "mp3"
-            md5ext?: string
-            name: string
-            rate?: number
-            sampleCount?: number
-            [k: string]: unknown
-        }[]).push({
-            assetId: (assets.get(sound_path) ?? [''])[0],
-            dataFormat: sound.format as "wav" | "wave" | "mp3",
-            md5ext: assets.get(sound_path)!.join('.'),
-            name,
-            rate: metadata.format.sampleRate,
-            sampleCount: metadata.format.numberOfSamples
-        })
-    }
-    projectJson.targets.push(completesprite)
+for (const [name, sprite] of project.sprites.entries()) {
+	const target = base_project.targets.find(t => {
+		console.log(t.name, name)
+		return t.name == name
+	})
+	if (!target) {
+		console.log('skippng', name)
+		continue;
+	}
+	//@ts-ignore: fuck off typescript
+	target.blocks = sprite.get_blocks_json()
+	Object.assign(target.variables, sprite.get_variables_json())
+	//@ts-ignore: fuck off typescript
+	Object.assign(target.lists, sprite.get_lists_json())
+	if (sprite.is_stage) //@ts-ignore: fuck off typescript
+		Object.assign(target.broadcasts, (sprite as StageScope).get_broadcasts_json())
 }
 
-projectJson.extensions = [...extensions].map(a => a[1])
-projectJson.extensionURLs = Object.fromEntries([...extensions].filter(([a])=>a.startsWith('http')||a.startsWith('data')).map(([a, b]) => [b, a]))
+if (!base_project.extensions) base_project.extensions = [];
+if (!base_project.extensionURLs) base_project.extensionURLs = {};
 
-projectJson.meta = {
-    agent: '',
-    semver: '3.0.0',
-    platform: {
-        name: 'backslash. (TurboWarp-compatible)',
-        url: 'https://github.com/WlodekM/scratch-text-coding-thingy'
-    }
+base_project.extensions.push(...project.extensions);
+base_project.extensionURLs = {...base_project.extensionURLs, ...project.extensionUrls};
+
+resulting_files['_project.json'] = JSON.stringify(base_project);
+
+if (debug)
+	Deno.writeTextFileSync('project.json', resulting_files['_project.json'])
+
+// const zip_reader = new zip.ZipReader(file_reader, {
+	
+// })
+
+const result_zip_writer = new zip.BlobWriter();
+
+const zip_writer = new zip.ZipWriter(result_zip_writer);
+
+await zip_writer.prependZip(file_reader);
+
+for (let fpath in resulting_files) {
+	if (!Object.hasOwn(resulting_files, fpath)) continue;
+	let data = resulting_files[fpath];
+	if (fpath.startsWith('_')) {
+		fpath = fpath.replace('_','')
+		await zip_writer.remove(fpath);
+	}
+	if (data instanceof Uint8Array)
+		//@ts-ignore: fuck off typescript i know what im doing
+		data = data.buffer
+	
+	//@ts-ignore: fuck off typescript
+	const blob = new Blob([data])
+	console.log(fpath, data)
+	// if ()
+	await zip_writer.add(fpath, new zip.BlobReader(blob))
 }
 
-//TODO - figure out what the SHIT is causing it to error
-//@ts-expect-error: uh
-const completeproject: json.Project & { $schema?: string } = {
-    $schema: "../schema/sb3_schema.json",
-    ...projectJson
-}
-
-const encoder = new TextEncoder();
-const data = encoder.encode(JSON.stringify(completeproject, null, 4)) // Since this now outputs an sb3, this is purely for debugging so we can indent
-Deno.writeFileSync(path.join(dir, 'out.json'), data)
-
-console.log('building zip')
-//SECTION - write the project json and assets into a zip
-const zipFileWriter = new zip.BlobWriter();
-
-const zipWriter = new zip.ZipWriter(zipFileWriter);
-await zipWriter.add("project.json", new zip.TextReader(JSON.stringify(completeproject)));
-// await zipWriter.add('assets/')
-const uuids: string[] = []
-for (const [asset, [uuid, ext]] of [...assets.entries()]) {
-    const file = Deno.readFileSync(asset)
-    if (uuids.includes(uuid))
-        continue;
-    await zipWriter.add(`${uuid}.${ext}`, new zip.BlobReader(new Blob([file]))) // ungodly conversion between a uint8array and reader
-    uuids.push(uuid)
-}
-await zipWriter.close();
+console.log('uh')
+await zip_writer.close();
 
 // Retrieves the Blob object containing the zip content into `zipFileBlob`. It
 // is also returned by zipWriter.close() for more convenience.
 console.log('compressing zip')
-const zipFileBlob = await zipFileWriter.getData();
+const zipFileBlob = await result_zip_writer.getData();
 console.log('writing zip')
-Deno.writeFileSync(path.join(dir, 'project.sb3'), await zipFileBlob.bytes())
+const bytes = await zipFileBlob.bytes();
+Deno.writeFileSync(path.join(dir, 'project.sb3'), bytes)
 console.log('done')
-//!SECTION

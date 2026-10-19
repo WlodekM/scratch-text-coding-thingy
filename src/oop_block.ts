@@ -1,6 +1,6 @@
-import { blockBlock, InputType, Mutation } from "../jsontypes.ts";
-import { Input, InputDataType } from '../jsontypes.ts'
-import base_definitions, { Definition, FieldInputB } from '../blocks.ts'
+import { blockBlock, InputType, Mutation } from "./jsontypes.ts";
+import * as json from './jsontypes.ts'
+import base_definitions, { Definition, FieldInputB } from './blocks.ts'
 import { type BlockBuilder } from "./block_builder.ts";
 
 const soup = '!#$%()*+,-./:;=?@[]^_`{|}~' +
@@ -103,11 +103,35 @@ export class Broadcast extends SpritePropertyWithId {
 	}
 }
 
+export interface ProjectDeserializeOptions {
+	desrialize_blocks: boolean;
+}
+
 export class Project {
 	sprites: Map<string, StageScope | SpriteScope> = new Map()
 	definitions: Record<string, Definition> = Object.assign({}, base_definitions)
 	extensions: string[] = [];
 	extensionUrls: Record<string, string> = {};
+	meta: json.ProjectMeta = {
+		semver: '3.0.0'
+	};
+	static deserialize(
+		json_project: json._Project,
+		options: ProjectDeserializeOptions = {
+			desrialize_blocks: true
+		}
+	): Project {
+		const project = new Project();
+		if (json_project.meta)
+			project.meta = json_project.meta
+		// FIXME
+		throw 'STUB'
+		return project;
+	}
+	serialize(): json._Project {
+		// STUB
+		throw 'not yet'
+	}
 }
 
 export enum ResolveKind {
@@ -195,7 +219,7 @@ export class CustomBlock implements SpriteProperty {
 			// })
 
 			const input = new ScratchBlockInput(this.prototype.scratch_block);
-			input.type = InputDataType.text;
+			input.type = json.InputDataType.text;
 			input.value = input_block;
 			input.locked = true;
 
@@ -522,13 +546,13 @@ export type ScratchBlockValue = Broadcast | Block | List | Variable | string | n
 export class ScratchBlockInput {
 	shadow: boolean = false;
 	value: ScratchBlockValue | null = null;
-	type: BlockInputDataType | InputDataType = InputDataType.math_number;
+	type: BlockInputDataType | json.InputDataType = json.InputDataType.math_number;
 	block: ScratchBlock;
 	locked?: boolean = false;
 	constructor(block: ScratchBlock) {
 		this.block = block;
 	}
-	get_JSON(): [Input, Block[]] | [null, []] {
+	get_JSON(): [json.Input, Block[]] | [null, []] {
 		if (this.value == null)
 			return [null, []];
 		if (this.value instanceof Block) {
@@ -547,7 +571,7 @@ export class ScratchBlockInput {
 				// 	this.type,
 				// 	0
 				// ],
-			] as Input, [this.value as Block]]
+			] as json.Input, [this.value as Block]]
 		} else if (this.value === 0 && this.type == BlockInputDataType.block) {
 			return [[InputType.unlocked2,null], []]
 		} else if (this.type == BlockInputDataType.block) {
@@ -560,44 +584,44 @@ export class ScratchBlockInput {
 			return [[
 				InputType.locked,
 				[
-					this.value instanceof Variable ? InputDataType.data_variable : InputDataType.data_listcontents,
+					this.value instanceof Variable ? json.InputDataType.data_variable : json.InputDataType.data_listcontents,
 					this.value.name,
 					this.value.id,
 				]
-			] as Input, []]
+			] as json.Input, []]
 		}
-		if (this.type < InputDataType.colour_picker
-			|| this.type == InputDataType.text) {
+		if (this.type < json.InputDataType.colour_picker
+			|| this.type == json.InputDataType.text) {
 			if (
 				typeof this.value !== 'number' &&
 				typeof this.value !== 'string'
 			)
 				throw new Error(`Invalid type of ScratchBlockInput.value (${JSON.stringify(this.value)}) for type of ${this.type}`)
-		} else if (this.type == InputDataType.colour_picker) {
+		} else if (this.type == json.InputDataType.colour_picker) {
 			if (
 				typeof this.value !== 'string'
 			)
 				throw new Error(`Invalid type of ScratchBlockInput.value (${JSON.stringify(this.value)}) for type of ${this.type}`)
-		} else if (this.type == InputDataType.event_broadcast_menu) {
+		} else if (this.type == json.InputDataType.event_broadcast_menu) {
 			if (!(this.value instanceof Broadcast))
 				throw new Error(`Invalid type of ScratchBlockInput.value (${JSON.stringify(this.value)}) for type of ${this.type}`)
-		} else if (this.type == InputDataType.data_variable) {
+		} else if (this.type == json.InputDataType.data_variable) {
 			if (!(this.value instanceof Variable))
 				throw new Error(`Invalid type of ScratchBlockInput.value (${JSON.stringify(this.value)}) for type of ${this.type}`)
-		} else if (this.type == InputDataType.data_listcontents) {
+		} else if (this.type == json.InputDataType.data_listcontents) {
 			if (!(this.value instanceof List))
 				throw new Error(`Invalid type of ScratchBlockInput.value (${JSON.stringify(this.value)}) for type of ${this.type}`)
 		}
-		if (this.type < InputDataType.event_broadcast_menu)
+		if (this.type < json.InputDataType.event_broadcast_menu)
 			return [[
 				InputType.locked,
 				[
 					this.type,
 					this.value
 				]
-			] as Input, []]
+			] as json.Input, []]
 		this.value = this.value as Broadcast
-		if (this.type >= InputDataType.event_broadcast_menu)
+		if (this.type >= json.InputDataType.event_broadcast_menu)
 			return [[
 				InputType.locked,
 				[
@@ -605,7 +629,7 @@ export class ScratchBlockInput {
 					this.value.name,
 					this.value.id,
 				]
-			] as Input, []]
+			] as json.Input, []]
 		throw 'unknown input type'
 	}
 }
@@ -691,7 +715,7 @@ export class Block {
 	get_JSON(): Record<string, blockBlock> {
 		// console.log('getting json of', this.opcode)
 		let blocks: Record<string, blockBlock> = {}
-		const inputs: [string, Input][] = [];
+		const inputs: [string, json.Input][] = [];
 		for (const [id, input] of this.scratch_block.inputs.entries()) {
 			const [input_json, additional_blocks] = input.get_JSON();
 			if (input_json === null)

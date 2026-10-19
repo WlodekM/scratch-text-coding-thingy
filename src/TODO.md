@@ -4,8 +4,6 @@
 
 ### to-do
  - [ ] feilds in extension blocks dont work
- - [ ] clean up v1 stuff (put necessary stuff for retro mode in a legacy/ folder)
-    + [ ] (eventually) remove retro mode
  - [ ] documentation
     + [ ] document bsl (based on wiki but update)
 	+ [ ] document target.trg.yaml
@@ -13,6 +11,12 @@
     + [ ] pong
 
 ### in-progress
+ - [ ] clean up
+    + [ ] clean up v1 stuff
+       * [x] put necessary stuff for retro mode in a legacy/ folder
+	   * [-] move and fix up v2 to base src
+       * [ ] (eventually) remove retro mode
+	+ [ ] move tshv2/ to lang/
 
 ### done
  - [ ] check block type (command/reporter)
@@ -51,6 +55,9 @@
 ### to-do
  - [ ] LSP
  - [ ] OOP
+    + [ ] allow assigning to this and such
+	   * [x] add to tshv2
+	   * [ ] implement it
     + [ ] ```[14:22]amy: i should make a mechanism for like picking between "backends" for more advanced language features
           [14:22]amy: so that i could add a backend that uses lists and custom blocks for oop in vanilla scratch
           [14:22]amy: and one that uses classes and objects in

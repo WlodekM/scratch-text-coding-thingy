@@ -156,6 +156,26 @@ export interface Costume {
 	rotationCenterY: number
 }
 
+export interface ProjectMeta {
+	semver: string
+	vm?: string
+	agent?: string
+	origin?: string
+	[k: string]: unknown
+}
+
+export interface _Project {
+	meta: ProjectMeta;
+	targets: Sprite[]
+	extensions?: string[]
+	extensionURLs: Record<string, string>
+	[k: string]: unknown
+}
+
+// NOTE - for legacy/reference purposes this is the scratch project schema from
+// the source code (i dont remember where exactly from by now but i digress)
+// it WILL be removed EVENTUALLY when i make sure nothing is using it
+// and fully move on from v1
 /**
  * Scratch 3.0 Project Schema
  */

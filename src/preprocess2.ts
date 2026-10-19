@@ -1,5 +1,5 @@
-import type { ASTNode, BooleanNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, IfNode, LiteralNode, NodeType, ObjectAccessNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
-import { ObjectMethodCallNode } from "../tshv2/main.ts";
+import type { ASTNode, BooleanNode, BranchFunctionCallNode, ForNode, FunctionCallNode, IdentifierNode, IfNode, LiteralNode, NodeType, ObjectAccessNode, VariableDeclarationNode } from "./tshv2/main.ts";
+import { ObjectMethodCallNode } from "./tshv2/main.ts";
 import { ResolveKind, SpriteOrStageScope } from "./oop_block.ts";
 
 function fnc_helper(opcode: string, ...args: ASTNode[]) {

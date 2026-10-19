@@ -314,7 +314,7 @@ export interface FunctionDeclarationNode extends ASTNode {
 
 export interface AssignmentNode extends ASTNode {
 	type: "Assignment";
-	identifier: string;
+	identifier: IdentifierNode | ObjectAccessNode;
 	value: ASTNode;
 }
 
@@ -733,7 +733,7 @@ export class Parser {
 		const expr = this.parseBinaryExpression();
 		if (this.match(TokenType.INCREMENT) || this.match(TokenType.DECREMENT)) {
 			//FIXME - probably would be better to make a node for this
-			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value: {
+			return { type: "Assignment", identifier: expr as IdentifierNode, value: {
 				type: 'BinaryExpression',
 				left: {
 					type: 'Identifier',
@@ -747,10 +747,10 @@ export class Parser {
 			} as BinaryExpressionNode} as AssignmentNode;
 		}
 		if (this.match(TokenType.ASSIGN)) {
-			if (expr.type !== "Identifier")
-				throw new Error("Invalid assignment target; expected an identifier");
+			if (expr.type !== "Identifier" && expr.type !== 'ObjectAccess')
+				throw new Error("Invalid assignment target; expected an identifier or an object access node");
 			const value = this.parseAssignment();
-			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value } as AssignmentNode;
+			return { type: "Assignment", identifier: (expr as IdentifierNode | ObjectAccessNode), value } as AssignmentNode;
 		}
 		if (this.peek().type == TokenType.ASSIGNBINOP) {
 			const assign_operation = this.advance();
@@ -758,7 +758,7 @@ export class Parser {
 			if (expr.type !== "Identifier")
 				throw new Error("Invalid assignment target; expected an identifier");
 			const value = this.parseAssignment();
-			return { type: "Assignment", identifier: (expr as IdentifierNode).name, value: {
+			return { type: "Assignment", identifier: (expr as IdentifierNode), value: {
 				type: 'BinaryExpression',
 				left: {
 					type: 'Identifier',

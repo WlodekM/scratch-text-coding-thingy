@@ -1,6 +1,6 @@
 // import { Project } from "./jsontypes.ts";
 // import { Variable } from "../jsontypes.ts";
-import { Definition, Input, jsBlocksToJSON } from "../blocks.ts";
+import { Definition, Input, jsBlocksToJSON } from "./blocks.ts";
 import {
 	Block,
 	List,
@@ -13,10 +13,10 @@ import {
 	ScratchBlockInput,
 	Broadcast
 } from './oop_block.ts'
-import { AssignmentNode, ASTNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IncludeNode, ListDeclarationNode, LiteralNode, OnEventNode, VariableDeclarationNode } from "../tshv2/main.ts";
+import { AssignmentNode, ASTNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IncludeNode, ListDeclarationNode, LiteralNode, OnEventNode, VariableDeclarationNode } from "./tshv2/main.ts";
 import transformAST from "./preprocess2.ts";
 import { BlockBuilder } from "./block_builder.ts";
-import { BinaryExpressionNode } from "../tshv2/main.ts";
+import { BinaryExpressionNode } from "./tshv2/main.ts";
 import fs from 'node:fs';
 import path from "node:path";
 import { Buffer } from "node:buffer";
@@ -221,7 +221,7 @@ export async function process_node(
 			const _node = node as ListDeclarationNode;
 			const list = scope.define('list', _node.identifier);
 
-			list.initial_value = _node.value.map(n => {
+			list.initial_value = _node.value.map((n: ASTNode) => {
 				if (n.type != 'Literal')
 					throw 'list initial value must be literals';
 				return (n as LiteralNode).value
@@ -530,7 +530,11 @@ export async function process_node(
 		async Assignment() {
 			if (!stack) throw new Error('have to be inside stack');
 			const _node = node as AssignmentNode;
-			const variable = scope.resolve(ResolveKind.Variable, _node.identifier)
+			const identifier = _node.identifier;
+			if (identifier.type == 'ObjectAccess') {
+				throw 'unimplemented: assignment to ObjectAccessNode'
+			}
+			const variable = scope.resolve(ResolveKind.Variable, identifier.name)
 			if (!variable)
 				throw `cannot resolve variable ${JSON.stringify(variable)}; has it been defined?`
 			const block = new BlockBuilder(scope)

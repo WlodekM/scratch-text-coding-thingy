@@ -1,12 +1,14 @@
 // the new and improved tosh !
 // now using targets instead of projects !
-import { Lexer, Parser } from "../tshv2/main.ts";
+import { Lexer, Parser } from "./tshv2/main.ts";
 //import { Project, SpriteScope, StageScope } from "./oop_block.ts";
-import getSpriteGlobals from "../getGlobalVars.ts";
-import ASTtoBlocks, { Environment, jsonBlock } from "../asttoblocks.ts";
-import * as json from '../jsontypes.ts';
-import { blockBlock } from "../main.ts";
-import blocks, { type Definition, jsBlocksToJSON } from "../blocks.ts";
+import getSpriteGlobals from "./getGlobalVars.ts";
+// import ASTtoBlocks, { Environment, jsonBlock } from "./asttoblocks.ts";
+import * as json from './jsontypes.ts';
+// import { blockBlock } from "./main.ts";
+import blocks, { type Definition, jsBlocksToJSON } from "./blocks.ts";
+import { SpriteScope, StageScope } from "./oop_block.ts";
+import { process_node } from "./asttoblocks2.ts";
 //import { parseArgs } from "jsr:@std/cli/parse-args";
 //const flags = parseArgs(Deno.args, {
 //    boolean: ["r"],
@@ -71,7 +73,6 @@ function getLocaiton(code: string, pos: number): [number, number] {
 	return [line, char];
 }
 
-
 function preprocess_globals(code: string, identifier: string) {
 	globalThis.bsl_error_info = globalThis.Backslash.bsl_error_info = undefined;
 	const lexer = new Lexer(code);
@@ -106,7 +107,12 @@ function preprocess_globals(code: string, identifier: string) {
 		};
 		return;
 	}
+	// const stage = new StageScope('stage');
+	// const sprite_scope = new SpriteScope(identifier, stage);
 	const newGlobalsList = getSpriteGlobals(ast, {}, {});
+	// const newGlobalsList = [
+	// 	stage
+	// ]
 	globals.set(identifier, newGlobalsList);
 };
 globalThis.preprocess_globals = preprocess_globals;
@@ -160,21 +166,34 @@ async function compile_bsl(code: string, identifier: string): Promise<Record<str
 
 	globals.set(identifier, [uniqueVars, uniqueLists]);
 
-	const [blockaroonies, _env]: [jsonBlock[], Environment] = await ASTtoBlocks(
-		ast,
-		'',
-		lastGlobalVariables,
-		lastGlobalLists,
-		Backslash.blocks
-	);
-
-	function removeId(a: blockBlock): json.Block {
-		const b: json.Block & { id?: string; } = a;
-		delete b.id;
-		return b;
+	const stage = new StageScope('stage');
+	for (const [vars, lists] of globals.values()) {
+		for (const variable in vars) {
+			stage.define('var', variable);
+				// .initial_value = vars[variable];
+		}
+		for (const list in lists) {
+			stage.define('list', list)
+				.initial_value = lists[list][1];
+		}
 	}
+	const sprite = new SpriteScope(identifier, stage);
+	for (const node of ast) {
+		await process_node({
+			node,
+			path: '.',
+			scope: sprite
+		});
+	}
+
+	// function removeId(a: blockBlock): json.Block {
+	// 	const b: json.Block & { id?: string; } = a;
+	// 	delete b.id;
+	// 	return b;
+	// }
+	const blockaroonies = sprite.get_blocks_json()
 	console.debug(blockaroonies);
-	return Object.fromEntries(blockaroonies.map<[string, json.jsonBlockNoId]>(b => [b.id, 'data' in b ? b.data : removeId(b)]));
+	return blockaroonies;
 }
 globalThis.compile_bsl = compile_bsl;
 

@@ -1,10 +1,10 @@
 // deno-lint-ignore-file no-case-declarations no-explicit-any
 import type { AssignmentNode, ASTNode, BinaryExpressionNode, BooleanNode, BranchFunctionCallNode, FunctionCallNode, FunctionDeclarationNode, GreenFlagNode, IdentifierNode, IfNode, IncludeNode, ListDeclarationNode, LiteralNode, NodeType, NotNode, ReturnNode, StartBlockNode, VariableDeclarationNode } from "./tshv2/main.ts";
-import * as json from './jsontypes.ts';
-import bd, { DropdownInput, FieldInputA, FieldInputB } from "./blocks.ts";
-import { Input } from "./blocks.ts";
-import { jsBlocksToJSON, blockly } from "./blocks.ts";
-import { ForNode } from "./tshv2/main.ts";
+import * as json from '../jsontypes.ts';
+import bd, { DropdownInput, FieldInputA, FieldInputB } from "../blocks.ts";
+import { Input } from "../blocks.ts";
+import { jsBlocksToJSON, blockly } from "../blocks.ts";
+import { ForNode } from "../tshv2/main.ts";
 import transformAST from "./preprocess.ts";
 //@ts-ignore:
 // deno-lint-ignore no-window
