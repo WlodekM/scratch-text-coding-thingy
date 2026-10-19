@@ -123,7 +123,7 @@ export async function process_node(
 			const custom_block = scope.resolve(ResolveKind.Function, _node.identifier)
 			if (custom_block !== null) {
 				const block = new Block(scope);
-				block.scratch_block.custom_defintion = [[], 'reporter'];
+				block.scratch_block.custom_defintion = [[], 'either'];
 				// block.scratch_block
 				block.opcode = 'procedures_call';
 				for (let i = 0; i < custom_block.argumentids.length; i++) {
@@ -262,14 +262,20 @@ export async function process_node(
 
 					// janky patch to make some penguinmod bullshit work
 					//TODO: fix this
-					if (scope.stage.definitions.control_expandableIf
-						&& scope.stage.definitions.control_expandableIf[1] != 'branch') {
-						scope.stage.definitions.control_expandableIf[0].unshift({
-							name: 'BOOL1',
-							type: 1,
-							// variableTypes: arg.variableTypes
-						})
-						scope.stage.definitions.control_expandableIf[1] = 'branch'
+					if (scope.stage.definitions.control_expandableIf &&
+						scope.stage.definitions.control_expandableIf[1] != 'branch') {
+						scope.stage.definitions.control_expandableIf = [
+							[
+								{
+									name: 'BOOL1',
+									type: 1,
+									// variableTypes: arg.variableTypes
+								},
+								...scope.stage.definitions.control_expandableIf[0]
+							],
+							'branch',
+							[]
+						]
 					}
 				},
 				'extension': async function () {
@@ -594,7 +600,7 @@ export async function process_node(
 						name: 'VALUE',
 						blocklyType: '',
 						type: 1
-					}], 'reporter'
+					}], 'either'
 				]
 				input_block.scratch_block.load_inputs();
 				input_block.opcode = "argument_reporter_string_number";

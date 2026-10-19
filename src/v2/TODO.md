@@ -13,9 +13,9 @@
     + [ ] pong
 
 ### in-progress
- - [ ] check block type (command/reporter)
 
 ### done
+ - [ ] check block type (command/reporter)
 
 
 

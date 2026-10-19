@@ -154,7 +154,7 @@ export class CustomBlock implements SpriteProperty {
 		this.argumentids = [];
 		this.argumentdefaults = [];
 		this.argumentnames = [];
-		this.prototype.scratch_block.custom_defintion = [[], 'reporter']
+		this.prototype.scratch_block.custom_defintion = [[], 'either']
 		for (const arg of this.params) {
 			const argid = genUid();
 			this.argumentids.push(argid)
@@ -470,8 +470,8 @@ export class StageScope extends Scope {
 		this.project.sprites.set(id, this);
 		this.definitions = project.definitions;
 		// console.log(this.definitions)
-		this.definitions.procedures_definition = [[{name: 'custom_block', type: 0}], 'reporter']
-		this.definitions.procedures_prototype = [[], 'reporter']
+		this.definitions.procedures_definition = [[{name: 'custom_block', type: 0}], 'command']
+		this.definitions.procedures_prototype = [[], 'either']
 	}
 	definitions: Record<string, Definition>;
 }
@@ -532,6 +532,14 @@ export class ScratchBlockInput {
 		if (this.value == null)
 			return [null, []];
 		if (this.value instanceof Block) {
+			if (this.type != BlockInputDataType.block &&
+				this.value.scratch_block.definition[1] != 'reporter' &&
+				this.value.scratch_block.definition[1] != 'either'
+			) {
+				console.error(`parent block:`, this.block, `(${this.block.opcode})`)
+				console.error(`block in input:`, this.value.scratch_block.definition[1], `(${this.value.scratch_block.opcode})`);
+				throw 'inputs must have a reporter!';
+			}
 			return [[
 				this.locked ? InputType.locked : InputType.unlocked2,
 				String((this.value as Block).id),
@@ -743,6 +751,14 @@ export class Stack {
 	}
 	add(block: Block) {
 		block.scope = this.scope;
+		// check block type
+		if (block.scratch_block.definition[1] == 'hat') {
+			if (this.blocks.length !== 0 || this.parent)
+				throw 'hat blocks must not have a parent'
+		} else if (block.scratch_block.definition[1] == 'reporter') {
+			console.error(block.scratch_block)
+			throw 'reporter blocks can\'t be in a stack!'
+		}
 		if (this.blocks.length != 0) {
 			block.set_parent(this.blocks.at(-1))
 			this.blocks.at(-1)!.next = block

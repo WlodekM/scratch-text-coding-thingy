@@ -128,8 +128,10 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
     // console.debug(Object.keys(blocks))
 
     function process_block([opcode, block]: [string, any]) {
-		if (opcode == 'control_for_each')
-			console.log('!!!!', opcode, block)
+		// if (opcode == 'operator_add') {
+		// 	console.log(block)
+		// 	throw 0;
+		// }
 		try {
 			Object.keys(block)
 			.filter(a => a.startsWith('args'))
@@ -227,17 +229,17 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 			}
 		}
 
-		if (opcode == 'control_for_each') {
-			console.log(args, args.map(argMap), [opcode, [
-				args.filter(a => a.type != 'input_statement').map(argMap),
-				'branch',
-				args
-					// find branches
-					.filter(a => a.type == 'input_statement')
-					// get their names
-					.map(i => i.name)
-			]])
-		}
+		// if (opcode == 'control_for_each') {
+		// 	console.log(args, args.map(argMap), [opcode, [
+		// 		args.filter(a => a.type != 'input_statement').map(argMap),
+		// 		'branch',
+		// 		args
+		// 			// find branches
+		// 			.filter(a => a.type == 'input_statement')
+		// 			// get their names
+		// 			.map(i => i.name)
+		// 	]])
+		// }
 		
 		if(args.find(k => k.type == 'input_statement')) {
 			// console.log('branch!!', (args[0] ?? []))
@@ -255,7 +257,10 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 			opcode,
 			[
 				args.map(argMap),
-			(block.extensions ?? []).includes("shape_hat") ? 'hat' : 'reporter']
+				(block.extensions ?? []).includes("shape_hat") ? 'hat' :
+				(block.extensions ?? []).includes('shape_statement') ? 'command' :
+				'reporter'
+			]
 		].filter(a => a != null)
 	}
 
@@ -273,7 +278,7 @@ export function jsBlocksToJSON(jsblocks = !is_browser ? Blockly.Blocks :
 }
 export const processedBlocks: Record<string, any[]> = jsBlocksToJSON()
 
-export type Definition = [Input[], string] | [Input[], 'branch', string[]];
+export type Definition = [Input[], 'command' | 'reporter' | 'hat' | 'either'] | [Input[], 'branch', string[]];
 
 export default {
     ...processedBlocks,
